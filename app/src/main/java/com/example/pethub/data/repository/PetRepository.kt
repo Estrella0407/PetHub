@@ -6,8 +6,8 @@ import com.example.pethub.data.model.*
 import com.example.pethub.data.remote.CloudinaryService
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.remote.FirestoreHelper
-import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_PETS
-import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_USERS
+import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_CUSTOMER
+import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_PET
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -29,53 +29,51 @@ class PetRepository @Inject constructor(
 ) {
 
     suspend fun getUserPets(userId: String): Result<List<Pet>> {
+        // Assuming pets are still subcollection of customers
         return firestoreHelper.getSubcollectionDocuments(
-            COLLECTION_USERS,
+            COLLECTION_CUSTOMER,
             userId,
-            COLLECTION_PETS,
+            COLLECTION_PET,
             Pet::class.java
         )
     }
 
     fun listenToUserPets(userId: String): Flow<List<Pet>> {
         return firestoreHelper.listenToSubcollection(
-            COLLECTION_USERS,
+            COLLECTION_CUSTOMER,
             userId,
-            COLLECTION_PETS,
+            COLLECTION_PET,
             Pet::class.java
         )
     }
 
     suspend fun addPet(userId: String, pet: Pet): Result<String> {
         val petData = pet.copy(
-            ownerId = userId,
+            custId = userId, // Updated from ownerId to custId
             createdAt = firestoreHelper.getServerTimestamp(),
             updatedAt = firestoreHelper.getServerTimestamp()
         )
 
         return firestoreHelper.createSubcollectionDocument(
-            COLLECTION_USERS,
+            COLLECTION_CUSTOMER,
             userId,
-            COLLECTION_PETS,
+            COLLECTION_PET,
             petData
         )
     }
 
     suspend fun updatePet(userId: String, petId: String, updates: Map<String, Any>): Result<Unit> {
-        val docRef = firestoreHelper.getDocumentReference(COLLECTION_USERS, userId)
-            .collection(COLLECTION_PETS)
-            .document(petId)
-
+        // Construct path manually or use helper if available for nested updates
         return firestoreHelper.updateDocument(
-            "$COLLECTION_USERS/$userId/$COLLECTION_PETS",
+            "$COLLECTION_CUSTOMER/$userId/$COLLECTION_PET",
             petId,
             updates
         )
     }
 
     suspend fun deletePet(userId: String, petId: String): Result<Unit> {
-        val docRef = firestoreHelper.getDocumentReference(COLLECTION_USERS, userId)
-            .collection(COLLECTION_PETS)
+        val docRef = firestoreHelper.getDocumentReference(COLLECTION_CUSTOMER, userId)
+            .collection(COLLECTION_PET)
             .document(petId)
 
         return try {

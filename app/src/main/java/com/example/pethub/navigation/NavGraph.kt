@@ -11,11 +11,37 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.pethub.ui.auth.LoginScreen
+import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "home") {
+    NavHost(navController = navController, startDestination = "login") {
+        
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = { 
+                    // Pop login from backstack so back button exits app
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateToRegister = { navController.navigate("register") }
+            )
+        }
+
+        composable("register") {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = { navController.popBackStack() }
+            )
+        }
+
         composable("home") {
             HomeScreen(
                 onNavigateToServices = { navController.navigate("services") },

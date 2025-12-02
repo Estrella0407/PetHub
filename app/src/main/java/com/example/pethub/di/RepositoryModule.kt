@@ -1,9 +1,9 @@
 package com.example.pethub.di
 
-import com.example.pethub.data.local.database.dao.BookingDao
+import com.example.pethub.data.local.database.dao.AppointmentDao
+import com.example.pethub.data.local.database.dao.CustomerDao
 import com.example.pethub.data.local.database.dao.PetDao
 import com.example.pethub.data.local.database.dao.ServiceDao
-import com.example.pethub.data.local.database.dao.UserDao
 import com.example.pethub.data.local.prefs.PreferenceManager
 import com.example.pethub.data.remote.CloudinaryService
 import com.example.pethub.data.remote.FirebaseService
@@ -44,23 +44,20 @@ object RepositoryModule {
     }
 
     /**
-     * Provide UserRepository for user profile operations
+     * Provide CustomerRepository for customer profile operations
      */
     @Provides
     @Singleton
-    fun provideUserRepository(
+    fun provideCustomerRepository(
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
-        cloudinaryService: CloudinaryService,
-        userDao: UserDao,
+        customerDao: CustomerDao, // Changed from UserDao
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): UserRepository {
-        return UserRepository(
+    ): CustomerRepository {
+        return CustomerRepository(
             firebaseService,
             firestoreHelper,
-            cloudinaryService,
-            userDao,
-            ioDispatcher
+            ioDispatcher // CustomerRepository signature might need adjustment if it uses CloudinaryService? Checked: it currently doesn't.
         )
     }
 
@@ -105,57 +102,19 @@ object RepositoryModule {
     }
 
     /**
-     * Provide BookingRepository for booking management operations
+     * Provide AppointmentRepository for appointment management operations
      */
     @Provides
     @Singleton
-    fun provideBookingRepository(
-        firebaseService: FirebaseService,
+    fun provideAppointmentRepository(
         firestoreHelper: FirestoreHelper,
-        bookingDao: BookingDao,
+        appointmentDao: AppointmentDao, // Changed from BookingDao
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): BookingRepository {
-        return BookingRepository(
-            firebaseService,
+    ): AppointmentRepository {
+        return AppointmentRepository(
             firestoreHelper,
-            bookingDao,
+            appointmentDao,
             ioDispatcher
         )
     }
-
-    /**
-     * Provide NotificationRepository for notification operations
-     */
-//    @Provides
-//    @Singleton
-//    fun provideNotificationRepository(
-//        firebaseService: FirebaseService,
-//        firestoreHelper: FirestoreHelper,
-//        preferenceManager: PreferenceManager,
-//        @IoDispatcher ioDispatcher: CoroutineDispatcher
-//    ): NotificationRepository {
-//        return NotificationRepository(
-//            firebaseService,
-//            firestoreHelper,
-//            preferenceManager,
-//            ioDispatcher
-//        )
-//    }
-
-
-    /**
-     * Provide FAQRepository for FAQ operations
-     */
-//    @Provides
-//    @Singleton
-//    fun provideFAQRepository(
-//        firestoreHelper: FirestoreHelper,
-//        @IoDispatcher ioDispatcher: CoroutineDispatcher
-//    ): FAQRepository {
-//        return FAQRepository(
-//            firestoreHelper,
-//            ioDispatcher
-//        )
-//    }
 }
-

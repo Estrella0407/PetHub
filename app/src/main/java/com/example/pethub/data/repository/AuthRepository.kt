@@ -1,12 +1,11 @@
 package com.example.pethub.data.repository
 
-import com.example.pethub.data.local.database.dao.BookingDao
-import com.example.pethub.data.local.database.dao.UserDao
 import com.example.pethub.data.local.prefs.PreferenceManager
-import com.example.pethub.data.model.*
+import com.example.pethub.data.model.Customer
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.remote.FirestoreHelper
-import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_USERS
+import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
+import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_CUSTOMER
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Inject
@@ -43,21 +42,21 @@ class AuthRepository @Inject constructor(
 
         val user = authResult.getOrNull()!!
 
-        // 2. Create Firestore user document
-        val userData = User(
-            userId = user.uid,
-            email = email,
-            username = username,
-            password = password,
-            role = "customer",
+        // 2. Create Firestore Customer document (Replacing User)
+        val customerData = Customer(
+            custId = user.uid,
+            custName = username,
+            custEmail = email,
+            custPassword = password, // Storing password in DB is not recommended but following request
+            // No role field in Customer, assumed "customer"
             createdAt = firestoreHelper.getServerTimestamp(),
             updatedAt = firestoreHelper.getServerTimestamp()
         )
 
         val createResult = firestoreHelper.createDocumentWithId(
-            COLLECTION_USERS,
+            COLLECTION_CUSTOMER,
             user.uid,
-            userData
+            customerData
         )
 
         return if (createResult.isSuccess) {
@@ -74,5 +73,17 @@ class AuthRepository @Inject constructor(
     suspend fun sendPasswordResetEmail(email: String) =
         firebaseService.sendPasswordResetEmail(email)
 
-    suspend fun isAdmin() = firebaseService.isAdmin()
+    suspend fun isAdmin(): Boolean {
+        // Check if the current user ID exists in the 'branches' collection
+        // as Admin = Branch in this new schema.
+        val userId = firebaseService.getCurrentUserId() ?: return false
+        
+        // 1. Check Firebase Custom Claim (fastest)
+        if (firebaseService.isAdmin()) return true
+        
+        // 2. Fallback: Check if document exists in 'branches' collection
+        // This allows manual DB entry for branches to grant admin access
+        val branchExists = firestoreHelper.documentExists(COLLECTION_BRANCH, userId)
+        return branchExists.getOrDefault(false)
+    }
 }

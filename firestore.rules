@@ -6,95 +6,69 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // ============================================================================
 
-    // Check if user is authenticated
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Check if user is accessing their own data
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    // Check if user is admin (via custom claim set by Cloud Function)
     function isAdmin() {
+      // Check for custom claim 'admin' OR existence in 'branches' collection
+      // Note: Checking existence in 'branches' via rules requires get() which costs 1 read.
       return isSignedIn() && (
         request.auth.token.admin == true || 
-        // Fallback: You can hardcode an admin email for initial setup
-        request.auth.token.email == "admin@pethub.com"
+        exists(/databases/$(database)/documents/branches/$(request.auth.uid))
       );
     }
 
     // ============================================================================
-    // COLLECTION RULES
+    // NEW SCHEMA RULES
     // ============================================================================
 
-    // 1. USERS COLLECTION
-    // - Users can read and write their own profile
-    // - Admins can read/write all user profiles
-    match /users/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+    // 1. CUSTOMER
+    match /customer/{custId} {
+      allow read, write: if isOwner(custId) || isAdmin();
+
+      // Subcollection: PET
+      // Since PetRepository accesses pets as a subcollection of customers
+      match /pet/{petId} {
+        allow read, write: if isOwner(custId) || isAdmin();
+      }
     }
 
-    // 2. PETS COLLECTION
-    // - Users can read/write pets they own (ownerId must match auth.uid)
-    // - Admins can read/write all pets
-    match /pets/{petId} {
-      allow read: if resource.data.ownerId == request.auth.uid || isAdmin();
-      allow create: if request.resource.data.ownerId == request.auth.uid || isAdmin();
-      allow update, delete: if resource.data.ownerId == request.auth.uid || isAdmin();
-    }
-
-    // 3. SERVICES COLLECTION
-    // - PUBLIC READ: Guests (unauthenticated) and Users can view services
-    // - ADMIN WRITE: Only admins can add/edit/delete services
-    match /services/{serviceId} {
-      allow read: if true;
+    // 2. BRANCH
+    match /branch/{branchId} {
+      allow read: if true; // Public can read branches (to select one)
       allow write: if isAdmin();
     }
 
-    // 4. LOCATIONS COLLECTION
-    // - PUBLIC READ: Guests and Users can view locations
-    // - ADMIN WRITE: Only admins can manage locations
-    match /locations/{locationId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // 5. BOOKINGS COLLECTION
-    // - Users can read/create/update their own bookings
-    // - Admins can read/write all bookings
-    match /bookings/{bookingId} {
-      // Read: valid if user owns the booking
-      allow read: if resource.data.userId == request.auth.uid || isAdmin();
+    // 3. APPOINTMENT
+    match /appointment/{appointmentId} {
+      // Allow read/write if the appointment belongs to the user (custId match)
+      allow read: if resource.data.custId == request.auth.uid || isAdmin();
       
-      // Create: valid if userId in new booking matches auth uid
-      allow create: if request.resource.data.userId == request.auth.uid || isAdmin();
+      // Create: Allow if user sets their own ID as custId
+      allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
       
-      // Update/Delete: valid if user owns the booking
-      allow update, delete: if resource.data.userId == request.auth.uid || isAdmin();
+      // Update/Delete: Allow if user owns it
+      allow update, delete: if resource.data.custId == request.auth.uid || isAdmin();
+      
+      // Branch access: Branches can read/write appointments for their branchId
+      allow read, write: if resource.data.branchId == request.auth.uid; 
     }
 
-    // 6. NOTIFICATIONS COLLECTION
-    // - Users can read/delete their own notifications
-    match /notifications/{notificationId} {
-      allow read: if resource.data.userId == request.auth.uid || isAdmin();
-      allow create: if isAdmin(); // Assuming system/admin sends notifications
-      allow delete: if resource.data.userId == request.auth.uid || isAdmin();
-    }
-
-    // 7. FAQS COLLECTION
-    // - PUBLIC READ: Everyone can view FAQs
-    // - ADMIN WRITE: Only admins can manage FAQs
-    match /faqs/{faqId} {
+    // 4. SERVICE (Public read, Admin/Branch write)
+    match /service/{serviceId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    
-    // 8. ADMIN COLLECTION
-    // - Strictly Admin access only
-    match /admin/{document=**} {
-      allow read, write: if isAdmin();
+
+    // 5. BRANCH SERVICE (Junction table)
+    match /branch_service/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

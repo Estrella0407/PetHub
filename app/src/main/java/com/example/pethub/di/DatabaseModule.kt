@@ -3,10 +3,11 @@ package com.example.pethub.di
 import android.content.Context
 import androidx.room.Room
 import com.example.pethub.data.local.database.AppDatabase
-import com.example.pethub.data.local.database.dao.BookingDao
+import com.example.pethub.data.local.database.dao.AppointmentDao
+import com.example.pethub.data.local.database.dao.BranchDao
+import com.example.pethub.data.local.database.dao.CustomerDao
 import com.example.pethub.data.local.database.dao.PetDao
 import com.example.pethub.data.local.database.dao.ServiceDao
-import com.example.pethub.data.local.database.dao.UserDao
 import com.example.pethub.data.local.prefs.PreferenceManager
 import dagger.Module
 import dagger.Provides
@@ -38,17 +39,25 @@ object DatabaseModule {
             "pet_services_database"
         )
             .fallbackToDestructiveMigration() // During development
-            // .addMigrations(MIGRATION_1_2) // Add migrations for production
             .build()
     }
 
     /**
-     * Provide UserDao for user-related database operations
+     * Provide CustomerDao for customer-related database operations
      */
     @Provides
     @Singleton
-    fun provideUserDao(database: AppDatabase): UserDao {
-        return database.userDao()
+    fun provideCustomerDao(database: AppDatabase): CustomerDao {
+        return database.customerDao()
+    }
+
+    /**
+     * Provide BranchDao for branch-related database operations
+     */
+    @Provides
+    @Singleton
+    fun provideBranchDao(database: AppDatabase): BranchDao {
+        return database.branchDao()
     }
 
     /**
@@ -70,12 +79,12 @@ object DatabaseModule {
     }
 
     /**
-     * Provide BookingDao for booking-related database operations
+     * Provide AppointmentDao for appointment-related database operations
      */
     @Provides
     @Singleton
-    fun provideBookingDao(database: AppDatabase): BookingDao {
-        return database.bookingDao()
+    fun provideAppointmentDao(database: AppDatabase): AppointmentDao {
+        return database.appointmentDao()
     }
 
     /**
@@ -90,56 +99,3 @@ object DatabaseModule {
         return PreferenceManager(context)
     }
 }
-
-
-
-
-
-/**
- * Example UserEntity.kt
- */
-/*
-package com.yourcompany.petservices.data.local.database.entity
-
-i
-*/
-
-/**
- * Example PetDao.kt
- */
-/*
-
-*/
-
-/**
- * Example ServiceDao.kt
- */
-/*
-@Dao
-
-*/
-
-/**
- * Example BookingDao.kt
- */
-/*
-
-*/
-
-/**
- * Example Converters.kt for Room type converters
- */
-/*
-package com.yourcompany.petservices.data.local.database
-
-
-*/
-
-/**
- * Example PreferenceManager.kt
- */
-/*
-package com.yourcompany.petservices.data.local.prefs
-
-
-*/

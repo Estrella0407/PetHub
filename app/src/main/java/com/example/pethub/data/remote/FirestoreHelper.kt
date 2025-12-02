@@ -29,14 +29,11 @@ class FirestoreHelper @Inject constructor(
 
     companion object {
         // Collection names
-        const val COLLECTION_USERS = "users"
-        const val COLLECTION_PETS = "pets"
-        const val COLLECTION_SERVICES = "services"
-        const val COLLECTION_LOCATIONS = "locations"
-        const val COLLECTION_BOOKINGS = "bookings"
-        const val COLLECTION_NOTIFICATIONS = "notifications"
-        const val COLLECTION_FAQS = "faqs"
-        const val COLLECTION_ADMIN = "admin"
+        const val COLLECTION_CUSTOMER = "customer"
+        const val COLLECTION_BRANCH = "branch"
+        const val COLLECTION_PET = "pet"
+        const val COLLECTION_SERVICE = "service"
+        const val COLLECTION_APPOINTMENT = "appointment"
 
         // Common fields
         const val FIELD_CREATED_AT = "createdAt"

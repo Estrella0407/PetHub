@@ -63,7 +63,7 @@ fun HomeScreen(
                 HomeContent(
                     modifier = Modifier.padding(paddingValues),
                     userName = userName,
-                    selectedPetName = selectedPet?.name ?: "your pet",
+                    selectedPetName = selectedPet?.petName ?: "your pet",
                     recommendedServices = recommendedServices,
                     onServiceClick = onServiceClick,
                     onBookingClick = onBookingClick,
@@ -105,9 +105,7 @@ fun HomeTopBar(
             IconButton(onClick = onNotificationClick) {
                 BadgedBox(
                     badge = {
-                        Badge {
-                            Text("3")
-                        }
+                        Badge { Text("3") }
                     }
                 ) {
                     Icon(
@@ -455,31 +453,31 @@ fun SectionHeader(
 }
 
 /**
- * Horizontal scrolling row of upcoming bookings
+ * Horizontal scrolling row of upcoming bookings (Now Appointments)
  */
 @Composable
-fun UpcomingBookingsRow(
-    bookings: List<BookingItem>,
-    onBookingClick: (String) -> Unit
+fun UpcomingAppointmentsRow(
+    appointments: List<AppointmentItem>, // Changed from BookingItem
+    onAppointmentClick: (String) -> Unit
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(bookings) { booking ->
-            BookingCard(
-                booking = booking,
-                onClick = { onBookingClick(booking.id) }
+        items(appointments) { appointment ->
+            AppointmentCard(
+                appointment = appointment,
+                onClick = { onAppointmentClick(appointment.id) }
             )
         }
     }
 }
 
 /**
- * Booking card showing appointment details
+ * Appointment card showing details
  */
 @Composable
-fun BookingCard(
-    booking: BookingItem,
+fun AppointmentCard(
+    appointment: AppointmentItem,
     onClick: () -> Unit
 ) {
     Card(
@@ -503,34 +501,34 @@ fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = booking.serviceName,
+                    text = appointment.serviceName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2C2C2C)
                 )
 
-                StatusBadge(status = booking.status)
+                StatusBadge(status = appointment.status)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             BookingDetailRow(
                 icon = Icons.Default.Pets,
-                text = booking.petName
+                text = appointment.petName
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             BookingDetailRow(
                 icon = Icons.Default.CalendarToday,
-                text = booking.dateTime
+                text = appointment.dateTime
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             BookingDetailRow(
                 icon = Icons.Default.LocationOn,
-                text = booking.locationName
+                text = appointment.locationName
             )
         }
     }
@@ -563,7 +561,7 @@ fun BookingDetailRow(
 }
 
 /**
- * Status badge for bookings
+ * Status badge for appointments
  */
 @Composable
 fun StatusBadge(status: String) {

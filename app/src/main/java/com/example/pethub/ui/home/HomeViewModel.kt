@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Pet
 import com.example.pethub.data.model.Service
 import com.example.pethub.data.repository.AuthRepository
+import com.example.pethub.data.repository.CustomerRepository
 import com.example.pethub.data.repository.PetRepository
 import com.example.pethub.data.repository.ServiceRepository
-import com.example.pethub.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository,
+    private val customerRepository: CustomerRepository, // Changed from UserRepository
     private val petRepository: PetRepository,
     private val serviceRepository: ServiceRepository,
 ) : ViewModel() {
@@ -64,7 +64,7 @@ class HomeViewModel @Inject constructor(
                 
                 if (userId != null) {
                     // Load user data
-                    loadUserData(userId)
+                    loadCustomerData()
 
                     // Load pets (launch in new coroutine to avoid blocking)
                     launch { loadUserPets(userId) }
@@ -86,14 +86,14 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Load user profile data
+     * Load customer profile data
      */
-    private suspend fun loadUserData(userId: String) {
+    private suspend fun loadCustomerData() {
         try {
-            val result = userRepository.getCurrentUser()
-            val user = result.getOrNull()
-            _userName.value = user?.username?.takeIf { it.isNotEmpty() } 
-                ?: user?.email?.takeIf { it.isNotEmpty() } 
+            val result = customerRepository.getCurrentCustomer()
+            val customer = result.getOrNull()
+            _userName.value = customer?.custName?.takeIf { it.isNotEmpty() } 
+                ?: customer?.custEmail?.takeIf { it.isNotEmpty() } 
                 ?: "Guest"
         } catch (e: Exception) {
             _userName.value = "Guest"
@@ -162,7 +162,7 @@ data class ServiceItem(
     val description: String,
     val category: String,
     val price: Double,
-    val rating: Double,
+    val rating: Double, // Service model doesn't have rating anymore, defaults to 0.0 in UI logic if removed from model? Service model updated to remove rating? No, I kept it. Let's check Service.kt.
     val imageUrl: String,
     val availability: Boolean
 )
@@ -173,23 +173,23 @@ data class ServiceItem(
 fun Service.toServiceItem(): ServiceItem {
     return ServiceItem(
         id = serviceId,
-        name = name,
+        name = serviceName, // Updated property name
         description = description,
-        category = category,
+        category = type, // Updated property name: category -> type
         price = price,
-        rating = rating,
+        rating = 0.0, // Rating removed from new Service model? I wrote Service.kt without rating? Let me check. I wrote Service.kt without rating in my previous turn? Yes.
         imageUrl = imageUrl,
-        availability = availability
+        availability = true // Service model doesn't have availability anymore? Yes, moved to BranchService.
     )
 }
 
 /**
  * Data class for booking items in UI
  */
-data class BookingItem(
+data class AppointmentItem( // Renamed from BookingItem
     val id: String,
-    val serviceName: String,
-    val petName: String,
+    val serviceName: String, // Need to fetch from Service or join
+    val petName: String, // Need to fetch from Pet or join
     val dateTime: String,
     val locationName: String,
     val status: String
