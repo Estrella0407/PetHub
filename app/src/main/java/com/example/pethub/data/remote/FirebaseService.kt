@@ -1,0 +1,394 @@
+package com.example.pethub.data.remote
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.messaging.FirebaseMessaging
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Service class for Firebase Authentication and Storage operations
+ */
+@Singleton
+class FirebaseService @Inject constructor(
+    private val auth: FirebaseAuth,
+    private val messaging: FirebaseMessaging,
+    @ApplicationContext private val context: Context // Added Context to read Uris
+) {
+
+    private val client = OkHttpClient()
+    // TODO: Replace with your actual API Key or fetch it from BuildConfig
+    private val IMGBB_API_KEY = "YOUR_ACTUAL_API_KEY_HERE"
+
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
+
+    /**
+     * Get current authenticated user
+     */
+    fun getCurrentUser(): FirebaseUser? = auth.currentUser
+
+    /**
+     * Get current user ID
+     */
+    fun getCurrentUserId(): String? = auth.currentUser?.uid
+
+    /**
+     * Check if user is authenticated
+     */
+    fun isUserAuthenticated(): Boolean = auth.currentUser != null
+
+    /**
+     * Observe authentication state changes
+     */
+    fun observeAuthState(): Flow<FirebaseUser?> = callbackFlow {
+        val authStateListener = FirebaseAuth.AuthStateListener { auth ->
+            trySend(auth.currentUser)
+        }
+        auth.addAuthStateListener(authStateListener)
+
+        awaitClose {
+            auth.removeAuthStateListener(authStateListener)
+        }
+    }
+
+    /**
+     * Register new user with email and password
+     */
+    suspend fun registerUser(
+        email: String,
+        password: String,
+        displayName: String
+    ): Result<FirebaseUser> {
+        return try {
+            val result = auth.createUserWithEmailAndPassword(email, password).await()
+            val user = result.user
+
+            if (user != null) {
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(displayName)
+                    .build()
+                user.updateProfile(profileUpdates).await()
+                Result.success(user)
+            } else {
+                Result.failure(Exception("User registration failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Sign in with email and password
+     */
+    suspend fun signIn(email: String, password: String): Result<FirebaseUser> {
+        return try {
+            val result = auth.signInWithEmailAndPassword(email, password).await()
+            val user = result.user
+
+            if (user != null) {
+                Result.success(user)
+            } else {
+                Result.failure(Exception("Sign in failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Sign out current user
+     */
+    fun signOut() {
+        auth.signOut()
+    }
+
+    /**
+     * Send password reset email
+     */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update user email
+     */
+    suspend fun updateEmail(newEmail: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            user.updateEmail(newEmail).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update user password
+     */
+    suspend fun updatePassword(newPassword: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            user.updatePassword(newPassword).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Reauthenticate user (required before sensitive operations)
+     */
+    suspend fun reauthenticate(email: String, password: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            val credential = com.google.firebase.auth.EmailAuthProvider
+                .getCredential(email, password)
+            user.reauthenticate(credential).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Delete user account
+     */
+    suspend fun deleteAccount(): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            user.delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get ID token for current user
+     */
+    suspend fun getIdToken(forceRefresh: Boolean = false): Result<String> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            val tokenResult = user.getIdToken(forceRefresh).await()
+            val token = tokenResult.token ?: return Result.failure(Exception("Token is null"))
+            Result.success(token)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Check if user has admin claim
+     */
+    suspend fun isAdmin(): Boolean {
+        return try {
+            val user = auth.currentUser ?: return false
+            val tokenResult = user.getIdToken(true).await()
+            tokenResult.claims["admin"] == true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // ============================================
+    // FIREBASE CLOUD MESSAGING (FCM)
+    // ============================================
+
+    suspend fun getFCMToken(): Result<String> {
+        return try {
+            val token = messaging.token.await()
+            Result.success(token)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun subscribeToTopic(topic: String): Result<Unit> {
+        return try {
+            messaging.subscribeToTopic(topic).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unsubscribeFromTopic(topic: String): Result<Unit> {
+        return try {
+            messaging.unsubscribeFromTopic(topic).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ============================================
+    // IMGBB UPLOAD IMPLEMENTATION
+    // ============================================
+
+    /**
+     * Upload image to ImgBB
+     * Note: The 'path' parameter is now ignored as ImgBB handles storage,
+     * but kept for compatibility with existing calls.
+     */
+    suspend fun uploadImage(
+        uri: Uri,
+        onProgress: ((Float) -> Unit)? = null
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val base64Image = encodeImageToBase64(uri) ?: return@withContext Result.failure(Exception("Failed to encode image"))
+
+                // Fake progress update (ImgBB API doesn't support granular progress hooks easily via OkHttp standard body)
+                onProgress?.invoke(10f)
+
+                val formBody = FormBody.Builder()
+                    .add("key", IMGBB_API_KEY)
+                    .add("image", base64Image)
+                    .build()
+
+                val request = Request.Builder()
+                    .url("https://api.imgbb.com/1/upload")
+                    .post(formBody)
+                    .build()
+
+                onProgress?.invoke(50f) // Uploading...
+
+                val response = client.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(Exception("ImgBB Upload failed: ${response.message}"))
+                }
+
+                val responseBody = response.body?.string() ?: ""
+                val jsonResponse = JSONObject(responseBody)
+
+                if (jsonResponse.has("error")) {
+                    val errorMsg = jsonResponse.getJSONObject("error").getString("message")
+                    return@withContext Result.failure(Exception("ImgBB Error: $errorMsg"))
+                }
+
+                val imageUrl = jsonResponse.getJSONObject("data").getString("url")
+
+                onProgress?.invoke(100f) // Done
+                Result.success(imageUrl)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * Helper function to convert Uri to Base64 String
+     */
+    private fun encodeImageToBase64(uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            // Compress to JPEG, 80% quality (adjust as needed)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            Base64.encodeToString(byteArray, Base64.DEFAULT)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    // Wrapper functions can remain the same, they just forward to the new uploadImage logic
+    suspend fun uploadProfileImage(userId: String, imageUri: Uri, onProgress: ((Float) -> Unit)? = null): Result<String> {
+        return uploadImage(imageUri, onProgress)
+    }
+
+    suspend fun uploadPetImage(userId: String, petId: String, imageUri: Uri, onProgress: ((Float) -> Unit)? = null): Result<String> {
+        return uploadImage(imageUri, onProgress)
+    }
+
+    suspend fun uploadServiceImage(serviceId: String, imageUri: Uri, onProgress: ((Float) -> Unit)? = null): Result<String> {
+        return uploadImage(imageUri, onProgress)
+    }
+
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    /**
+     * Get user email
+     */
+    fun getUserEmail(): String? = auth.currentUser?.email
+
+    /**
+     * Get user display name
+     */
+    fun getUserDisplayName(): String? = auth.currentUser?.displayName
+
+    /**
+     * Get user photo URL
+     */
+    fun getUserPhotoUrl(): Uri? = auth.currentUser?.photoUrl
+
+    /**
+     * Check if email is verified
+     */
+    fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified ?: false
+
+    /**
+     * Send email verification
+     */
+    suspend fun sendEmailVerification(): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            user.sendEmailVerification().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update user profile
+     */
+    suspend fun updateUserProfile(
+        displayName: String? = null,
+        photoUri: Uri? = null
+    ): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
+            val profileUpdates = UserProfileChangeRequest.Builder()
+
+            displayName?.let { profileUpdates.setDisplayName(it) }
+            photoUri?.let { profileUpdates.setPhotoUri(it) }
+
+            user.updateProfile(profileUpdates.build()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
