@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pethub.R
@@ -57,7 +59,9 @@ fun AuthenticationTextField(
     onValueChange: (String) -> Unit,
     label: String = "",
     leadingIcon: @Composable (() -> Unit)? = null,
-    focusManager: FocusManager,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier
 ){
     OutlinedTextField(
@@ -65,21 +69,17 @@ fun AuthenticationTextField(
         onValueChange = onValueChange,
         label = {Text(label)},
         modifier = modifier,
+        singleLine = true,
         shape = RoundedCornerShape(12.dp),
         leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,
             focusedContainerColor = Color(0xFFEDE3D1),
             unfocusedContainerColor = Color(0xFFEDE3D1)),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            imeAction = ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                focusManager.clearFocus()
-            }
-        )
+        keyboardOptions = keyboardOptions,
+        visualTransformation = visualTransformation
     )
 }
 
