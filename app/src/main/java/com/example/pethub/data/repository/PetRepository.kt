@@ -28,7 +28,7 @@ class PetRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    suspend fun getUserPets(userId: String): Result<List<Pet>> {
+    suspend fun getCustomerPets(userId: String): Result<List<Pet>> {
         // Assuming pets are still subcollection of customers
         return firestoreHelper.getSubcollectionDocuments(
             COLLECTION_CUSTOMER,
@@ -43,6 +43,14 @@ class PetRepository @Inject constructor(
             COLLECTION_CUSTOMER,
             userId,
             COLLECTION_PET,
+            Pet::class.java
+        )
+    }
+
+    suspend fun getPetById(petId: String): Result<Pet?> {
+        return firestoreHelper.getDocument(
+            COLLECTION_PET,
+            petId,
             Pet::class.java
         )
     }

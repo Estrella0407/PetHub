@@ -11,13 +11,23 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.profile.ProfileScreen
 
 @Composable
-fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "login") {
+fun NavGraph(
+    navController: NavHostController,
+    firebaseService: FirebaseService
+) {
+    val startDestination = if (firebaseService.isUserAuthenticated()) {
+        "home"
+    } else {
+        "login"
+    }
+    NavHost(navController = navController, startDestination = startDestination) {
         
         composable("login") {
             LoginScreen(
@@ -44,36 +54,37 @@ fun NavGraph(navController: NavHostController) {
 
         composable("home") {
             HomeScreen(
-                onNavigateToServices = { navController.navigate("services") },
-                onNavigateToBookings = { navController.navigate("bookings") },
+                onNavigateToService = { navController.navigate("service") },
+                onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
-                },
-                onBookingClick = { bookingId ->
-                    navController.navigate("booking/$bookingId")
                 }
             )
         }
 
-        composable("services") { PlaceholderScreen("Services coming soon") }
-        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
-        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
-        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+//        composable("service") {
+//            ServiceScreen(
+//                onNavigateUp = { navController.popBackStack() },
+//                onServiceClick = { serviceId ->
+//                    navController.navigate("service/$serviceId")
+//                }
+//            )
+//        }
+
+        composable("profile") {
+            ProfileScreen(
+                onFaqClick = {},
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToService = { navController.navigate("service") },
+                onNavigateToShop = { navController.navigate("shop") }
+            )
+        }
     }
 }
 
-@Composable
-private fun PlaceholderScreen(message: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.titleLarge
-        )
-    }
-}
