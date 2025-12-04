@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.pethub"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.pethub"
@@ -40,6 +40,12 @@ android {
     
     buildFeatures {
         compose = true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
