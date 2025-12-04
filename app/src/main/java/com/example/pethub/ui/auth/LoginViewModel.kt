@@ -13,6 +13,7 @@ import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.CustomCredential
+import com.example.pethub.utils.SharedPrefs
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.firebase.auth.FirebaseAuth
@@ -84,9 +85,21 @@ class LoginViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(rememberMe = value)
     }
 
+    fun saveRememberMe(
+        context: Context,
+        remember: Boolean){
+        val prefs = context.getSharedPreferences(
+            SharedPrefs.NAME,
+            Context.MODE_PRIVATE)
+
+        prefs.edit().putBoolean(SharedPrefs.REMEMBER_ME, remember).apply()
+    }
+
     fun signInWithGoogle(context:Context){
 
     }
+
+
 
 }
 

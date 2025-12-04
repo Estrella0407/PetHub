@@ -54,6 +54,14 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.isLoginSuccessful) { //Run this ocde everytime isLoginSuccessful is changed
+        if (uiState.isLoginSuccessful) {
+            onLoginSuccess()
+            viewModel.onLoginHandled()
+            viewModel.saveRememberMe(context, uiState.rememberMe)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,15 +84,14 @@ fun LoginScreen(
                 painter = painterResource(id = R.drawable.logo_nobg),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .padding(start = 55.dp)
-                    .size(150.dp)
+                    .padding(start = 65.dp)
+                    .size(120.dp)
             )
         }
 
         Text(
             text = "Login",
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold,
+            fontSize = 32.sp,
             color = MaterialTheme.colorScheme.primary
         )
 
@@ -153,6 +160,7 @@ fun LoginScreen(
             }
         }
 
+        // Error message
         if (uiState.errorMessage.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -163,29 +171,44 @@ fun LoginScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.weight(2f))
 
+        // Login Button
         Button(
-            onClick = { viewModel.login() },
+            onClick = viewModel::login,
             modifier = Modifier
                 .width(200.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFAC7F5E)
             ),
-            enabled = !uiState.isLoading
+            enabled = !uiState.isLoading,
+            shape = RoundedCornerShape(10.dp)
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
-                Text(text = "Login")
+                Text(
+                    text = "Login",
+                    fontSize = 16.sp
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        AuthenticationGoogleButton(
+            icon =
+                {Image(
+                    painter = painterResource(R.drawable.google_nobg),
+                    contentDescription = "Google Icon",
+                    modifier = Modifier.size(20.dp)
+                )},
+            onGoogleClick = {}
+        )
 
+        Spacer(modifier = Modifier.weight(1f))
+        AuthenticationImagesFooter()
 
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -224,8 +247,8 @@ fun LoginScreenContent(
                     painter = painterResource(id = R.drawable.logo_nobg),
                     contentDescription = "Logo",
                     modifier = Modifier
-                        .padding(start = 55.dp)
-                        .size(150.dp)
+                        .padding(start = 62.dp)
+                        .size(120.dp)
                 )
             }
 
@@ -331,6 +354,7 @@ fun LoginScreenContent(
                 }
             }
 
+            // Error Message
             if (uiState.errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
