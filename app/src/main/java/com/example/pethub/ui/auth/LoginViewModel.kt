@@ -9,6 +9,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -74,6 +82,10 @@ class LoginViewModel @Inject constructor(
 
     fun onRememberMeChanged(value: Boolean){
         _uiState.value = _uiState.value.copy(rememberMe = value)
+    }
+
+    fun signInWithGoogle(context:Context){
+
     }
 
 }

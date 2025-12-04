@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,8 +34,16 @@ import androidx.lifecycle.ViewModel
 import com.example.pethub.R
 import com.example.pethubself.ui.components.AuthenticationSwitch
 import com.example.pethubself.ui.components.AuthenticationTextField
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import androidx.compose.ui.platform.LocalContext
+import com.example.pethubself.ui.components.AuthenticationGoogleButton
+import com.example.pethubself.ui.components.AuthenticationImagesFooter
+
 
 @Composable
 fun LoginScreen(
@@ -42,13 +52,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(uiState.isLoginSuccessful) {
-        if (uiState.isLoginSuccessful) {
-            onLoginSuccess()
-            viewModel.onLoginHandled()
-        }
-    }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -66,6 +70,7 @@ fun LoginScreen(
                 contentDescription = "Return Button",
                 modifier = Modifier
                     .size(30.dp)
+                    .clickable{viewModel.loginAsGuest()}
             )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),
@@ -124,22 +129,6 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-//        OutlinedTextField(
-//            value = uiState.password,
-//            onValueChange = viewModel::updatePassword,
-//            label = { Text("Password") },
-//            modifier = Modifier.fillMaxWidth(),
-//            singleLine = true,
-//            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-//            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-//            trailingIcon = {
-//                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-//                IconButton(onClick = viewModel::togglePasswordVisibility) {
-//                    Icon(imageVector = image, contentDescription = if (uiState.passwordVisible) "Hide password" else "Show password")
-//                }
-//            }
-//        )
-
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -194,31 +183,9 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(
-            onClick = { viewModel.loginAsGuest() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Continue as Guest",
-                textDecoration = TextDecoration.Underline
-            )
-        }
+
 
         Spacer(modifier = Modifier.height(24.dp))
-
-//        Row(
-//            modifier = Modifier.fillMaxWidth(),
-//            horizontalArrangement = Arrangement.Center,
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Text(text = "Don't have an account? ", color = Color.Gray)
-//            Text(
-//                text = "Register",
-//                color = MaterialTheme.colorScheme.primary,
-//                fontWeight = FontWeight.Bold,
-//                modifier = Modifier.clickable { onNavigateToRegister() }
-//            )
-//        }
     }
 }
 
@@ -264,8 +231,7 @@ fun LoginScreenContent(
 
             Text(
                 text = "Login",
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
                 color = Color.Black//MaterialTheme.colorScheme.primary
             )
 
@@ -375,8 +341,9 @@ fun LoginScreenContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Login Button
             Button(
                 onClick = { },
                 modifier = Modifier
@@ -384,42 +351,36 @@ fun LoginScreenContent(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFAC7F5E)
                 ),
-                enabled = !uiState.isLoading
+                enabled = !uiState.isLoading,
+                shape = RoundedCornerShape(10.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                 } else {
-                    Text(text = "Login")
+                    Text(
+                        text = "Login",
+                        fontSize = 16.sp
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            AuthenticationGoogleButton(
+                icon =
+                    {Image(
+                        painter = painterResource(R.drawable.google_nobg),
+                        contentDescription = "Google Icon",
+                        modifier = Modifier.size(20.dp)
+                    )},
+                onGoogleClick = {}
+            )
 
-            TextButton(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Continue as Guest",
-                    textDecoration = TextDecoration.Underline
-                )
-            }
+            Spacer(modifier = Modifier.weight(1f))
+            AuthenticationImagesFooter()
 
-            Spacer(modifier = Modifier.height(24.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Don't have an account? ", color = Color.Gray)
-                Text(
-                    text = "Register",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { onNavigateToRegister() }
-                )
-            }
+
+
         }
     }
 }
