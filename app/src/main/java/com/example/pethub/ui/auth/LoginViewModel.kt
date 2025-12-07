@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.content.Context
+import android.provider.Settings.Global.getString
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.CustomCredential
@@ -18,6 +20,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.example.pethub.R
+
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -95,9 +99,12 @@ class LoginViewModel @Inject constructor(
         prefs.edit().putBoolean(SharedPrefs.REMEMBER_ME, remember).apply()
     }
 
-    fun signInWithGoogle(context:Context){
+    fun signInWithGoogle(){
 
     }
+
+
+
 
 
 

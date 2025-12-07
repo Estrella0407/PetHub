@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pethub.R
+import com.example.pethub.ui.auth.LoginViewModel
 
 
 @Composable
@@ -67,6 +68,7 @@ fun AuthenticationTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions{ },
     modifier: Modifier = Modifier
 ){
     OutlinedTextField(
@@ -84,7 +86,8 @@ fun AuthenticationTextField(
             focusedContainerColor = Color(0xFFEDE3D1),
             unfocusedContainerColor = Color(0xFFEDE3D1)),
         keyboardOptions = keyboardOptions,
-        visualTransformation = visualTransformation
+        visualTransformation = visualTransformation,
+        keyboardActions =  keyboardActions
     )
 }
 
@@ -161,8 +164,8 @@ fun AuthenticationGoogleButton(
     icon: @Composable () -> Unit,
     onGoogleClick: () -> Unit
 )
-{
-    Row(
+{Row(
+
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .width(200.dp)

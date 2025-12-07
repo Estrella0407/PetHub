@@ -1,6 +1,9 @@
 package com.example.pethub.ui.auth
 
+import android.app.Activity
 import android.content.res.Configuration
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,7 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+//import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import com.example.pethub.R
 import com.example.pethubself.ui.components.AuthenticationSwitch
@@ -41,8 +44,14 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import androidx.compose.ui.platform.LocalContext
+import androidx.credentials.CustomCredential
 import com.example.pethubself.ui.components.AuthenticationGoogleButton
 import com.example.pethubself.ui.components.AuthenticationImagesFooter
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 
 @Composable
@@ -52,9 +61,15 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
-    LaunchedEffect(uiState.isLoginSuccessful) { //Run this ocde everytime isLoginSuccessful is changed
+    val context = LocalContext.current
+    val credentialManager = remember {
+        CredentialManager.create(context)
+    }
+
+    val clientId = context.getString(R.string.default_web_client_id)
+
+    LaunchedEffect(uiState.isLoginSuccessful) { //Run this code everytime isLoginSuccessful is changed
         if (uiState.isLoginSuccessful) {
             onLoginSuccess()
             viewModel.onLoginHandled()
@@ -85,7 +100,7 @@ fun LoginScreen(
                 contentDescription = "Logo",
                 modifier = Modifier
                     .padding(start = 65.dp)
-                    .size(120.dp)
+                    .size(100.dp)
             )
         }
 
@@ -114,6 +129,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Password Field
         AuthenticationTextField(
             value = uiState.password,
             onValueChange = viewModel::updatePassword,
@@ -196,6 +212,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Login with Google Button
         AuthenticationGoogleButton(
             icon =
                 {Image(
@@ -203,8 +220,9 @@ fun LoginScreen(
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(20.dp)
                 )},
-            onGoogleClick = {}
+            onGoogleClick = {viewModel.signInWithGoogle( )}
         )
+
 
         Spacer(modifier = Modifier.weight(1f))
         AuthenticationImagesFooter()
@@ -212,7 +230,7 @@ fun LoginScreen(
     }
 }
 
-@Composable
+@Composable // For viewing Preview
 fun LoginScreenContent(
     uiState: LoginUiState,
     onLoginSuccess: () -> Unit,
