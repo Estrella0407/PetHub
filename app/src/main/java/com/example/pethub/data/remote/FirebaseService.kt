@@ -36,7 +36,7 @@ class FirebaseService @Inject constructor(
 
     private val client = OkHttpClient()
     // TODO: Replace with your actual API Key or fetch it from BuildConfig
-    private val IMGBB_API_KEY = "YOUR_ACTUAL_API_KEY_HERE"
+    private val IMGBB_API_KEY = "01c298d1456e56a6e95ba961002c73b0"
 
     // ============================================
     // AUTHENTICATION

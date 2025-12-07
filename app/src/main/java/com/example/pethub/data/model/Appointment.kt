@@ -6,9 +6,21 @@ data class Appointment(
     val status: String = "pending",
     val branchId: String = "",
     val petId: String = "",
+    val breed: String = "",
     val serviceId: String = "",
-    // Added custId to facilitate security rules and queries for "My Appointments"
     val custId: String = "",
     val createdAt: Any? = null,
     val updatedAt: Any? = null
+)
+
+/**
+ * Data class for appointment items in UI
+ */
+data class AppointmentItem(
+    val id: String,
+    val serviceName: String,
+    val petName: String,
+    val dateTime: String,
+    val locationName: String,
+    val status: String
 )
