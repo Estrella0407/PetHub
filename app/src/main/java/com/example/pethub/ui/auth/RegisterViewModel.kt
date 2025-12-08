@@ -34,6 +34,7 @@ class RegisterViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(confirmPassword = confirmPassword, errorMessage = null)
     }
 
+
     fun togglePasswordVisibility() {
         _uiState.value = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
     }
@@ -42,11 +43,25 @@ class RegisterViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isConfirmPasswordVisible = !_uiState.value.isConfirmPasswordVisible)
     }
 
+    fun onPhoneChange(phone: String){
+        _uiState.value = _uiState.value.copy(phone = phone, errorMessage = null)
+    }
+
+    fun onAddressUpdated (houseNo: String = "",
+                          streetName: String = "",
+                          city: String = "",
+                          postcode: String = "",
+                          state: String = ""){
+        val address = houseNo + ", " + streetName + ", " + city + ", " + postcode +
+                ", " + state
+        _uiState.value = _uiState.value.copy(address = address, errorMessage = null)
+    }
+
     fun register() {
         val state = _uiState.value
         
         // Validation
-        if (state.username.isBlank() || state.email.isBlank() || state.password.isBlank()) {
+        if (state.email.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(errorMessage = "All fields are required")
             return
         }
@@ -64,7 +79,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
             
-            val result = authRepository.register(state.email, state.password, state.username)
+            val result = authRepository.register(state.email, state.password)//, state.username)
             
             if (result.isSuccess) {
                 _uiState.value = _uiState.value.copy(
@@ -87,6 +102,8 @@ data class RegisterUiState(
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
+    val address : String = "",
+    val phone: String = "",
     val isPasswordVisible: Boolean = false,
     val isConfirmPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,

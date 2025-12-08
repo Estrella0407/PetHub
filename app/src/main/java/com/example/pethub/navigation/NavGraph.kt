@@ -12,6 +12,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
@@ -43,13 +44,18 @@ fun NavGraph(
 
         composable("register") {
             RegisterScreen(
-                onRegisterSuccess = {
+                onRegisterSuccessOld = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
+                onRegisterSuccessNew={},
                 onNavigateToLogin = { navController.popBackStack() }
             )
+        }
+
+        composable("completeProfile"){
+            CompleteProfileScreen()
         }
 
         composable("home") {
