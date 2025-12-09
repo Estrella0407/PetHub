@@ -31,7 +31,8 @@ import javax.inject.Singleton
 class FirebaseService @Inject constructor(
     private val auth: FirebaseAuth,
     private val messaging: FirebaseMessaging,
-    @ApplicationContext private val context: Context // Added Context to read Uris
+    private val firestoreHelper: FirestoreHelper,
+    @ApplicationContext private val context: Context
 ) {
 
     private val client = OkHttpClient()
@@ -106,6 +107,8 @@ class FirebaseService @Inject constructor(
             val user = result.user
 
             if (user != null) {
+                // Update FCM Token on login
+                updateFCMToken()
                 Result.success(user)
             } else {
                 Result.failure(Exception("Sign in failed"))
@@ -228,6 +231,25 @@ class FirebaseService @Inject constructor(
         }
     }
 
+    suspend fun updateFCMToken(specificToken: String? = null) {
+        try {
+            val token = specificToken ?: messaging.token.await()
+            val userId = getCurrentUserId()
+            if (userId != null) {
+                // Update token in Firestore
+                // We attempt to update the customer document.
+                firestoreHelper.updateDocument(
+                    FirestoreHelper.COLLECTION_CUSTOMER,
+                    userId,
+                    mapOf("fcmToken" to token)
+                )
+            }
+        } catch (e: Exception) {
+            // Log error or ignore if user document doesn't exist yet
+            e.printStackTrace()
+        }
+    }
+
     suspend fun subscribeToTopic(topic: String): Result<Unit> {
         return try {
             messaging.subscribeToTopic(topic).await()
@@ -252,8 +274,6 @@ class FirebaseService @Inject constructor(
 
     /**
      * Upload image to ImgBB
-     * Note: The 'path' parameter is now ignored as ImgBB handles storage,
-     * but kept for compatibility with existing calls.
      */
     suspend fun uploadImage(
         uri: Uri,
@@ -263,7 +283,6 @@ class FirebaseService @Inject constructor(
             try {
                 val base64Image = encodeImageToBase64(uri) ?: return@withContext Result.failure(Exception("Failed to encode image"))
 
-                // Fake progress update (ImgBB API doesn't support granular progress hooks easily via OkHttp standard body)
                 onProgress?.invoke(10f)
 
                 val formBody = FormBody.Builder()
@@ -276,7 +295,7 @@ class FirebaseService @Inject constructor(
                     .post(formBody)
                     .build()
 
-                onProgress?.invoke(50f) // Uploading...
+                onProgress?.invoke(50f)
 
                 val response = client.newCall(request).execute()
 
@@ -294,7 +313,7 @@ class FirebaseService @Inject constructor(
 
                 val imageUrl = jsonResponse.getJSONObject("data").getString("url")
 
-                onProgress?.invoke(100f) // Done
+                onProgress?.invoke(100f)
                 Result.success(imageUrl)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -310,7 +329,7 @@ class FirebaseService @Inject constructor(
             val inputStream = context.contentResolver.openInputStream(uri)
             val bitmap = BitmapFactory.decodeStream(inputStream)
             val byteArrayOutputStream = ByteArrayOutputStream()
-            // Compress to JPEG, 80% quality (adjust as needed)
+            // Compress to JPEG, 80% quality
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream)
             val byteArray = byteArrayOutputStream.toByteArray()
             Base64.encodeToString(byteArray, Base64.DEFAULT)
@@ -320,7 +339,7 @@ class FirebaseService @Inject constructor(
         }
     }
 
-    // Wrapper functions can remain the same, they just forward to the new uploadImage logic
+    // Wrapper functions
     suspend fun uploadProfileImage(userId: String, imageUri: Uri, onProgress: ((Float) -> Unit)? = null): Result<String> {
         return uploadImage(imageUri, onProgress)
     }
@@ -380,12 +399,12 @@ class FirebaseService @Inject constructor(
     ): Result<Unit> {
         return try {
             val user = auth.currentUser ?: return Result.failure(Exception("No user logged in"))
-            val profileUpdates = UserProfileChangeRequest.Builder()
+            val profileUpdates = UserProfileChangeRequest.Builder().apply {
+                if (displayName != null) setDisplayName(displayName)
+                if (photoUri != null) setPhotoUri(photoUri)
+            }.build()
 
-            displayName?.let { profileUpdates.setDisplayName(it) }
-            photoUri?.let { profileUpdates.setPhotoUri(it) }
-
-            user.updateProfile(profileUpdates.build()).await()
+            user.updateProfile(profileUpdates).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

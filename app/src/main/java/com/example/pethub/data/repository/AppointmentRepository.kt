@@ -35,6 +35,9 @@ class AppointmentRepository @Inject constructor(
 
         // Save the new object to Firestore
         firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
+        
+        // Trigger notification
+        confirmBooking()
     }
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
@@ -61,16 +64,15 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
-    fun confirmBooking() {
+    private fun confirmBooking() {
         CoroutineScope(ioDispatcher).launch {
-
             // After successfully saving, send a notification
             val userId = authRepository.getCurrentUserId()
             if (userId != null) {
                 notificationRepository.sendNotification(
                     userId = userId,
                     title = "Appointment Confirmed!",
-                    message = "Your appointment for Grooming on May 25th is confirmed.",
+                    message = "Your appointment has been successfully booked.",
                     type = "appointment"
                 )
             }

@@ -15,6 +15,7 @@ import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.profile.ProfileScreen
 
 @Composable
@@ -59,7 +60,14 @@ fun NavGraph(
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
-                }
+                },
+                onNotificationClick = { navController.navigate("notifications") }
+            )
+        }
+        
+        composable("notifications") {
+            NotificationScreen(
+                onNavigateUp = { navController.popBackStack() }
             )
         }
 
@@ -87,4 +95,3 @@ fun NavGraph(
         }
     }
 }
-
