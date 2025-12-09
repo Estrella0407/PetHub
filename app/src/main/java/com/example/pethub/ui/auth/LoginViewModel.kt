@@ -9,14 +9,29 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.Context
+import android.provider.Settings.Global.getString
+import android.util.Log
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.example.pethub.utils.SharedPrefs
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.example.pethub.R
+
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(LoginUiState()) //_uistate holds a set of values, it is initialized with LoginUiState(), it can be modified
+    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow() //This is a read only version of _uistate, the ui will read the states from uistate
+    // Why do we need a _uistate and uistate? This is for protection, we don't want the ui to be able to change the uistate, hence we create 2 version of uistate.
+    // One can be modified by the viewmodel, and another one which can only be read by the ui.
 
     fun updateEmail(email: String) {
         _uiState.value = _uiState.value.copy(email = email, errorMessage = "")
@@ -41,7 +56,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = "")
-            val result = authRepository.signIn(email, password)
+            val result = authRepository.signIn(email, password)  // concern with firebase
             
             if (result.isSuccess) {
                 val isAdmin = authRepository.isAdmin()
@@ -69,6 +84,30 @@ class LoginViewModel @Inject constructor(
     fun onLoginHandled() {
         _uiState.value = _uiState.value.copy(isLoginSuccessful = false)
     }
+
+    fun onRememberMeChanged(value: Boolean){
+        _uiState.value = _uiState.value.copy(rememberMe = value)
+    }
+
+    fun saveRememberMe(
+        context: Context,
+        remember: Boolean){
+        val prefs = context.getSharedPreferences(
+            SharedPrefs.NAME,
+            Context.MODE_PRIVATE)
+
+        prefs.edit().putBoolean(SharedPrefs.REMEMBER_ME, remember).apply()
+    }
+
+    fun signInWithGoogle(){
+
+    }
+
+
+
+
+
+
 }
 
 data class LoginUiState(
@@ -78,5 +117,6 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val isLoginSuccessful: Boolean = false,
     val loggedInUserRole: String? = null,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
+    val rememberMe: Boolean = false
 )

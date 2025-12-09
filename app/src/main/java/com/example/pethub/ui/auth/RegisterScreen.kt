@@ -1,7 +1,11 @@
 package com.example.pethub.ui.auth
 
+import android.content.res.Configuration
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -14,20 +18,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.example.pethub.R
+import com.example.pethubself.ui.components.AuthenticationGoogleButton
+import com.example.pethubself.ui.components.AuthenticationImagesFooter
+import com.example.pethubself.ui.components.AuthenticationTextField
+import kotlin.String
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel(),
-    onRegisterSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onRegisterSuccessOld: () -> Unit,
+    onNavigateToCompleteProfile: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onReturnClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -35,7 +51,8 @@ fun RegisterScreen(
     // Handle successful registration navigation
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            onRegisterSuccess()
+//            onRegisterSuccessOld()
+            onNavigateToCompleteProfile()
         }
     }
 
@@ -47,39 +64,44 @@ fun RegisterScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Image(
+                painter = painterResource(id = com.example.pethub.R.drawable.returnbutton),
+                contentDescription = "Return Button",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable{onReturnClick()}//viewModel.loginAsGuest()}
+            )
+            Image(
+                painter = painterResource(id = R.drawable.logo_nobg),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .padding(start = 65.dp)
+                    .size(100.dp)
+            )
+        }
+
         Text(
-            text = "Create Account",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            text = "Register",
+            fontSize = 32.sp,
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Username Field
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = viewModel::onUsernameChange,
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // Email Field
-        OutlinedTextField(
+        AuthenticationTextField(
             value = uiState.email,
             onValueChange = viewModel::onEmailChange,
-            label = { Text("Email") },
+            label ="Email",
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.profile_icon),
+                    contentDescription = "Email Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
@@ -92,13 +114,18 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Password Field
-        OutlinedTextField(
+        AuthenticationTextField(
             value = uiState.password,
             onValueChange = viewModel::onPasswordChange,
-            label = { Text("Password") },
+            label = "Password",
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.password_key_icon),
+                    contentDescription = "Password Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },            visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = viewModel::togglePasswordVisibility) {
                     Icon(
@@ -119,12 +146,18 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Confirm Password Field
-        OutlinedTextField(
+        AuthenticationTextField(
             value = uiState.confirmPassword,
             onValueChange = viewModel::onConfirmPasswordChange,
-            label = { Text("Confirm Password") },
+            label = "Confirm Password",
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.password_key_icon),
+                    contentDescription = "Password Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },
             visualTransformation = if (uiState.isConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) {
@@ -156,30 +189,12 @@ fun RegisterScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Register Button
-        Button(
-            onClick = viewModel::register,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text(text = "Register")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Login Link
+        // Already have an account?
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = "Already have an account? ", color = Color.Gray)
@@ -190,5 +205,257 @@ fun RegisterScreen(
                 modifier = Modifier.clickable { onNavigateToLogin() }
             )
         }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Register Button
+        Button(
+            onClick = viewModel::register,
+            modifier = Modifier.width(200.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFAC7F5E)),
+            enabled = !uiState.isLoading,
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(text = "Register", fontSize = 16.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        AuthenticationGoogleButton(
+            icon =
+                {Image(
+                    painter = painterResource(R.drawable.google_nobg),
+                    contentDescription = "Google Icon",
+                    modifier = Modifier.size(20.dp)
+                )},
+            onGoogleClick = {}//Login with google}
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+        AuthenticationImagesFooter()
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RegisterScreenContent(
+    uiState: RegisterUiState,
+    onRegisterSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Image(
+                painter = painterResource(id = com.example.pethub.R.drawable.returnbutton),
+                contentDescription = "Return Button",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable{}//viewModel.loginAsGuest()}
+            )
+            Image(
+                painter = painterResource(id = R.drawable.logo_nobg),
+                contentDescription = "Logo",
+                modifier = Modifier
+                    .padding(start = 65.dp)
+                    .size(100.dp)
+            )
+        }
+
+        Text(
+            text = "Register",
+            fontSize = 32.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        // Email Field
+        AuthenticationTextField(
+            value = uiState.email,
+            onValueChange = {},//Do},
+            label = "Email",
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.profile_icon),
+                    contentDescription = "Email Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Password Field
+        AuthenticationTextField(
+            value = uiState.password,
+            onValueChange = {},// DO
+            label = "Password",
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.password_key_icon),
+                    contentDescription = "Password Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+//            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+//            trailingIcon = {
+//                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+//                IconButton(onClick = viewModel::togglePasswordVisibility) {
+//                    Icon(imageVector = image, contentDescription = if (uiState.passwordVisible) "Hide password" else "Show password")
+//                }
+//            }, DO
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Confirm Password Field
+        AuthenticationTextField(
+            value = uiState.confirmPassword,
+            onValueChange = {},// DO
+            label = "Confirm Password",
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.password_key_icon),
+                    contentDescription = "Password Icon",
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+//            visualTransformation = if (uiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+//            trailingIcon = {
+//                val image = if (uiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+//                IconButton(onClick = viewModel::togglePasswordVisibility) {
+//                    Icon(imageVector = image, contentDescription = if (uiState.passwordVisible) "Hide password" else "Show password")
+//                }
+//            }, DO
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Error Message
+        if (!uiState.errorMessage.isNullOrEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = uiState.errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Login Link
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Already have an account? ",
+                color = Color.Gray,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier
+                    .clickable { onNavigateToLogin() }
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Register Button
+        Button(
+            onClick = {},
+            modifier = Modifier
+                .width(200.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFAC7F5E)
+            ),
+            enabled = !uiState.isLoading,
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(
+                    text = "Register",
+                    fontSize = 16.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Login with Google Button
+        AuthenticationGoogleButton(
+            icon =
+                {Image(
+                    painter = painterResource(R.drawable.google_nobg),
+                    contentDescription = "Google Icon",
+                    modifier = Modifier.size(20.dp)
+                )},
+            onGoogleClick = {}//Login}
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+        AuthenticationImagesFooter()
+
+    }
+}
+
+
+@Preview(
+    showBackground = true,
+    device = Devices.PIXEL_4,
+    uiMode = Configuration.UI_MODE_NIGHT_NO or Configuration.UI_MODE_TYPE_NORMAL,
+    widthDp = 360,
+    heightDp = 640
+)
+@Composable
+fun RegisterScreenPreview(){
+    RegisterScreenContent(
+        RegisterUiState(
+     email= "",
+     password = "",
+     confirmPassword = "",
+     isPasswordVisible= false,
+     isConfirmPasswordVisible= false,
+     isLoading= false,
+     isSuccess= false,
+     errorMessage= null,
+     successMessage= null
+    ),
+        {},
+        {})
 }
