@@ -26,7 +26,7 @@ fun NavGraph(
     val startDestination = if (firebaseService.isUserAuthenticated()) {
         "home"
     } else {
-        "login"
+       "login"
     }
     NavHost(navController = navController, startDestination = startDestination) {
         
@@ -49,7 +49,7 @@ fun NavGraph(
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onRegisterSuccessNew={},
+                onRegisterSuccessNew={navController.navigate("completeProfile")},
                 onNavigateToLogin = { navController.popBackStack() }
             )
         }

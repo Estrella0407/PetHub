@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
 
 @Composable
 fun CompleteProfileScreen (
@@ -52,11 +58,11 @@ fun CompleteProfileScreen (
         focusedLabelColor = Color(0xFFA28970),
         unfocusedLabelColor = Color(0xFFA28970)
     )
-    var houseNo = ""
-    var streetName = ""
-    var city = ""
-    var postcode = ""
-    var state = ""
+    var houseNo by remember { mutableStateOf("") }
+    var streetName by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var postcode by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -93,9 +99,10 @@ fun CompleteProfileScreen (
             value = uiState.username,
             onValueChange = viewModel::onUsernameChange,
             colors = textFieldColour,
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .height(40.dp)
+                .height(50.dp)
                 .border(
                     width = 2.dp,
                     color = Color(0xFFA28970)
@@ -115,9 +122,10 @@ fun CompleteProfileScreen (
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number
             ),
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .height(40.dp)
+                .height(50.dp)
                 .border(
                     width = 2.dp,
                     color = Color(0xFFA28970)
@@ -145,9 +153,10 @@ fun CompleteProfileScreen (
                 houseNo = it
                 viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
             colors = textFieldColour,
+            singleLine=true,
             modifier = Modifier
                 .fillMaxWidth(0.6f)
-                .height(40.dp)
+                .height(50.dp)
                 .border(
                     width = 2.dp,
                     color = Color(0xFFA28970)
@@ -167,9 +176,10 @@ fun CompleteProfileScreen (
                 streetName = it
                 viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
             colors = textFieldColour,
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth(0.8f)
-                .height(40.dp)
+                .height(50.dp)
                 .border(
                     width = 2.dp,
                     color = Color(0xFFA28970)
@@ -191,9 +201,10 @@ fun CompleteProfileScreen (
                         city = it
                         viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
                     colors = textFieldColour,
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
-                        .height(40.dp)
+                        .height(50.dp)
                         .border(
                             width = 2.dp,
                             color = Color(0xFFA28970)
@@ -216,9 +227,10 @@ fun CompleteProfileScreen (
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number
                     ),
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth(1f)
-                        .height(40.dp)
+                        .height(50.dp)
                         .border(
                             width = 2.dp,
                             color = Color(0xFFA28970)
@@ -240,16 +252,17 @@ fun CompleteProfileScreen (
                 state = it
                 viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
             colors = textFieldColour,
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth(0.6f)
-                .height(40.dp)
+                .height(50.dp)
                 .border(
                     width = 2.dp,
                     color = Color(0xFFA28970)
                 )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -331,6 +344,9 @@ fun CompleteProfileScreenContent (
             value = uiState.username,
             onValueChange = { },
             colors = textFieldColour,
+            textStyle = LocalTextStyle.current.copy(
+                fontSize = 12.sp
+            ),
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .height(40.dp)
