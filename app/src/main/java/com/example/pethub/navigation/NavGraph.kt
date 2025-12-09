@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -47,11 +48,39 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToServices = { navController.navigate("services") },
                 onNavigateToBookings = { navController.navigate("bookings") },
                 onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToShop = { navController.navigate("shop") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
                 },
                 onBookingClick = { bookingId ->
                     navController.navigate("booking/$bookingId")
+                }
+            )
+        }
+        
+        composable("shop") {
+            ShopScreen(
+                onNavigateToCart = { navController.navigate("cart") },
+                onNavigateToHome = { 
+                    navController.navigate("home") {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToServices = { 
+                    navController.navigate("services") {
+                         popUpTo("home") { saveState = true }
+                         launchSingleTop = true
+                         restoreState = true
+                    }
+                },
+                onNavigateToProfile = { 
+                    navController.navigate("profile") {
+                         popUpTo("home") { saveState = true }
+                         launchSingleTop = true
+                         restoreState = true
+                    }
                 }
             )
         }
@@ -61,6 +90,7 @@ fun NavGraph(navController: NavHostController) {
         composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+        composable("cart") { PlaceholderScreen("Cart coming soon") }
     }
 }
 

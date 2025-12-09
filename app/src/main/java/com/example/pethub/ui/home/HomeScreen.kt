@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.pethub.navigation.PetHubBottomBar
 
 /**
  * Main Home Screen
@@ -38,6 +39,7 @@ fun HomeScreen(
     onNavigateToServices: () -> Unit,
     onNavigateToBookings: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
     onBookingClick: (String) -> Unit
 ) {
@@ -52,6 +54,19 @@ fun HomeScreen(
                 userName = userName,
                 onProfileClick = onNavigateToProfile,
                 onNotificationClick = { /* Navigate to notifications */ }
+            )
+        },
+        bottomBar = {
+            PetHubBottomBar(
+                currentRoute = "home",
+                onNavigate = { route ->
+                    when (route) {
+                        "home" -> { /* Stay */ }
+                        "services" -> onNavigateToServices()
+                        "shop" -> onNavigateToShop()
+                        "profile" -> onNavigateToProfile()
+                    }
+                }
             )
         }
     ) { paddingValues ->
