@@ -15,10 +15,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.auth.CompleteProfileScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.profile.ProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
 
 @Composable
@@ -41,7 +43,12 @@ fun NavGraph(
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onNavigateToRegister = { navController.navigate("register") }
+                onNavigateToRegister = { navController.navigate("register") },
+                onNavigateToAdmin = {
+                    navController.navigate("admin_services") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -80,14 +87,7 @@ fun NavGraph(
             )
         }
 
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
+        composable("services") { PlaceholderScreen("Services coming soon") }
 
         composable("profile") {
             ProfileScreen(
@@ -102,6 +102,25 @@ fun NavGraph(
                 onNavigateToShop = { navController.navigate("shop") }
             )
         }
+
+        // Admin screens
+        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
+        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
     }
 }
 
+@Composable
+private fun PlaceholderScreen(message: String) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleLarge
+        )
+    }
+}
