@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -44,7 +45,8 @@ import androidx.compose.runtime.setValue
 
 @Composable
 fun CompleteProfileScreen (
-    viewModel: RegisterViewModel = hiltViewModel()
+    viewModel: RegisterViewModel = hiltViewModel(),
+    onProfileCompleted: () -> Unit
 ){
 
     val uiState by viewModel.uiState.collectAsState()
@@ -63,6 +65,13 @@ fun CompleteProfileScreen (
     var city by remember { mutableStateOf("") }
     var postcode by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.completed) {
+        if (uiState.completed) {
+//            onRegisterSuccessOld()
+            onProfileCompleted()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -269,7 +278,7 @@ fun CompleteProfileScreen (
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
-                onClick = { },
+                onClick = viewModel::completeProfile,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFAC7F5E),   // Background color
                     contentColor = Color.White      // Text color

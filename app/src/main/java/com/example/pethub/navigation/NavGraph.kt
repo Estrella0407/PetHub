@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,6 +17,7 @@ import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
+import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.home.HomeScreen
 import com.example.pethub.ui.profile.ProfileScreen
 
@@ -42,20 +45,28 @@ fun NavGraph(
             )
         }
 
-        composable("register") {
+        composable("register") { backStackEntry ->
             RegisterScreen(
                 onRegisterSuccessOld = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onRegisterSuccessNew={navController.navigate("completeProfile")},
+                onReturnClick = {navController.popBackStack()},
+                onNavigateToCompleteProfile={navController.navigate("completeProfile")},
                 onNavigateToLogin = { navController.popBackStack() }
             )
         }
 
-        composable("completeProfile"){
-            CompleteProfileScreen()
+        composable("completeProfile"){backStackEntry ->
+            val parentEntry = remember {
+                navController.getBackStackEntry("register")
+            }
+            val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
+            CompleteProfileScreen(
+                onProfileCompleted = {navController.navigate("home")},
+                viewModel = sharedVm
+            )
         }
 
         composable("home") {

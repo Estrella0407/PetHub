@@ -41,8 +41,9 @@ import kotlin.String
 fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel(),
     onRegisterSuccessOld: () -> Unit,
-    onRegisterSuccessNew: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToCompleteProfile: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onReturnClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -51,7 +52,7 @@ fun RegisterScreen(
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
 //            onRegisterSuccessOld()
-            onRegisterSuccessNew()
+            onNavigateToCompleteProfile()
         }
     }
 
@@ -71,7 +72,7 @@ fun RegisterScreen(
                 contentDescription = "Return Button",
                 modifier = Modifier
                     .size(30.dp)
-                    .clickable{}//viewModel.loginAsGuest()}
+                    .clickable{onReturnClick()}//viewModel.loginAsGuest()}
             )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),
@@ -190,7 +191,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Login Link
+        // Already have an account?
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
@@ -234,7 +235,7 @@ fun RegisterScreen(
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(20.dp)
                 )},
-            onGoogleClick = {}//Login}
+            onGoogleClick = {}//Login with google}
         )
 
         Spacer(modifier = Modifier.weight(1f))
