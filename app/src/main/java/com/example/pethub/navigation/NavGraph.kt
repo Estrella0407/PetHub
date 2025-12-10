@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.home.HomeScreen
@@ -27,7 +28,12 @@ fun NavGraph(navController: NavHostController) {
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onNavigateToRegister = { navController.navigate("register") }
+                onNavigateToRegister = { navController.navigate("register") },
+                onNavigateToAdmin = {
+                    navController.navigate("admin_services") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -61,6 +67,12 @@ fun NavGraph(navController: NavHostController) {
         composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+
+        // Admin screens
+        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
+        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
     }
 }
 
