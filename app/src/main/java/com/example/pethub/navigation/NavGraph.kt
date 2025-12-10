@@ -87,27 +87,18 @@ fun NavGraph(
             )
         }
 
-        composable("services") { PlaceholderScreen("Services coming soon") }
-        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
-        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
-        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
-
-        // Admin screens
-        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
-        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
+//        composable("services") { PlaceholderScreen("Services coming soon") }
+//        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
+//        composable("profile") { PlaceholderScreen("Profile coming soon") }
+//        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
+//        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+//
+//        // Admin screens
+//        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+//        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
+//        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
         composable("admin_services") { ServiceManagementScreen(navController = navController) }
-        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
-    }
-}
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
+
 
         composable("profile") {
             ProfileScreen(
@@ -124,4 +115,15 @@ fun NavGraph(
         }
     }
 }
+//        composable("service") {
+//            ServiceScreen(
+//                onNavigateUp = { navController.popBackStack() },
+//                onServiceClick = { serviceId ->
+//                    navController.navigate("service/$serviceId")
+//                }
+//            )
+//        }
+
+
+
 
