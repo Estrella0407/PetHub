@@ -86,7 +86,6 @@ fun NavGraph(
                 onNavigateToService = { navController.navigate("service") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToShop = { navController.navigate("shop") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
                 }

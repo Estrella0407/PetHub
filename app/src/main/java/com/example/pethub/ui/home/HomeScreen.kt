@@ -43,7 +43,6 @@ import com.example.pethub.utils.getServiceIcon
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToService: () -> Unit,
-    onNavigateToShop: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
@@ -63,25 +62,12 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            BottomNavigationBar(
-                currentRoute = "home", // Since this is Home Screen
-                onNavigate = { route ->
-                    when (route) {
-                        "service" -> onNavigateToService()
-                        "shop" -> onNavigateToShop()
-                        "profile" -> onNavigateToProfile()
-                        // "home" -> do nothing or scroll to top
-                    }
-                }
-            )
-        },
-        bottomBar = {
             PetHubBottomBar(
                 currentRoute = "home",
                 onNavigate = { route ->
                     when (route) {
                         "home" -> { /* Stay */ }
-                        "services" -> onNavigateToServices()
+                        "services" -> onNavigateToService()
                         "shop" -> onNavigateToShop()
                         "profile" -> onNavigateToProfile()
                     }
