@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.pethub.navigation.PetHubBottomBar
 import com.example.pethub.R
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
@@ -43,6 +45,7 @@ fun HomeScreen(
     onNavigateToService: () -> Unit,
     onNavigateToShop: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,6 +71,19 @@ fun HomeScreen(
                         "shop" -> onNavigateToShop()
                         "profile" -> onNavigateToProfile()
                         // "home" -> do nothing or scroll to top
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            PetHubBottomBar(
+                currentRoute = "home",
+                onNavigate = { route ->
+                    when (route) {
+                        "home" -> { /* Stay */ }
+                        "services" -> onNavigateToServices()
+                        "shop" -> onNavigateToShop()
+                        "profile" -> onNavigateToProfile()
                     }
                 }
             )
