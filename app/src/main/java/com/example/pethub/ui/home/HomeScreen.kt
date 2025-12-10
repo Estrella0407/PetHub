@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.pethub.navigation.PetHubBottomBar
 import com.example.pethub.R
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
@@ -41,8 +43,8 @@ import com.example.pethub.utils.getServiceIcon
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToService: () -> Unit,
-    onNavigateToShop: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -60,14 +62,14 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            BottomNavigationBar(
-                currentRoute = "home", // Since this is Home Screen
+            PetHubBottomBar(
+                currentRoute = "home",
                 onNavigate = { route ->
                     when (route) {
-                        "service" -> onNavigateToService()
+                        "home" -> { /* Stay */ }
+                        "services" -> onNavigateToService()
                         "shop" -> onNavigateToShop()
                         "profile" -> onNavigateToProfile()
-                        // "home" -> do nothing or scroll to top
                     }
                 }
             )

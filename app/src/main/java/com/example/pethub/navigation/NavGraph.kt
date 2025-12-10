@@ -23,6 +23,7 @@ import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
@@ -90,12 +91,40 @@ fun NavGraph(
                 }
             )
         }
+        
+        composable("shop") {
+            ShopScreen(
+                onNavigateToCart = { navController.navigate("cart") },
+                onNavigateToHome = { 
+                    navController.navigate("home") {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToServices = { 
+                    navController.navigate("services") {
+                         popUpTo("home") { saveState = true }
+                         launchSingleTop = true
+                         restoreState = true
+                    }
+                },
+                onNavigateToProfile = { 
+                    navController.navigate("profile") {
+                         popUpTo("home") { saveState = true }
+                         launchSingleTop = true
+                         restoreState = true
+                    }
+                }
+            )
+        }
 
         composable("services") { PlaceholderScreen("Services coming soon") }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
         composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+        composable("cart") { PlaceholderScreen("Cart coming soon") }
 
         // Admin screens
         composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
