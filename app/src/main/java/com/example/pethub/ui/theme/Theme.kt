@@ -11,39 +11,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val LightColors = lightColorScheme(
-    primary = PeachPrimary,
+    primary = DarkBrown,
     onPrimary = CreamBackground,
-    secondary = TealSecondary,
+    secondary = NeutralBrown,
     onSecondary = CreamBackground,
     background = CreamBackground,
     onBackground = NeutralText,
     surface = CreamBackground,
-    onSurface = NeutralText
-)
-
-private val DarkColors = darkColorScheme(
-    primary = PeachDark,
-    onPrimary = CreamBackground,
-    secondary = TealSecondary,
-    background = NeutralText,
-    onBackground = CreamBackground,
-    surface = NeutralText,
-    onSurface = CreamBackground
+    onSurface = NeutralText,
 )
 
 @Composable
 fun PetHubTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // FORCE LIGHT COLORS:
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            // If dynamic color is enabled, force the light version
+            dynamicLightColorScheme(context)
         }
-
-        darkTheme -> DarkColors
         else -> LightColors
     }
 

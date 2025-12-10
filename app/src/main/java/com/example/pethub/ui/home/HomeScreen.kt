@@ -5,28 +5,34 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pethub.navigation.PetHubBottomBar
+import com.example.pethub.R
+import com.example.pethub.data.model.Branch
+import com.example.pethub.data.model.Pet
+import com.example.pethub.ui.theme.*
+import androidx.compose.foundation.shape.CircleShape
+import com.example.pethub.data.model.ServiceItem
+import com.example.pethub.ui.components.*
+import com.example.pethub.ui.status.*
+import com.example.pethub.utils.getServiceIcon
 
 /**
  * Main Home Screen
@@ -36,24 +42,37 @@ import com.example.pethub.navigation.PetHubBottomBar
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onNavigateToServices: () -> Unit,
-    onNavigateToBookings: () -> Unit,
+    onNavigateToService: () -> Unit,
+    onNavigateToShop: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
-    onBookingClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userName by viewModel.userName.collectAsState()
     val recommendedServices by viewModel.recommendedServices.collectAsState()
+    val pets by viewModel.pets.collectAsState()
     val selectedPet by viewModel.selectedPet.collectAsState()
+    val branches by viewModel.branches.collectAsState()
 
     Scaffold(
         topBar = {
             HomeTopBar(
-                userName = userName,
-                onProfileClick = onNavigateToProfile,
-                onNotificationClick = { /* Navigate to notifications */ }
+                onNotificationClick = { /* Navigate to notifications */ },
+                onChangeAccTypeClick = { /* Change account type */ }
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                currentRoute = "home", // Since this is Home Screen
+                onNavigate = { route ->
+                    when (route) {
+                        "service" -> onNavigateToService()
+                        "shop" -> onNavigateToShop()
+                        "profile" -> onNavigateToProfile()
+                        // "home" -> do nothing or scroll to top
+                    }
+                }
             )
         },
         bottomBar = {
@@ -80,10 +99,10 @@ fun HomeScreen(
                     userName = userName,
                     selectedPetName = selectedPet?.petName ?: "your pet",
                     recommendedServices = recommendedServices,
+                    branches = branches,
+                    allPets = pets,
+                    onPetSelected = viewModel::selectPet,
                     onServiceClick = onServiceClick,
-                    onBookingClick = onBookingClick,
-                    onViewAllServices = onNavigateToServices,
-                    onViewAllBookings = onNavigateToBookings
                 )
             }
             is HomeUiState.Error -> {
@@ -97,54 +116,49 @@ fun HomeScreen(
 }
 
 /**
- * Top App Bar with greeting and actions
+ * Top App Bar
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
-    userName: String,
-    onProfileClick: () -> Unit,
+    onChangeAccTypeClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
     TopAppBar(
-        title = {
-            Column {
-                Text(
-                    text = "PetHub",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
+        title = {},
         actions = {
             IconButton(onClick = onNotificationClick) {
-                BadgedBox(
-                    badge = {
-                        Badge { Text("3") }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications"
-                    )
-                }
-            }
-            IconButton(onClick = onProfileClick) {
                 Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile"
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notifications",
+                    tint = MutedColor,
+                    modifier = Modifier
+                        .background(
+                            color = CreamDark,
+                            shape = CircleShape
+                        )
+                        .padding(8.dp)
                 )
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFFFFF9E6) // Cream color like in design
-        )
+            IconButton(onClick = onChangeAccTypeClick) {
+                Icon(
+                    imageVector = Icons.Default.ManageAccounts,
+                    contentDescription = "Change Account",
+                    tint = MutedColor,
+                    modifier = Modifier
+                        .background(
+                            color = CreamDark,
+                            shape = CircleShape
+                        )
+                        .padding(8.dp)
+                )
+            }
+        }
     )
 }
 
 /**
  * Main content of the home screen
- * Jetpack Compose automatically adapts to different screen sizes!
  */
 @Composable
 fun HomeContent(
@@ -152,21 +166,27 @@ fun HomeContent(
     userName: String,
     selectedPetName: String,
     recommendedServices: List<ServiceItem>,
+    branches: List<Branch>,
+    allPets: List<Pet>,
+    onPetSelected: (Pet) -> Unit,
     onServiceClick: (String) -> Unit,
-    onBookingClick: (String) -> Unit,
-    onViewAllServices: () -> Unit,
-    onViewAllBookings: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFF9E6)),
+            .fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Greeting Section with cute pets illustration
+        // PetHub Logo
         item {
-            GreetingSection(userName = userName)
+            Image(
+                painter = painterResource(id = R.drawable.pethub_logo_rvbg),
+                contentDescription = "PetHub Logo",
+                modifier = Modifier.fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .size(200.dp)
+            )
         }
 
         // Business Hours Card
@@ -174,109 +194,40 @@ fun HomeContent(
             BusinessHoursCard()
         }
 
-        // Pet Selection / Quick Action Section
+        // Recommended Services Section Header
         item {
-            QuickServiceSection(
+            RecommendedServiceSection(
                 userName = userName,
                 petName = selectedPetName,
                 services = recommendedServices.take(3),
+                allPets = allPets,
+                onPetSelected = onPetSelected,
                 onServiceClick = onServiceClick
             )
         }
 
-
-        // Recommended Services Section
-        item {
-            SectionHeader(
-                title = "All Services",
-                actionText = "View All",
-                onActionClick = onViewAllServices
-            )
-        }
-
-        // Services Grid (shows first 6)
-        items(recommendedServices.chunked(2)) { rowServices ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                rowServices.forEach { service ->
-                    ServiceCard(
-                        service = service,
-                        onClick = { onServiceClick(service.id) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                // Add empty space if odd number of services
-                if (rowServices.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+        // Shop Details Section Header
+        if (branches.isNotEmpty()) {
+             item {
+                 // Shop Details / Branches
+                 ShopDetailsSection(
+                     branches = branches,
+                     services = recommendedServices,
+                     modifier = Modifier.fillMaxWidth()
+                 )
             }
         }
 
-        // Bottom padding
+        // Bottom padding for navigation bar
         item {
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-/**
- * Greeting section with cute pet illustrations (like in design)
- */
-@Composable
-fun GreetingSection(userName: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Cute pets illustration placeholder
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(Color(0xFFFFF0D6), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Pets,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = Color(0xFFFF9E7B)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
-                Text(
-                    text = "Hello, $userName! 👋",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2C2C2C)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "How can we help your pets today?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-            }
-        }
-    }
-}
 
 /**
- * Business Hours Card (like in design)
+ * Business Hours Card
  */
 @Composable
 fun BusinessHoursCard() {
@@ -284,7 +235,7 @@ fun BusinessHoursCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFF4E0)
+            containerColor = CreamLight
         )
     ) {
         Row(
@@ -293,11 +244,9 @@ fun BusinessHoursCard() {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Schedule,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = Color(0xFFFF9E7B)
+            Image(
+                painter = painterResource(id = R.drawable.opening_nobg),
+                contentDescription = "PetHub Business Hours",
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -323,20 +272,24 @@ fun BusinessHoursCard() {
 }
 
 /**
- * Quick Service Section - Shows services for specific pet (like in design)
+ * Recommended Service Section - Shows services for specific pet
  */
 @Composable
-fun QuickServiceSection(
+fun RecommendedServiceSection(
     userName: String,
     petName: String,
     services: List<ServiceItem>,
+    allPets: List<Pet>,
+    onPetSelected: (Pet) -> Unit,
     onServiceClick: (String) -> Unit
 ) {
+    var showPetSelection by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFF4E0)
+            containerColor = CreamDark
         )
     ) {
         Column(
@@ -345,16 +298,29 @@ fun QuickServiceSection(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Hello, $userName!",
+                text = "Hello, $userName👋!",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2C2C2C)
+                color = DarkBrown
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Check out these services for $petName:",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+
+            SectionHeader(
+                title = "Check out these services for $petName:",
+                actionText = "Change Pet",
+                onActionClick = { showPetSelection = true } // Open the dropdown
+            )
+
+            // If showPetSelection is true, display the dropdown
+            PetSelectionDropdown(
+                pets = allPets,
+                selectedPetName = petName,
+                onPetSelected = { pet ->
+                    onPetSelected(pet) // Call the ViewModel
+                    showPetSelection = false // Close the dropdown
+                },
+                onDismiss = { showPetSelection = false }, // Close if clicked outside
+                expanded = showPetSelection // Pass the state
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -365,7 +331,7 @@ fun QuickServiceSection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 services.forEach { service ->
-                    QuickServiceCard(
+                    RecommendedServiceCard(
                         service = service,
                         onClick = { onServiceClick(service.id) },
                         modifier = Modifier.weight(1f)
@@ -377,10 +343,10 @@ fun QuickServiceSection(
 }
 
 /**
- * Quick service card with icon (Grooming, Daycare, Training like in design)
+ * Recommended service card with icon
  */
 @Composable
-fun QuickServiceCard(
+fun RecommendedServiceCard(
     service: ServiceItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -391,7 +357,7 @@ fun QuickServiceCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = CreamLight
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -405,16 +371,15 @@ fun QuickServiceCard(
             // Service icon
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .background(Color(0xFFFFF0D6), CircleShape),
+                    .size(60.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = getServiceIcon(service.category),
+                Image(
+                    painter = painterResource(id = getServiceIcon(service.category)),
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = Color(0xFFFF9E7B)
+                    modifier = Modifier.size(32.dp)
                 )
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -432,7 +397,7 @@ fun QuickServiceCard(
 }
 
 /**
- * Section header with "View All" button
+ * Section header
  */
 @Composable
 fun SectionHeader(
@@ -447,20 +412,19 @@ fun SectionHeader(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF2C2C2C)
+            style = MaterialTheme.typography.titleMedium,
+            color = NeutralBrown
         )
 
         TextButton(onClick = onActionClick) {
             Text(
                 text = actionText,
-                color = Color(0xFFFF9E7B)
+                color = MutedColor
             )
             Icon(
                 imageVector = Icons.Default.ArrowForward,
                 contentDescription = null,
-                tint = Color(0xFFFF9E7B),
+                tint = MutedColor,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -468,306 +432,119 @@ fun SectionHeader(
 }
 
 /**
- * Horizontal scrolling row of upcoming bookings (Now Appointments)
+ * Pet selection
  */
 @Composable
-fun UpcomingAppointmentsRow(
-    appointments: List<AppointmentItem>, // Changed from BookingItem
-    onAppointmentClick: (String) -> Unit
+fun PetSelectionDropdown(
+    pets: List<Pet>,
+    selectedPetName: String,
+    onPetSelected: (Pet) -> Unit,
+    onDismiss: () -> Unit,
+    expanded: Boolean = true
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss
     ) {
-        items(appointments) { appointment ->
-            AppointmentCard(
-                appointment = appointment,
-                onClick = { onAppointmentClick(appointment.id) }
+        pets.forEach { pet ->
+            DropdownMenuItem(
+                text = { Text(pet.petName) },
+                onClick = { onPetSelected(pet) },
+                leadingIcon = {
+                    if (pet.petName == selectedPetName) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected Pet"
+                        )
+                    }
+                }
             )
         }
     }
 }
 
 /**
- * Appointment card showing details
+ * Shop Details Section
  */
 @Composable
-fun AppointmentCard(
-    appointment: AppointmentItem,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(280.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = appointment.serviceName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2C2C2C)
-                )
-
-                StatusBadge(status = appointment.status)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            BookingDetailRow(
-                icon = Icons.Default.Pets,
-                text = appointment.petName
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            BookingDetailRow(
-                icon = Icons.Default.CalendarToday,
-                text = appointment.dateTime
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            BookingDetailRow(
-                icon = Icons.Default.LocationOn,
-                text = appointment.locationName
-            )
-        }
-    }
-}
-
-/**
- * Booking detail row with icon
- */
-@Composable
-fun BookingDetailRow(
-    icon: ImageVector,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = Color.Gray
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
-        )
-    }
-}
-
-/**
- * Status badge for appointments
- */
-@Composable
-fun StatusBadge(status: String) {
-    val (backgroundColor, textColor) = when (status.lowercase()) {
-        "pending" -> Color(0xFFFFF4E0) to Color(0xFFFF9E7B)
-        "confirmed" -> Color(0xFFE8F5E9) to Color(0xFF4CAF50)
-        "completed" -> Color(0xFFE3F2FD) to Color(0xFF2196F3)
-        else -> Color.LightGray to Color.DarkGray
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor
-    ) {
-        Text(
-            text = status,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = textColor
-        )
-    }
-}
-
-/**
- * Service card for grid display
- */
-@Composable
-fun ServiceCard(
-    service: ServiceItem,
-    onClick: () -> Unit,
+fun ShopDetailsSection(
+    branches: List<Branch>,
+    services: List<ServiceItem>,
     modifier: Modifier = Modifier
 ) {
     Card(
+        colors = CardDefaults.cardColors(
+            containerColor = CreamDark,
+            contentColor = DarkBrown
+        ),
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Service image
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .background(Color(0xFFFFF0D6))
-            ) {
-                if (service.imageUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = service.imageUrl,
-                        contentDescription = service.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = getServiceIcon(service.category),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .align(Alignment.Center),
-                        tint = Color(0xFFFF9E7B)
-                    )
-                }
-            }
-
-            // Service details
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = service.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color(0xFFFFC107)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = String.format("%.1f", service.rating),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "$${service.price}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF9E7B)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Get icon for service category
- */
-fun getServiceIcon(category: String): ImageVector {
-    return when (category.lowercase()) {
-        "grooming" -> Icons.Default.ContentCut
-        "veterinary" -> Icons.Default.MedicalServices
-        "boarding" -> Icons.Default.Hotel
-        "training" -> Icons.Default.School
-        "walking" -> Icons.Default.DirectionsWalk
-        "daycare" -> Icons.Default.ChildCare
-        "sitting" -> Icons.Default.Weekend
-        else -> Icons.Default.Pets
-    }
-}
-
-/**
- * Loading screen
- */
-@Composable
-fun LoadingScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            color = Color(0xFFFF9E7B)
-        )
-    }
-}
-
-/**
- * Error screen with retry button
- */
-@Composable
-fun ErrorScreen(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Error,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = Color.Red
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF9E7B)
+            Image(
+                painter = painterResource(id = R.drawable.pethub_rvbg),
+                contentDescription = "PetHub Logo",
             )
-        ) {
-            Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Retry")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Pet Services | Pet Care | Pawsome Food",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            )
+
+            // Details info row
+            branches.forEachIndexed { index, branch ->
+                InfoParagraphs(
+                    title = branch.branchName,
+                    subtitle = branch.branchAddress,
+                    text = branch.branchPhone,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (index < branches.size - 1) {
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ServiceIconsRow(
+                services = services,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
+    }
+}
+
+
+@Composable
+fun InfoParagraphs(
+    title: String,
+    subtitle: String,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = subtitle,
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = text,
+            fontSize = 14.sp
+        )
     }
 }

@@ -1,6 +1,7 @@
 package com.example.pethub.di
 
 import com.example.pethub.data.local.database.dao.AppointmentDao
+import com.example.pethub.data.local.database.dao.BranchDao
 import com.example.pethub.data.local.database.dao.CustomerDao
 import com.example.pethub.data.local.database.dao.PetDao
 import com.example.pethub.data.local.database.dao.ServiceDao
@@ -51,13 +52,31 @@ object RepositoryModule {
     fun provideCustomerRepository(
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
-        customerDao: CustomerDao, // Changed from UserDao
+        customerDao: CustomerDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): CustomerRepository {
         return CustomerRepository(
             firebaseService,
             firestoreHelper,
-            ioDispatcher // CustomerRepository signature might need adjustment if it uses CloudinaryService? Checked: it currently doesn't.
+            customerDao,
+            ioDispatcher
+        )
+    }
+
+    /**
+     * Provide BranchRepository for branch operations
+     */
+    @Provides
+    @Singleton
+    fun provideBranchRepository(
+        firestoreHelper: FirestoreHelper,
+        branchDao: BranchDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): BranchRepository {
+        return BranchRepository(
+            firestoreHelper,
+            branchDao,
+            ioDispatcher
         )
     }
 
@@ -70,13 +89,16 @@ object RepositoryModule {
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
         cloudinaryService: CloudinaryService,
+        authRepository: AuthRepository, // 👈 ADDED: The missing AuthRepository dependency
         petDao: PetDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): PetRepository {
+        // FIX: Add authRepository to the constructor call in the correct order
         return PetRepository(
             firebaseService,
             firestoreHelper,
             cloudinaryService,
+            authRepository,
             petDao,
             ioDispatcher
         )
@@ -91,12 +113,16 @@ object RepositoryModule {
         firestoreHelper: FirestoreHelper,
         cloudinaryService: CloudinaryService,
         serviceDao: ServiceDao,
+        petRepository: PetRepository,
+        appointmentRepository: AppointmentRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): ServiceRepository {
         return ServiceRepository(
             firestoreHelper,
             cloudinaryService,
             serviceDao,
+            petRepository,
+            appointmentRepository,
             ioDispatcher
         )
     }
@@ -108,13 +134,20 @@ object RepositoryModule {
     @Singleton
     fun provideAppointmentRepository(
         firestoreHelper: FirestoreHelper,
-        appointmentDao: AppointmentDao, // Changed from BookingDao
-        @IoDispatcher ioDispatcher: CoroutineDispatcher
+        appointmentDao: AppointmentDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        authRepository: AuthRepository, // Re-ordered parameters
+        petRepository: PetRepository,     // Re-ordered parameters
+        notificationRepository: NotificationRepository
     ): AppointmentRepository {
+        // FIX: Re-order the arguments to match the likely AppointmentRepository constructor
         return AppointmentRepository(
             firestoreHelper,
             appointmentDao,
-            ioDispatcher
+            ioDispatcher,
+            authRepository,
+            petRepository,
+            notificationRepository
         )
     }
 }
