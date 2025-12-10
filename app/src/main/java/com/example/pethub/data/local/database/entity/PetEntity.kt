@@ -2,6 +2,8 @@ package com.example.pethub.data.local.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.firebase.firestore.ServerTimestamp
+import java.util.Date
 
 @Entity(tableName = "pets")
 data class PetEntity(
@@ -16,6 +18,7 @@ data class PetEntity(
     val weight: Double?,
     val medicalRecords: String?,
     val imageUrl: String?,
-    val createdAt: Long?,
+    @ServerTimestamp
+    val createdAt: Date? = null,
     val updatedAt: Long?
 )

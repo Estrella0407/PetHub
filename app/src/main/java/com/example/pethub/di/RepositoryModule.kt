@@ -15,7 +15,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import javax.inject.Singleton
 
 /**
@@ -90,13 +89,16 @@ object RepositoryModule {
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
         cloudinaryService: CloudinaryService,
+        authRepository: AuthRepository, // 👈 ADDED: The missing AuthRepository dependency
         petDao: PetDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): PetRepository {
+        // FIX: Add authRepository to the constructor call in the correct order
         return PetRepository(
             firebaseService,
             firestoreHelper,
             cloudinaryService,
+            authRepository,
             petDao,
             ioDispatcher
         )
@@ -134,10 +136,11 @@ object RepositoryModule {
         firestoreHelper: FirestoreHelper,
         appointmentDao: AppointmentDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        notificationRepository: NotificationRepository,
-        authRepository: AuthRepository,
-        petRepository: PetRepository
+        authRepository: AuthRepository, // Re-ordered parameters
+        petRepository: PetRepository,     // Re-ordered parameters
+        notificationRepository: NotificationRepository
     ): AppointmentRepository {
+        // FIX: Re-order the arguments to match the likely AppointmentRepository constructor
         return AppointmentRepository(
             firestoreHelper,
             appointmentDao,

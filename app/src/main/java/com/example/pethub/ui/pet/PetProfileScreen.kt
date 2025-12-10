@@ -1,0 +1,208 @@
+package com.example.pethub.ui.pet
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.pethub.ui.petimport.PetProfileUiState
+import com.example.pethub.ui.petimport.PetProfileViewModel
+import com.example.pethub.ui.status.ErrorScreen
+import com.example.pethub.ui.status.LoadingScreen
+import com.example.pethub.ui.theme.CreamBackground
+import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.util.calculateAge
+// 1. ADD THE CORRECT JAVA IMPORTS
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PetProfileScreen(
+    viewModel: PetProfileViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    Scaffold(
+        containerColor = CreamBackground,
+        topBar = {
+            TopAppBar(
+                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = CreamDark) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CreamBackground)
+            )
+        }
+    ) { padding ->
+        when (val state = uiState) {
+            is PetProfileUiState.Loading -> LoadingScreen()
+            is PetProfileUiState.Error -> ErrorScreen(message = state.message, onRetry = { /*TODO*/ })
+            is PetProfileUiState.Success -> {
+                PetProfileContent(
+                    modifier = Modifier.padding(padding),
+                    pet = state.pet
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PetProfileContent(modifier: Modifier = Modifier, pet: com.example.pethub.data.model.Pet) {
+    val age = calculateAge(pet.dateOfBirth)
+    // 2. THIS WILL NOW WORK CORRECTLY
+    val formattedDob = pet.dateOfBirth?.let {
+        val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+        sdf.format(Date(it)) // Uses java.util.Date and java.util.Locale
+    } ?: "Not set"
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        // --- Pet Image and Name ---
+        item {
+            AsyncImage(
+                model = pet.imageUrl,
+                contentDescription = pet.petName,
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = pet.petName,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = CreamDark
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // --- Details Card ---
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = CreamLight)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditablePetInfoField(label = "Gender", value = pet.sex, modifier = Modifier.weight(1f))
+                        EditablePetInfoField(
+                            label = "Age",
+                            value = age?.toString() ?: "N/A",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    EditablePetInfoField(label = "Date of Birth", value = formattedDob) // Use the formatted string
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditablePetInfoField(label = "Breed", value = pet.breed, modifier = Modifier.weight(1f))
+                        EditablePetInfoField(label = "Weight (kg)", value = pet.weight.toString(), modifier = Modifier.weight(1f))
+                    }
+                    EditablePetInfoField(label = "Remarks", value = pet.remarks)
+
+                    // --- Remove Button ---
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .clickable { /* TODO: Show confirmation dialog */ },
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Remove",
+                            textDecoration = TextDecoration.Underline
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Default.Cancel, contentDescription = "Remove Pet", modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+
+        // --- Save Button ---
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { /* TODO: Save changes */ },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
+            ) {
+                Text("Save", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+// 3. REMOVE ALL THE DUMMY FUNCTIONS FROM THE BOTTOM OF YOUR FILE
+/*
+fun Locale.Companion.getDefault() {
+    TODO("Not yet implemented")
+}
+
+@Composable
+fun SimpleDateFormat(x0: String, x1: Unit) {
+    TODO("Not yet implemented")
+}
+
+annotation class getDefault
+*/
+
+@Composable
+fun EditablePetInfoField(
+    label: String,
+    value: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CreamDark)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (value != null) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = { /* TODO: Update ViewModel state */ },
+                    modifier = Modifier.weight(1f),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = CreamDark),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+            }
+            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = Color.Gray)
+        }
+        Divider(color = Color.Gray, thickness = 1.dp)
+    }
+}
