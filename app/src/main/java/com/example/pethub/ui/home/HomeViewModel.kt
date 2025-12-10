@@ -2,9 +2,12 @@ package com.example.pethub.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
-import com.example.pethub.data.model.Service
+import com.example.pethub.data.model.ServiceItem
+import com.example.pethub.data.model.toServiceItem
 import com.example.pethub.data.repository.AuthRepository
+import com.example.pethub.data.repository.BranchRepository
 import com.example.pethub.data.repository.CustomerRepository
 import com.example.pethub.data.repository.PetRepository
 import com.example.pethub.data.repository.ServiceRepository
@@ -22,9 +25,10 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val customerRepository: CustomerRepository, // Changed from UserRepository
+    private val customerRepository: CustomerRepository,
     private val petRepository: PetRepository,
     private val serviceRepository: ServiceRepository,
+    private val branchRepository: BranchRepository
 ) : ViewModel() {
 
     // UI State
@@ -39,15 +43,47 @@ class HomeViewModel @Inject constructor(
     private val _recommendedServices = MutableStateFlow<List<ServiceItem>>(emptyList())
     val recommendedServices: StateFlow<List<ServiceItem>> = _recommendedServices.asStateFlow()
 
-    // User's pets
-    private val _userPets = MutableStateFlow<List<Pet>>(emptyList())
-    val userPets: StateFlow<List<Pet>> = _userPets.asStateFlow()
+    // Expose the full list of pets to the UI
+    private val _pets = MutableStateFlow<List<Pet>>(emptyList())
+    val pets: StateFlow<List<Pet>> = _pets.asStateFlow()
 
-    // Selected pet for quick services
+    // Keep track of the currently selected pet
     private val _selectedPet = MutableStateFlow<Pet?>(null)
     val selectedPet: StateFlow<Pet?> = _selectedPet.asStateFlow()
 
+    // Function to be called from the UI when a new pet is chosen
+    fun onPetSelected(pet: Pet) {
+        _selectedPet.value = pet
+
+        // Launch a coroutine to call the suspend function
+        viewModelScope.launch {
+            // Re-fetch recommended services that depend on the pet
+            val result = serviceRepository.loadRecommendedServices(pet.petId)
+
+            // Update the UI state based on the result
+            result.onSuccess { services ->
+                _recommendedServices.value = services.map { it.toServiceItem() }
+            }.onFailure {
+                // Optional: If recommendation fails,
+                // keep showing the previous list or log the error
+            }
+        }
+    }
+
+
+    // Available branches
+    private val _branches = MutableStateFlow<List<Branch>>(emptyList())
+    val branches: StateFlow<List<Branch>> = _branches.asStateFlow()
+
     init {
+        // When the full pet list loads, select the first one as the default
+        viewModelScope.launch {
+            pets.collect { petList ->
+                if (_selectedPet.value == null && petList.isNotEmpty()) {
+                    _selectedPet.value = petList.first()
+                }
+            }
+        }
         loadData()
     }
 
@@ -74,6 +110,9 @@ class HomeViewModel @Inject constructor(
 
                 // Load services (launch in new coroutine to avoid blocking)
                 launch { loadServices() }
+                
+                // Load branches
+                launch { loadBranches() }
 
                 _uiState.value = HomeUiState.Success
 
@@ -104,14 +143,17 @@ class HomeViewModel @Inject constructor(
      * Load user's pets
      */
     private suspend fun loadUserPets(userId: String) {
-        petRepository.listenToUserPets(userId).collect { pets ->
-            _userPets.value = pets
-            // Set first pet as selected by default
-            if (pets.isNotEmpty() && _selectedPet.value == null) {
-                _selectedPet.value = pets.first()
+        // Ensure listening to the flow from the repository
+        petRepository.listenToUserPets(userId).collect { petsList ->
+            _pets.value = petsList // <--- Update _pets here
+
+            // Set first pet as selected by default if none selected
+            if (petsList.isNotEmpty() && _selectedPet.value == null) {
+                _selectedPet.value = petsList.first()
             }
         }
     }
+
 
     /**
      * Load all active services
@@ -119,6 +161,15 @@ class HomeViewModel @Inject constructor(
     private suspend fun loadServices() {
         serviceRepository.listenToServices().collect { services ->
             _recommendedServices.value = services.map { it.toServiceItem() }
+        }
+    }
+    
+    /**
+     * Load all branches
+     */
+    private suspend fun loadBranches() {
+        branchRepository.listenToBranches().collect { branchesList ->
+            _branches.value = branchesList
         }
     }
 
@@ -152,45 +203,3 @@ sealed class HomeUiState {
     object Success : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
-
-/**
- * Data class for service items in UI
- */
-data class ServiceItem(
-    val id: String,
-    val name: String,
-    val description: String,
-    val category: String,
-    val price: Double,
-    val rating: Double, // Service model doesn't have rating anymore, defaults to 0.0 in UI logic if removed from model? Service model updated to remove rating? No, I kept it. Let's check Service.kt.
-    val imageUrl: String,
-    val availability: Boolean
-)
-
-/**
- * Extension function to convert Service to ServiceItem
- */
-fun Service.toServiceItem(): ServiceItem {
-    return ServiceItem(
-        id = serviceId,
-        name = serviceName, // Updated property name
-        description = description,
-        category = type, // Updated property name: category -> type
-        price = price,
-        rating = 0.0, // Rating removed from new Service model? I wrote Service.kt without rating? Let me check. I wrote Service.kt without rating in my previous turn? Yes.
-        imageUrl = imageUrl,
-        availability = true // Service model doesn't have availability anymore? Yes, moved to BranchService.
-    )
-}
-
-/**
- * Data class for booking items in UI
- */
-data class AppointmentItem( // Renamed from BookingItem
-    val id: String,
-    val serviceName: String, // Need to fetch from Service or join
-    val petName: String, // Need to fetch from Pet or join
-    val dateTime: String,
-    val locationName: String,
-    val status: String
-)

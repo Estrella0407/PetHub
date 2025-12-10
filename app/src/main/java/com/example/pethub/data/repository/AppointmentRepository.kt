@@ -6,23 +6,42 @@ import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_APPOINTMENT
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.jvm.optionals.getOrNull
 
 @Singleton
 class AppointmentRepository @Inject constructor(
     private val firestoreHelper: FirestoreHelper,
     private val dao: AppointmentDao,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val authRepository: AuthRepository,
+    private val petRepository: PetRepository,
+    private val notificationRepository: NotificationRepository,
 ) {
 
-    suspend fun createAppointment(appointment: Appointment): Result<String> {
-        return firestoreHelper.createDocumentWithId(
+    suspend fun createAppointment(appointment: Appointment) {
+        // Get the pet's details
+        val petResult = petRepository.getPetById(appointment.petId)
+        val pet = petResult.getOrNull()
+
+        // Create the final appointment object with the breed included
+        val appointmentToSave = appointment.copy(
+            breed = pet?.breed ?: "" // Add the breed here
+        )
+
+        // Save the new object to Firestore
+        firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
+    }
+
+    suspend fun getAllAppointments(): Result<List<Appointment>> {
+        return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
-            appointment.appointmentId,
-            appointment
-        ).map { appointment.appointmentId }
+            Appointment::class.java
+        )
     }
 
     fun listenToBranchAppointments(branchId: String): Flow<List<Appointment>> {
@@ -34,12 +53,27 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-    // Since we don't have userId directly, filtering by petId might be needed or client side filtering
-    // For now, generic implementation
+
     fun listenToAllAppointments(): Flow<List<Appointment>> {
         return firestoreHelper.listenToCollection(
             COLLECTION_APPOINTMENT,
             Appointment::class.java
         )
+    }
+
+    fun confirmBooking() {
+        CoroutineScope(ioDispatcher).launch {
+
+            // After successfully saving, send a notification
+            val userId = authRepository.getCurrentUserId()
+            if (userId != null) {
+                notificationRepository.sendNotification(
+                    userId = userId,
+                    title = "Appointment Confirmed!",
+                    message = "Your appointment for Grooming on May 25th is confirmed.",
+                    type = "appointment"
+                )
+            }
+        }
     }
 }

@@ -34,6 +34,8 @@ class FirestoreHelper @Inject constructor(
         const val COLLECTION_PET = "pet"
         const val COLLECTION_SERVICE = "service"
         const val COLLECTION_APPOINTMENT = "appointment"
+        const val COLLECTION_NOTIFICATION = "notification"
+
 
         // Common fields
         const val FIELD_CREATED_AT = "createdAt"

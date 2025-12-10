@@ -9,16 +9,29 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.navigation.NavGraph
+import com.example.pethub.utils.SharedPrefs
 import com.example.pethub.ui.theme.PetHubTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var firebaseService: FirebaseService
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val prefs = getSharedPreferences(SharedPrefs.NAME, MODE_PRIVATE)
+        val remember = prefs.getBoolean(SharedPrefs.REMEMBER_ME, false)
+
+        if (!remember) {
+            firebaseService.signOut()
+            // or FirebaseAuth.getInstance().signOut()
+        }
         setContent {
             PetHubTheme {
                 Surface(
@@ -26,7 +39,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    NavGraph(
+                        navController = navController,
+                        firebaseService = firebaseService
+                        )
                 }
             }
         }

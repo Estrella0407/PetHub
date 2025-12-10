@@ -10,8 +10,10 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.FIELD_IS_ACTIVE
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.jvm.optionals.getOrNull
 
 // ============================================
 // SERVICE REPOSITORY
@@ -22,6 +24,8 @@ class ServiceRepository @Inject constructor(
     private val firestoreHelper: FirestoreHelper,
     private val cloudinaryService: CloudinaryService,
     private val dao: ServiceDao,
+    private val petRepository: PetRepository,
+    private val appointmentRepository: AppointmentRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
@@ -73,4 +77,48 @@ class ServiceRepository @Inject constructor(
                 }
             }
     }
+
+    suspend fun loadRecommendedServices(petId: String): Result<List<Service>> =
+        withContext(ioDispatcher) {
+        try {
+            // Get the current pet's breed
+            val petResult = petRepository.getPetById(petId)
+            val petBreed = petResult.getOrNull()?.breed ?: return@withContext Result.failure(Exception("Pet not found"))
+
+            // Get all historical bookings
+            val allAppointmentsResult = appointmentRepository.getAllAppointments()
+            if (allAppointmentsResult.isFailure) {
+                return@withContext Result.failure(allAppointmentsResult.exceptionOrNull() ?: Exception("Failed to get bookings"))
+            }
+            val allAppointments = allAppointmentsResult.getOrThrow()
+
+            // Find the most popular service ID for that breed
+            val mostPopularServiceId = allAppointments
+                .filter { it.breed == petBreed }    // Filter bookings by the same breed
+                .groupBy { it.serviceId }           // Group by service ID
+                .maxByOrNull { it.value.size }      // Find the group with the most bookings
+                ?.key                               // Get the service ID
+
+            // Fetch all services and prioritize the recommended one
+            val allServicesResult = getAllServices()
+            if (allServicesResult.isFailure) {
+                return@withContext allServicesResult // Return the failure result
+            }
+
+            val allServices = allServicesResult.getOrThrow()
+
+            if (mostPopularServiceId != null) {
+                // If a popular service was found, move it to the top of the list
+                val recommendedList = allServices.sortedByDescending { it.serviceId == mostPopularServiceId }
+                Result.success(recommendedList)
+            } else {
+                // If no booking data exists for this breed, return all services as-is
+                Result.success(allServices)
+            }
+
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }

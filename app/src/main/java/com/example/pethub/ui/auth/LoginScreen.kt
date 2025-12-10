@@ -24,7 +24,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onNavigateToAdmin: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -116,18 +115,6 @@ fun LoginScreen(
         ) {
             Text(
                 text = "Continue as Guest",
-                textDecoration = TextDecoration.Underline
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(
-            onClick = { onNavigateToAdmin() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Login as Admin",
                 textDecoration = TextDecoration.Underline
             )
         }
