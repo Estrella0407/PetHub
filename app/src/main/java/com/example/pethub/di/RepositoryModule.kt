@@ -1,6 +1,7 @@
 package com.example.pethub.di
 
 import com.example.pethub.data.local.database.dao.AppointmentDao
+import com.example.pethub.data.local.database.dao.BranchDao
 import com.example.pethub.data.local.database.dao.CustomerDao
 import com.example.pethub.data.local.database.dao.PetDao
 import com.example.pethub.data.local.database.dao.ServiceDao
@@ -14,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import javax.inject.Singleton
 
 /**
@@ -51,13 +53,31 @@ object RepositoryModule {
     fun provideCustomerRepository(
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
-        customerDao: CustomerDao, // Changed from UserDao
+        customerDao: CustomerDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): CustomerRepository {
         return CustomerRepository(
             firebaseService,
             firestoreHelper,
-            ioDispatcher // CustomerRepository signature might need adjustment if it uses CloudinaryService? Checked: it currently doesn't.
+            customerDao,
+            ioDispatcher
+        )
+    }
+
+    /**
+     * Provide BranchRepository for branch operations
+     */
+    @Provides
+    @Singleton
+    fun provideBranchRepository(
+        firestoreHelper: FirestoreHelper,
+        branchDao: BranchDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): BranchRepository {
+        return BranchRepository(
+            firestoreHelper,
+            branchDao,
+            ioDispatcher
         )
     }
 
@@ -91,12 +111,16 @@ object RepositoryModule {
         firestoreHelper: FirestoreHelper,
         cloudinaryService: CloudinaryService,
         serviceDao: ServiceDao,
+        petRepository: PetRepository,
+        appointmentRepository: AppointmentRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): ServiceRepository {
         return ServiceRepository(
             firestoreHelper,
             cloudinaryService,
             serviceDao,
+            petRepository,
+            appointmentRepository,
             ioDispatcher
         )
     }
@@ -108,13 +132,19 @@ object RepositoryModule {
     @Singleton
     fun provideAppointmentRepository(
         firestoreHelper: FirestoreHelper,
-        appointmentDao: AppointmentDao, // Changed from BookingDao
-        @IoDispatcher ioDispatcher: CoroutineDispatcher
+        appointmentDao: AppointmentDao,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        notificationRepository: NotificationRepository,
+        authRepository: AuthRepository,
+        petRepository: PetRepository
     ): AppointmentRepository {
         return AppointmentRepository(
             firestoreHelper,
             appointmentDao,
-            ioDispatcher
+            ioDispatcher,
+            authRepository,
+            petRepository,
+            notificationRepository
         )
     }
 }

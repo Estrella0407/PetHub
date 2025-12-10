@@ -11,10 +11,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ============================================
-// AUTH REPOSITORY
-// ============================================
-
 @Singleton
 class AuthRepository @Inject constructor(
     private val firebaseService: FirebaseService,
@@ -32,9 +28,9 @@ class AuthRepository @Inject constructor(
     suspend fun signIn(email: String, password: String) =
         firebaseService.signIn(email, password)
 
-    suspend fun register(email: String, password: String, username: String): Result<String> {
-        // 1. Create Firebase Auth user
-        val authResult = firebaseService.registerUser(email, password, username)
+    suspend fun register(email: String, username:String, password: String, phone:String, address: String): Result<String> {//, username: String): Result<String> {
+        // Create Firebase Auth user
+        val authResult = firebaseService.registerUser(email, password)//, username)
 
         if (authResult.isFailure) {
             return Result.failure(authResult.exceptionOrNull()!!)
@@ -42,12 +38,15 @@ class AuthRepository @Inject constructor(
 
         val user = authResult.getOrNull()!!
 
-        // 2. Create Firestore Customer document (Replacing User)
+        // Create Firestore Customer document
         val customerData = Customer(
             custId = user.uid,
             custName = username,
             custEmail = email,
-            custPassword = password, // Storing password in DB is not recommended but following request
+            custPassword = password,
+            custAddress = address,
+            custPhone = phone,
+
             // No role field in Customer, assumed "customer"
             createdAt = firestoreHelper.getServerTimestamp(),
             updatedAt = firestoreHelper.getServerTimestamp()

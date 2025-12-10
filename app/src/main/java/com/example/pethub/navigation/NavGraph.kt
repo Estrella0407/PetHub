@@ -6,19 +6,34 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+
 import com.example.pethub.ui.admin.ServiceManagementScreen
+import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
+import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.profile.ProfileScreen
 
 @Composable
-fun NavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "login") {
+fun NavGraph(
+    navController: NavHostController,
+    firebaseService: FirebaseService
+) {
+    val startDestination = if (firebaseService.isUserAuthenticated()) {
+        "home"
+    } else {
+       "login"
+    }
+    NavHost(navController = navController, startDestination = startDestination) {
         
         composable("login") {
             LoginScreen(
@@ -37,27 +52,37 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        composable("register") {
+        composable("register") { backStackEntry ->
             RegisterScreen(
-                onRegisterSuccess = {
+                onRegisterSuccessOld = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
+                onReturnClick = {navController.popBackStack()},
+                onNavigateToCompleteProfile={navController.navigate("completeProfile")},
                 onNavigateToLogin = { navController.popBackStack() }
+            )
+        }
+
+        composable("completeProfile"){backStackEntry ->
+            val parentEntry = remember {
+                navController.getBackStackEntry("register")
+            }
+            val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
+            CompleteProfileScreen(
+                onProfileCompleted = {navController.navigate("home")},
+                viewModel = sharedVm
             )
         }
 
         composable("home") {
             HomeScreen(
-                onNavigateToServices = { navController.navigate("services") },
-                onNavigateToBookings = { navController.navigate("bookings") },
+                onNavigateToService = { navController.navigate("service") },
+                onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
-                },
-                onBookingClick = { bookingId ->
-                    navController.navigate("booking/$bookingId")
                 }
             )
         }
@@ -75,17 +100,28 @@ fun NavGraph(navController: NavHostController) {
         composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
     }
 }
+//        composable("service") {
+//            ServiceScreen(
+//                onNavigateUp = { navController.popBackStack() },
+//                onServiceClick = { serviceId ->
+//                    navController.navigate("service/$serviceId")
+//                }
+//            )
+//        }
 
-@Composable
-private fun PlaceholderScreen(message: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.titleLarge
-        )
+        composable("profile") {
+            ProfileScreen(
+                onFaqClick = {},
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToService = { navController.navigate("service") },
+                onNavigateToShop = { navController.navigate("shop") }
+            )
+        }
     }
 }
+
