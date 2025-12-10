@@ -13,6 +13,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
@@ -41,7 +43,12 @@ fun NavGraph(
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onNavigateToRegister = { navController.navigate("register") }
+                onNavigateToRegister = { navController.navigate("register") },
+                onNavigateToAdmin = {
+                    navController.navigate("admin_services") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -80,6 +87,19 @@ fun NavGraph(
             )
         }
 
+        composable("services") { PlaceholderScreen("Services coming soon") }
+        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
+        composable("profile") { PlaceholderScreen("Profile coming soon") }
+        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
+        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+
+        // Admin screens
+        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
+        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
+    }
+}
 //        composable("service") {
 //            ServiceScreen(
 //                onNavigateUp = { navController.popBackStack() },

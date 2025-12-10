@@ -58,6 +58,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
+    onNavigateToAdmin: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -276,7 +277,19 @@ fun LoginScreenContent(
                 color = Color.Black//MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextButton(
+            onClick = { onNavigateToAdmin() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Login as Admin",
+                textDecoration = TextDecoration.Underline
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
             AuthenticationTextField(
                 value = uiState.email,
