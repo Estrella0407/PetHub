@@ -51,9 +51,9 @@ class AuthRepository @Inject constructor(
     suspend fun signIn(email: String, password: String) =
         firebaseService.signIn(email, password)
 
-    suspend fun register(email: String, password: String, username: String): Result<String> {
+    suspend fun register(email: String, username:String, password: String, phone:String, address: String): Result<String> {//, username: String): Result<String> {
         // Create Firebase Auth user
-        val authResult = firebaseService.registerUser(email, password, username)
+        val authResult = firebaseService.registerUser(email, password)//, username)
 
         if (authResult.isFailure) {
             return Result.failure(authResult.exceptionOrNull()!!)
@@ -67,6 +67,9 @@ class AuthRepository @Inject constructor(
             custName = username,
             custEmail = email,
             custPassword = password,
+            custAddress = address,
+            custPhone = phone,
+
             // No role field in Customer, assumed "customer"
             createdAt = firestoreHelper.getServerTimestamp(),
             updatedAt = firestoreHelper.getServerTimestamp()
