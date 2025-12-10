@@ -46,6 +46,7 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userName by viewModel.userName.collectAsState()
@@ -57,7 +58,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             HomeTopBar(
-                onNotificationClick = { /* Navigate to notifications */ },
+                onNotificationClick = onNotificationClick,
                 onChangeAccTypeClick = { /* Change account type */ }
             )
         },
@@ -289,13 +290,6 @@ fun RecommendedServiceSection(
                 fontWeight = FontWeight.Bold,
                 color = DarkBrown
             )
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SectionHeader(
-                title = "Check out these services for $petName:",
-                actionText = "Change Pet",
-                onActionClick = { showPetSelection = true } // Open the dropdown
-            )
 
             // If showPetSelection is true, display the dropdown
             PetSelectionDropdown(
@@ -307,6 +301,14 @@ fun RecommendedServiceSection(
                 },
                 onDismiss = { showPetSelection = false }, // Close if clicked outside
                 expanded = showPetSelection // Pass the state
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            SectionHeader(
+                title = "Check out these services for $petName:",
+                actionText = "Change Pet",
+                onActionClick = { showPetSelection = true } // Open the dropdown
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -481,7 +483,7 @@ fun ShopDetailsSection(
 
             Text(
                 text = "Pet Services | Pet Care | Pawsome Food",
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
             )
 

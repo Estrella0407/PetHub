@@ -82,6 +82,8 @@ class AuthRepository @Inject constructor(
         )
 
         return if (createResult.isSuccess) {
+            // Save the FCM token to the newly created user document
+            firebaseService.updateFCMToken()
             Result.success(user.uid)
         } else {
             Result.failure(createResult.exceptionOrNull()!!)

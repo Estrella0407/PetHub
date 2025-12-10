@@ -23,6 +23,7 @@ import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
@@ -88,7 +89,14 @@ fun NavGraph(
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
                     navController.navigate("service/$serviceId")
-                }
+                },
+                onNotificationClick = { navController.navigate("notifications") }
+            )
+        }
+        
+        composable("notifications") {
+            NotificationScreen(
+                onNavigateUp = { navController.popBackStack() }
             )
         }
         
@@ -187,17 +195,3 @@ private fun PlaceholderScreen(message: String) {
         )
     }
 }
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
-
-
-
-
-
-
