@@ -25,6 +25,7 @@ playServicesCastTv = "21.1.1"
 cloudinary = "3.1.2"
 animationGraphics = "1.10.0"
 playServicesAuth = "21.0.1"
+foundationLayout = "1.10.0"
 
 
 [libraries]
@@ -64,6 +65,7 @@ play-services-cast-tv = { group = "com.google.android.gms", name = "play-service
 cloudinary-android = { group = "com.cloudinary", name = "cloudinary-android", version.ref = "cloudinary" }
 androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics", version.ref = "animationGraphics" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

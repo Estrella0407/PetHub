@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.adapters)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.animation.graphics)
+    implementation(libs.androidx.compose.foundation.layout)
     //implementation(libs.play.services.cast.tv)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
