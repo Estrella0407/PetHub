@@ -224,7 +224,15 @@ fun LoginScreen(
             onGoogleClick = {viewModel.signInWithGoogle( )}
         )
 
-
+        TextButton(
+            onClick = { onNavigateToAdmin() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Login as Admin",
+                textDecoration = TextDecoration.Underline
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
         AuthenticationImagesFooter()
 
@@ -235,7 +243,8 @@ fun LoginScreen(
 fun LoginScreenContent(
     uiState: LoginUiState,
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onNavigateToAdmin: () -> Unit // Remove after proper navigation to admin is done
 ) {
 
     Surface(
@@ -459,6 +468,7 @@ fun LoginScreenPreview(){
             isLoginSuccessful = false,
             errorMessage = "Example error"
         ),
+        {},
         {},
         {}
     )

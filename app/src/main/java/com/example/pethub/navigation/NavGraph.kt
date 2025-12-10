@@ -96,18 +96,9 @@ fun NavGraph(
         // Admin screens
         composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
-        composable("admin_services") { ServiceManagementScreen(navController = navController) }
         composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
-    }
-}
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
+        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+
 
         composable("profile") {
             ProfileScreen(
@@ -124,4 +115,32 @@ fun NavGraph(
         }
     }
 }
+
+
+@Composable
+private fun PlaceholderScreen(message: String) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleLarge
+        )
+    }
+}
+//        composable("service") {
+//            ServiceScreen(
+//                onNavigateUp = { navController.popBackStack() },
+//                onServiceClick = { serviceId ->
+//                    navController.navigate("service/$serviceId")
+//                }
+//            )
+//        }
+
+
+
+
+
 
