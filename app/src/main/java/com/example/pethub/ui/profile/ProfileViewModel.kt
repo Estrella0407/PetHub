@@ -3,13 +3,18 @@ package com.example.pethub.ui.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.Customer
+import com.example.pethub.data.model.Pet
+import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.AuthRepository
 import com.example.pethub.data.repository.CustomerRepository
+import com.example.pethub.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine // 👈 Make sure this is imported
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,6 +22,9 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val customerRepository: CustomerRepository,
+    private val appointmentRepository: AppointmentRepository,
+    //private val orderRepository: OrderRepository,
+    private val petRepository: PetRepository,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
 
@@ -28,16 +36,29 @@ class ProfileViewModel @Inject constructor(
         loadCustomerData()
     }
 
-    private fun loadCustomerData() {
+    fun loadCustomerData() {
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
-                customerRepository.listenToCurrentCustomer().collect { customer ->
-                    // Transition to Success state
-                    _uiState.value = ProfileUiState.Success(customer = customer)
+                // Use 'combine' to merge multiple data streams into one.
+                // This block will run every time customer, appointments, or pets data changes.
+                combine(
+                    customerRepository.listenToCurrentCustomer(),
+                    appointmentRepository.getUpcomingAppointments(limit = 2), // Fetches appointments
+                    petRepository.getPetsForCurrentUser()                      // Fetches pets
+                ) { customer: Customer?, appointments: List<Appointment>, pets: List<Pet> ->
+                    // Create a new Success state with all the latest data
+                    ProfileUiState.Success(
+                        customer = customer,
+                        appointments = appointments,
+                        pets = pets
+                    )
+                }.collect { combinedState ->
+                    // Update the UI with the complete, combined state
+                    _uiState.value = combinedState
                 }
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState.Error("Failed to load data")
+                _uiState.value = ProfileUiState.Error("Failed to load data: ${e.message}")
             }
         }
     }
@@ -100,19 +121,19 @@ class ProfileViewModel @Inject constructor(
 }
 
 sealed class ProfileUiState(open val customer: Customer? = null) {
-    // Initial loading state when screen opens
     data object Loading : ProfileUiState()
 
-    // Main state when data is loaded. Can also be uploading.
     data class Success(
         override val customer: Customer?,
+        val appointments: List<Appointment> = emptyList(),
+        //val orders: List<Order> = emptyList(),
+        val pets: List<Pet> = emptyList(),
         val isUploading: Boolean = false,
         val uploadProgress: Float = 0f
     ) : ProfileUiState(customer)
 
-    // Error state, but can still show old customer data if we have it.
     data class Error(
         val message: String,
-        override val customer: Customer? = null // Pass the old data to show behind the error
+        override val customer: Customer? = null
     ) : ProfileUiState(customer)
 }
