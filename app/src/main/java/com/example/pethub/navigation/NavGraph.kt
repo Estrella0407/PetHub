@@ -34,7 +34,7 @@ fun NavGraph(
     firebaseService: FirebaseService
 ) {
     val startDestination = if (firebaseService.isUserAuthenticated()) {
-        "profile"
+        "home"
     } else {
        "login"
     }
@@ -44,7 +44,8 @@ fun NavGraph(
             LoginScreen(
                 onLoginSuccess = {
                     // Pop login from backstack so back button exits app
-                    navController.navigate("home") {
+                    // Hardcoded for testing, change to "home" for production
+                    navController.navigate("petProfile/test-pet") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -121,7 +122,6 @@ fun NavGraph(
 
         composable("services") { PlaceholderScreen("Services coming soon") }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
         composable("cart") { PlaceholderScreen("Cart coming soon") }
@@ -195,9 +195,3 @@ private fun PlaceholderScreen(message: String) {
 //                }
 //            )
 //        }
-
-
-
-
-
-

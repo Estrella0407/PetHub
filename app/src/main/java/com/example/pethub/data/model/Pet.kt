@@ -6,7 +6,7 @@ data class Pet(
     val dateOfBirth: Long? = null,
     val type: String = "", // was species
     val breed: String = "",
-    val weight: Double? = null,
+    val weight: Int? = null,
     val sex: String = "", // was gender
     val remarks: String? = null,
     val custId: String = "", // was ownerId
