@@ -18,6 +18,7 @@ import androidx.navigation.navArgument
 
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -34,7 +35,7 @@ fun NavGraph(
     firebaseService: FirebaseService
 ) {
     val startDestination = if (firebaseService.isUserAuthenticated()) {
-        "home"
+        "adminDashboard"
     } else {
        "login"
     }
@@ -170,6 +171,17 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        composable("adminDashboard") {
+            AdminDashboardScreen(
+                onNavigateBack = {
+                    // Decide what the back button should do on the start screen.
+                    // For example, it could close the app. You'll need an Activity reference for that.
+                    // Or, if there's a login screen it should go back to, navigate there.
+                }
+            )
+        }
+
     }
 }
 
@@ -187,6 +199,7 @@ private fun PlaceholderScreen(message: String) {
         )
     }
 }
+
 //        composable("service") {
 //            ServiceScreen(
 //                onNavigateUp = { navController.popBackStack() },
