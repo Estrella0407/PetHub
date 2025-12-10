@@ -24,6 +24,7 @@ import com.example.pethub.data.model.Notification
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.repository.NotificationRepository
 import com.example.pethub.navigation.NavGraph
+import com.example.pethub.utils.SharedPrefs
 import com.example.pethub.ui.theme.PetHubTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
@@ -57,6 +58,13 @@ class MainActivity : ComponentActivity() {
         createNotificationChannel()
         observeNotifications()
 
+        val prefs = getSharedPreferences(SharedPrefs.NAME, MODE_PRIVATE)
+        val remember = prefs.getBoolean(SharedPrefs.REMEMBER_ME, false)
+
+        if (!remember) {
+            firebaseService.signOut()
+            // or FirebaseAuth.getInstance().signOut()
+        }
         setContent {
             PetHubTheme {
                 Surface(

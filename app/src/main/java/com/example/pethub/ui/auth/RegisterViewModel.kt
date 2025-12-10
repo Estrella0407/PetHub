@@ -34,19 +34,37 @@ class RegisterViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(confirmPassword = confirmPassword, errorMessage = null)
     }
 
+
     fun togglePasswordVisibility() {
         _uiState.value = _uiState.value.copy(isPasswordVisible = !_uiState.value.isPasswordVisible)
     }
 
     fun toggleConfirmPasswordVisibility() {
-        _uiState.value = _uiState.value.copy(isConfirmPasswordVisible = !_uiState.value.isConfirmPasswordVisible)
+        _uiState.value =
+            _uiState.value.copy(isConfirmPasswordVisible = !_uiState.value.isConfirmPasswordVisible)
+    }
+
+    fun onPhoneChange(phone: String) {
+        _uiState.value = _uiState.value.copy(phone = phone, errorMessage = null)
+    }
+
+    fun onAddressUpdated(
+        houseNo: String = "",
+        streetName: String = "",
+        city: String = "",
+        postcode: String = "",
+        state: String = ""
+    ) {
+        val address = houseNo + ", " + streetName + ", " + city + ", " + postcode +
+                ", " + state
+        _uiState.value = _uiState.value.copy(address = address, errorMessage = null)
     }
 
     fun register() {
         val state = _uiState.value
-        
+
         // Validation
-        if (state.username.isBlank() || state.email.isBlank() || state.password.isBlank()) {
+        if (state.email.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(errorMessage = "All fields are required")
             return
         }
@@ -61,36 +79,66 @@ class RegisterViewModel @Inject constructor(
             return
         }
 
+        // If valid
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
-            
-            val result = authRepository.register(state.email, state.password, state.username)
-            
-            if (result.isSuccess) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isSuccess = true,
-                    successMessage = "Registration successful!"
-                )
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Registration failed"
-                )
-            }
+
+            //val result = authRepository.register(state.email, state.password)//, state.username) Dont register yet
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                isSuccess = true,
+                successMessage = "Registration successful!"
+            )
+
         }
     }
+
+    fun completeProfile() {
+
+        val state = _uiState.value
+        // Validation
+        if (state.username.isBlank() || state.phone.isBlank() || state.address.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "All fields are required")
+            return
+        }
+
+        // If valid
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+
+            val result = authRepository.register(state.email, state.username, state.password,state.phone,state.address)//, state.username)
+
+            if(result.isSuccess) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    completed = true,
+                    successMessage = "Registration successful!"
+                )
+            }
+            else{
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Registration failed")
+            }
+        }
+
+    }
 }
+
 
 data class RegisterUiState(
     val username: String = "",
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
+    val address : String = "",
+    val phone: String = "",
     val isPasswordVisible: Boolean = false,
     val isConfirmPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val completed: Boolean = false
 )

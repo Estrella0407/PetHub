@@ -8,10 +8,12 @@ import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.jvm.optionals.getOrNull
+import com.google.firebase.Timestamp
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -65,6 +67,24 @@ class AppointmentRepository @Inject constructor(
     }
 
     private fun confirmBooking() {
+    fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
+        val userId = authRepository.getCurrentUserId() ?: return emptyFlow() // Return an empty flow if no user is logged in
+
+        return firestoreHelper.listenToCollection(
+            collection = COLLECTION_APPOINTMENT,
+            clazz = Appointment::class.java
+        ) { query ->
+            // Chain multiple query conditions
+            query
+                .whereEqualTo("userId", userId) // Filter by the current user's ID
+                .whereGreaterThanOrEqualTo("dateTime",
+                    Timestamp.now()) // Filter for appointments from now onwards
+                .orderBy("dateTime") // Order by the soonest appointment first
+                .limit(limit.toLong()) // Apply the limit
+        }
+    }
+
+    fun confirmBooking() {
         CoroutineScope(ioDispatcher).launch {
             // After successfully saving, send a notification
             val userId = authRepository.getCurrentUserId()
