@@ -14,8 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,13 +35,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.pethub.R
 import com.example.pethub.data.model.Service
-import com.example.pethub.navigation.AdminBottomNavigation
+import com.example.pethub.navigation.AdminBottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServiceManagementScreen(navController: NavController) {
+fun ServiceManagementScreen(
+    onNavigateToAdminHome: () -> Unit,
+    onNavigateToAdminStocks: () -> Unit,
+    onNavigateToAdminScanner: () -> Unit,
+    viewModel: AdminDashboardViewModel = hiltViewModel()
+) {
     // Dummy list of services based on the image
     val services = listOf(
         Service(serviceName = "Grooming"),
@@ -56,14 +61,22 @@ fun ServiceManagementScreen(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = { Text("PetHub") },
-                actions = {
-                    IconButton(onClick = { /* TODO: Logout */ }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+            )
+        },
+        bottomBar = {
+            AdminBottomNavigationBar(
+                modifier = Modifier.fillMaxWidth(),
+                currentRoute = "admin_services",
+                onNavigate = { route ->
+                    when (route) {
+                        "admin_home" -> onNavigateToAdminHome()
+                        "admin_stocks" -> onNavigateToAdminStocks()
+                        "admin_services" -> { /* Stay */ }
+                        "admin_scanner" -> onNavigateToAdminScanner()
                     }
                 }
             )
-        },
-        bottomBar = { AdminBottomNavigation(navController = navController) }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -111,9 +124,8 @@ fun ServiceRow(service: Service) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Placeholder for the icon
                 Image(
-                    imageVector = Icons.Default.Pets,
+                    painter = painterResource(id = iconRes),
                     contentDescription = service.serviceName,
                     modifier = Modifier.size(40.dp)
                 )
