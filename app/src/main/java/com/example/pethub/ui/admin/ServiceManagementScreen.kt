@@ -14,8 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,9 +31,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.pethub.R
 import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.AdminBottomNavigationBar
 
@@ -43,7 +45,8 @@ import com.example.pethub.navigation.AdminBottomNavigationBar
 fun ServiceManagementScreen(
     onNavigateToAdminHome: () -> Unit,
     onNavigateToAdminStocks: () -> Unit,
-    onNavigateToAdminScanner: () -> Unit
+    onNavigateToAdminScanner: () -> Unit,
+    viewModel: AdminDashboardViewModel = hiltViewModel()
 ) {
     // Dummy list of services based on the image
     val services = listOf(
@@ -58,17 +61,12 @@ fun ServiceManagementScreen(
         topBar = {
             TopAppBar(
                 title = { Text("PetHub") },
-                actions = {
-                    IconButton(onClick = { /* TODO: Logout */ }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
-                    }
-                }
             )
         },
         bottomBar = {
             AdminBottomNavigationBar(
                 modifier = Modifier.fillMaxWidth(),
-                currentRoute = "admin_home",
+                currentRoute = "admin_services",
                 onNavigate = { route ->
                     when (route) {
                         "admin_home" -> onNavigateToAdminHome()
@@ -108,6 +106,15 @@ fun ServiceManagementScreen(
 fun ServiceRow(service: Service) {
     var isEnabled by remember { mutableStateOf(false) }
 
+    val iconRes = when (service.serviceName) {
+        "Grooming" -> R.drawable.grooming_nobg
+        "Boarding" -> R.drawable.boarding_nobg
+        "Walking" -> R.drawable.walking_nobg
+        "DayCare" -> R.drawable.daycare_nobg
+        "Training" -> R.drawable.training_nobg
+        else -> R.drawable.pethub_rvbg // A default icon
+    }
+
     Column {
         Row(
             modifier = Modifier
@@ -117,9 +124,8 @@ fun ServiceRow(service: Service) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Placeholder for the icon
                 Image(
-                    imageVector = Icons.Default.Pets,
+                    painter = painterResource(id = iconRes),
                     contentDescription = service.serviceName,
                     modifier = Modifier.size(40.dp)
                 )

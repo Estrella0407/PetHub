@@ -44,7 +44,7 @@ fun BottomNavigationBar(
 ) {
     val items = listOf(
         BottomNavItemData(label = "Home", route = "home", iconRes = R.drawable.customer_home),
-        BottomNavItemData(label = "Services", route = "service", iconRes = R.drawable.admin_footer_service),
+        BottomNavItemData(label = "Services", route = "services", iconRes = R.drawable.admin_footer_service),
         BottomNavItemData(label = "Shop", route = "shop", iconRes = R.drawable.admin_footer_stock),
         BottomNavItemData(label = "Profile", route = "profile", iconRes = R.drawable.admin_footer_home)
     )

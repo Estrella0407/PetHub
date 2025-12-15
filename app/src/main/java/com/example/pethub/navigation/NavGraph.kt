@@ -16,12 +16,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
-
-import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminDashboardScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
@@ -35,6 +34,8 @@ import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
+import com.example.pethub.ui.service.ServiceScreen
+import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(
@@ -44,7 +45,7 @@ fun NavGraph(
     val startDestination = if (firebaseService.isUserAuthenticated()) {
         "profile"
     } else {
-       "login"
+        "login"
     }
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -110,7 +111,7 @@ fun NavGraph(
                 }
             )
         }
-        
+
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
@@ -120,12 +121,21 @@ fun NavGraph(
             )
         }
 
-        composable("services") { PlaceholderScreen("Services coming soon") }
+        composable("services") {
+            ServiceScreen(
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToShop = { navController.navigate("shop") },
+                onNavigateToProfile = { navController.navigate("profile") },
+                onServiceClick = { serviceId ->
+                    navController.navigate("appointment/$serviceId")
+                }
+            )
+        }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
         composable("cart") { PlaceholderScreen("Cart coming soon") }
+        composable("appointment/{serviceId}") { PlaceholderScreen("Appointment screen coming soon") }
 
         // Admin screens
         composable("admin_home") {
@@ -193,7 +203,7 @@ fun NavGraph(
                     }
                 },
                 onNavigateToHome = { navController.navigate("home") },
-                onNavigateToService = { navController.navigate("service") },
+                onNavigateToService = { navController.navigate("services") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onAddPetClick = {navController.navigate("addPet")},
                 onFaqClick = {navController.navigate("faq")},
@@ -238,17 +248,3 @@ private fun PlaceholderScreen(message: String) {
         )
     }
 }
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
-
-
-
-
-
-
