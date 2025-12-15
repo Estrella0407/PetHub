@@ -19,10 +19,12 @@ import androidx.navigation.navArgument
 
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
+import com.example.pethub.ui.admin.AppointmentDetail
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -132,8 +134,8 @@ fun NavGraph(
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onNavigateToAppointmentDetails = { appointmentId ->
-                    navController.navigate("admin_appointment_details")
+                onNavigateToAppointmentDetails = {appointmentId->
+                    navController.navigate("appointmentDetail/${appointmentId}")
                 },
                 onViewAllClick = {navController.navigate("admin_view_all_appointments")}
             )
@@ -147,8 +149,19 @@ fun NavGraph(
         composable(
             route = "appointmentDetail/{appointmentId}",
             arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
-        ){
-            PlaceholderScreen("Appointment details coming soon")
+        ){backStackEntry ->
+
+            val appointmentId =
+                backStackEntry.arguments?.getString("appointmentId")!!
+
+            AppointmentDetail(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = {navController.popBackStack()},
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                appointmentId = appointmentId
+            )
         }
         composable("admin_view_all_appointments"){
             AdminViewAllAppointmentsScreen(
@@ -157,7 +170,9 @@ fun NavGraph(
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onViewAppointmentClick = {}
+                onViewAppointmentClick = {appointmentId->
+                    navController.navigate("appointmentDetail/${appointmentId}")
+                }
             )
         }
         composable("admin_services") {

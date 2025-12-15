@@ -43,10 +43,22 @@ class AppointmentRepository @Inject constructor(
         confirmBooking()
     }
 
+
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
             Appointment::class.java
+        )
+    }
+
+    suspend fun getAppointmentDetail(
+        appointmentId: String
+    ): Result<Appointment?> {
+
+        return firestoreHelper.getDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointmentId,
+            clazz = Appointment::class.java
         )
     }
 

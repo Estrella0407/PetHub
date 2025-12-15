@@ -71,7 +71,7 @@ fun ServiceManagementScreen(
                 currentRoute = "admin_home",
                 onNavigate = { route ->
                     when (route) {
-                        "admin_home" -> onNavigateToAdminHome
+                        "admin_home" -> onNavigateToAdminHome()
                         "admin_stocks" -> onNavigateToAdminStocks()
                         "admin_services" -> { /* Stay */ }
                         "admin_scanner" -> onNavigateToAdminScanner()
