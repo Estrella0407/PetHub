@@ -33,7 +33,8 @@ fun AdminDashboardScreen(
     onNavigateToStocks: () -> Unit,
     onNavigateToServices: () -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToAppointmentDetails: (String) -> Unit
+    onNavigateToAppointmentDetails: (String) -> Unit,
+    onViewAllClick:() -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val appointments by viewModel.recentAppointments.collectAsState()
@@ -72,7 +73,7 @@ fun AdminDashboardScreen(
                 AdminDashboardContent(
                     modifier = Modifier.padding(paddingValues),
                     appointments = appointments,
-                    onViewAllClick = { /* Handle view all */ },
+                    onViewAllClick = {onViewAllClick()},
                     onViewAppointmentClick = onNavigateToAppointmentDetails
                 )
             }
@@ -86,7 +87,7 @@ fun AdminTopBar(onLogoutClick: () -> Unit) {
     CenterAlignedTopAppBar(
         title = {
             Image(
-                painter = painterResource(id = R.drawable.pethub_logo_rvbg), // Ensure this resource exists
+                painter = painterResource(id = R.drawable.pethub_rvbg), // Ensure this resource exists
                 contentDescription = "PetHub Logo",
                 modifier = Modifier
                     .height(40.dp)
@@ -120,7 +121,7 @@ fun AdminDashboardContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -216,7 +217,7 @@ fun AppointmentListCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "#${appt.id}",
+                        text = "#${appt.id.take(5)}",
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
                         modifier = Modifier.width(80.dp)
