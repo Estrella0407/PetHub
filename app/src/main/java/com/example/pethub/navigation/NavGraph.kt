@@ -18,6 +18,7 @@ import androidx.navigation.navArgument
 
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -37,7 +38,8 @@ fun NavGraph(
     val startDestination = if (firebaseService.isUserAuthenticated()) {
         "profile"
     } else {
-       "login"
+//       "login"
+        "admin_home"
     }
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -135,10 +137,15 @@ fun NavGraph(
         composable("cart") { PlaceholderScreen("Cart coming soon") }
 
         // Admin screens
-        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+        composable("admin_home") {
+            AdminHomeScreen(navController = navController)
+        }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
         composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
-        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+
+        composable("admin_services") {
+            ServiceManagementScreen(navController = navController)
+        }
 
 
         composable("profile") {

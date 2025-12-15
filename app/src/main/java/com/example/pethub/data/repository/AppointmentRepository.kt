@@ -37,7 +37,7 @@ class AppointmentRepository @Inject constructor(
 
         // Save the new object to Firestore
         firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
-        
+
         // Trigger notification
         confirmBooking()
     }
@@ -66,36 +66,38 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
-    private fun confirmBooking() {
-    fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val userId = authRepository.getCurrentUserId() ?: return emptyFlow() // Return an empty flow if no user is logged in
-
-        return firestoreHelper.listenToCollection(
-            collection = COLLECTION_APPOINTMENT,
-            clazz = Appointment::class.java
-        ) { query ->
-            // Chain multiple query conditions
-            query
-                .whereEqualTo("userId", userId) // Filter by the current user's ID
-                .whereGreaterThanOrEqualTo("dateTime",
-                    Timestamp.now()) // Filter for appointments from now onwards
-                .orderBy("dateTime") // Order by the soonest appointment first
-                .limit(limit.toLong()) // Apply the limit
-        }
-    }
-
-    fun confirmBooking() {
-        CoroutineScope(ioDispatcher).launch {
-            // After successfully saving, send a notification
+        fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
             val userId = authRepository.getCurrentUserId()
-            if (userId != null) {
-                notificationRepository.sendNotification(
-                    userId = userId,
-                    title = "Appointment Confirmed!",
-                    message = "Your appointment has been successfully booked.",
-                    type = "appointment"
-                )
+                ?: return emptyFlow() // Return an empty flow if no user is logged in
+
+            return firestoreHelper.listenToCollection(
+                collection = COLLECTION_APPOINTMENT,
+                clazz = Appointment::class.java
+            ) { query ->
+                // Chain multiple query conditions
+                query
+                    .whereEqualTo("userId", userId) // Filter by the current user's ID
+                    .whereGreaterThanOrEqualTo(
+                        "dateTime",
+                        Timestamp.now()
+                    ) // Filter for appointments from now onwards
+                    .orderBy("dateTime") // Order by the soonest appointment first
+                    .limit(limit.toLong()) // Apply the limit
+            }
+        }
+
+        fun confirmBooking() {
+            CoroutineScope(ioDispatcher).launch {
+                // After successfully saving, send a notification
+                val userId = authRepository.getCurrentUserId()
+                if (userId != null) {
+                    notificationRepository.sendNotification(
+                        userId = userId,
+                        title = "Appointment Confirmed!",
+                        message = "Your appointment has been successfully booked.",
+                        type = "appointment"
+                    )
+                }
             }
         }
     }
-}
