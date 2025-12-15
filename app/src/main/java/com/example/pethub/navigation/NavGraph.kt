@@ -21,6 +21,7 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminDashboardScreen
+import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -136,7 +137,13 @@ fun NavGraph(
             )
         }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
-        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
+        composable("admin_scanner") {
+            AdminScannerScreen { qr ->
+                println("Scanned QR: $qr")
+                navController.navigate("petProfile/${qr}")
+            }
+        }
+
         composable("admin_appointment_details") { PlaceholderScreen("Appointment details coming soon") }
 
         composable("admin_services") {
