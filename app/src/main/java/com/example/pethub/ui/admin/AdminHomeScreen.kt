@@ -42,7 +42,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.repository.AppointmentRepository
-import com.example.pethub.navigation.AdminBottomNavigation
+import com.example.pethub.navigation.AdminBottomNavigationBar
 import com.example.pethub.ui.auth.LoginViewModel
 import com.google.firebase.Timestamp
 
@@ -50,8 +50,12 @@ import com.google.firebase.Timestamp
 @Composable
 fun AdminHomeScreen(
     viewModel: AdminHomeScreenViewModel = hiltViewModel(),
-    navController: NavController
-){
+    onNavigateToLogin: () -> Unit,
+    onNavigateToStocks: () -> Unit,
+    onNavigateToServices: () -> Unit,
+    onNavigateToScanner: () -> Unit,
+    onNavigateToAppointmentDetails: (String) -> Unit)
+{
     val uiState by viewModel.uiState.collectAsState()
     Scaffold(
         topBar = {
@@ -64,7 +68,19 @@ fun AdminHomeScreen(
                 }
             )
         },
-        bottomBar = { AdminBottomNavigation(navController = navController) }
+        bottomBar = {
+            AdminBottomNavigationBar(
+                modifier = Modifier,
+                currentRoute = "admin_home",
+                onNavigate = { route ->
+                    when (route) {
+                        "admin_home" -> { /* Current */ }
+                        "admin_stocks" -> onNavigateToStocks()
+                        "admin_services" -> onNavigateToServices()
+                        "admin_scanner" -> onNavigateToScanner()
+                    }
+                }
+            )}
     ) {innerPadding ->
         Column(
             modifier = Modifier
@@ -184,7 +200,11 @@ fun AdminHomeScreen(
 @Composable
 fun AdminHomeScreenContent(
     uiState: AdminHomeScreenUiState,
-    navController: NavController
+    onNavigateToLogin: () -> Unit,
+    onNavigateToStocks: () -> Unit,
+    onNavigateToServices: () -> Unit,
+    onNavigateToScanner: () -> Unit,
+    onNavigateToAppointmentDetails: (String) -> Unit
 ){
     Scaffold(
         topBar = {
@@ -197,7 +217,19 @@ fun AdminHomeScreenContent(
                 }
             )
         },
-        bottomBar = { AdminBottomNavigation(navController = navController) }
+        bottomBar = {
+            AdminBottomNavigationBar(
+                modifier = Modifier,
+                currentRoute = "admin_home",
+                onNavigate = { route ->
+                    when (route) {
+                        "admin_home" -> { /* Current */ }
+                        "admin_stocks" -> onNavigateToStocks()
+                        "admin_services" -> onNavigateToServices()
+                        "admin_scanner" -> onNavigateToScanner()
+                    }
+                }
+            ) }
     ) {innerPadding ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -360,6 +392,10 @@ fun AdminHomeScreenPreview() {
     )
     AdminHomeScreenContent(
         uiState = AdminHomeScreenUiState(appointments = previewAppointments),
-        navController = navController
+        {},
+        {},
+        {},
+        {},
+        {}
     )
 }

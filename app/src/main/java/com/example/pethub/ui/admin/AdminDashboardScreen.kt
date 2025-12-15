@@ -86,7 +86,7 @@ fun AdminTopBar(onLogoutClick: () -> Unit) {
     CenterAlignedTopAppBar(
         title = {
             Image(
-                painter = painterResource(id = R.drawable.pethub_logo_rvbg), // Ensure this resource exists
+                painter = painterResource(id = R.drawable.pethub_rvbg), // Ensure this resource exists
                 contentDescription = "PetHub Logo",
                 modifier = Modifier
                     .height(40.dp)
@@ -216,7 +216,7 @@ fun AppointmentListCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "#${appt.id}",
+                        text = "#${appt.id.take(5)}",
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
                         modifier = Modifier.width(80.dp)

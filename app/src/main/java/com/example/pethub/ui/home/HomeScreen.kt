@@ -44,7 +44,6 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
     onServiceClick: (String) -> Unit,
-    onNotificationClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userName by viewModel.userName.collectAsState()
@@ -56,7 +55,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             HomeTopBar(
-                onNotificationClick = onNotificationClick,
+                onNotificationClick = {/*navigate to notification*/ },
                 onChangeAccTypeClick = { /* Change account type */ }
             )
         },
@@ -171,9 +170,10 @@ fun HomeContent(
             Image(
                 painter = painterResource(id = R.drawable.pethub_logo_rvbg),
                 contentDescription = "PetHub Logo",
-                modifier = Modifier.fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .size(200.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .size(200.dp)
             )
         }
 
