@@ -35,13 +35,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.example.pethub.data.model.Service
-import com.example.pethub.navigation.AdminBottomNavigation
+import com.example.pethub.navigation.AdminBottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServiceManagementScreen(navController: NavController) {
+fun ServiceManagementScreen(
+    onNavigateToAdminHome: () -> Unit,
+    onNavigateToAdminStocks: () -> Unit,
+    onNavigateToAdminScanner: () -> Unit
+) {
     // Dummy list of services based on the image
     val services = listOf(
         Service(serviceName = "Grooming"),
@@ -62,7 +65,20 @@ fun ServiceManagementScreen(navController: NavController) {
                 }
             )
         },
-        bottomBar = { AdminBottomNavigation(navController = navController) }
+        bottomBar = {
+            AdminBottomNavigationBar(
+                modifier = Modifier.fillMaxWidth(),
+                currentRoute = "admin_home",
+                onNavigate = { route ->
+                    when (route) {
+                        "admin_home" -> onNavigateToAdminHome
+                        "admin_stocks" -> onNavigateToAdminStocks()
+                        "admin_services" -> { /* Stay */ }
+                        "admin_scanner" -> onNavigateToAdminScanner()
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

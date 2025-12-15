@@ -1,124 +1,140 @@
 package com.example.pethub.data.repository
 
 import com.example.pethub.data.local.database.dao.ServiceDao
-import com.example.pethub.data.model.*
-import com.example.pethub.data.remote.CloudinaryService
+import com.example.pethub.data.local.database.entity.BranchServiceEntity
+import com.example.pethub.data.local.database.entity.ServiceEntity
+import com.example.pethub.data.model.BranchService
+import com.example.pethub.data.model.Service
 import com.example.pethub.data.remote.FirestoreHelper
+import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVICE
-import com.example.pethub.data.remote.FirestoreHelper.Companion.FIELD_CREATED_AT
-import com.example.pethub.data.remote.FirestoreHelper.Companion.FIELD_IS_ACTIVE
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.jvm.optionals.getOrNull
-
-// ============================================
-// SERVICE REPOSITORY
-// ============================================
 
 @Singleton
 class ServiceRepository @Inject constructor(
     private val firestoreHelper: FirestoreHelper,
-    private val cloudinaryService: CloudinaryService,
-    private val dao: ServiceDao,
+    private val serviceDao: ServiceDao,
     private val petRepository: PetRepository,
     private val appointmentRepository: AppointmentRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    suspend fun getAllServices(): Result<List<Service>> {
-        return firestoreHelper.queryWithBuilder(
-            COLLECTION_SERVICE,
-            Service::class.java
-        ) { query ->
-            query.whereEqualTo(FIELD_IS_ACTIVE, true)
-                .orderBy(FIELD_CREATED_AT)
-        }
+    companion object {
+        const val SUBCOLLECTION_BRANCH_SERVICES = "branch_services"
     }
 
-    fun listenToServices(): Flow<List<Service>> {
-        return firestoreHelper.listenToCollection(
-            COLLECTION_SERVICE,
-            Service::class.java
-        ) { query ->
-            query.whereEqualTo(FIELD_IS_ACTIVE, true)
-        }
-    }
+    // =========================================================================
+    // DATA SYNC (Firestore -> Room)
+    // =========================================================================
 
-    suspend fun getServicesByCategory(category: String): Result<List<Service>> {
-        return firestoreHelper.queryWithBuilder(
-            COLLECTION_SERVICE,
-            Service::class.java
-        ) { query ->
-            query.whereEqualTo("category", category)
-                .whereEqualTo(FIELD_IS_ACTIVE, true)
-        }
-    }
-
-    suspend fun getServiceById(serviceId: String): Result<Service?> {
-        return firestoreHelper.getDocument(
-            COLLECTION_SERVICE,
-            serviceId,
-            Service::class.java
-        )
-    }
-
-    suspend fun searchServices(searchTerm: String): Result<List<Service>> {
-        // Note: Firestore doesn't support full-text search
-        // This is a basic implementation - consider using Algolia or ElasticSearch for production
-        return firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
-            .map { services ->
-                services.filter { service ->
-                    service.serviceName.contains(searchTerm, ignoreCase = true) ||
-                            service.description.contains(searchTerm, ignoreCase = true)
-                }
-            }
-    }
-
-    suspend fun loadRecommendedServices(petId: String): Result<List<Service>> =
-        withContext(ioDispatcher) {
+    /**
+     * This function fetches data from Firebase and saves it to Room.
+     * Call this when the screen loads or when the user pulls-to-refresh.
+     */
+    suspend fun syncServicesForBranch(branchId: String): Result<Unit> = withContext(ioDispatcher) {
         try {
-            // Get the current pet's breed
-            val petResult = petRepository.getPetById(petId)
-            val petBreed = petResult.getOrNull()?.breed ?: return@withContext Result.failure(Exception("Pet not found"))
-
-            // Get all historical bookings
-            val allAppointmentsResult = appointmentRepository.getAllAppointments()
-            if (allAppointmentsResult.isFailure) {
-                return@withContext Result.failure(allAppointmentsResult.exceptionOrNull() ?: Exception("Failed to get bookings"))
-            }
-            val allAppointments = allAppointmentsResult.getOrThrow()
-
-            // Find the most popular service ID for that breed
-            val mostPopularServiceId = allAppointments
-                .filter { it.breed == petBreed }    // Filter bookings by the same breed
-                .groupBy { it.serviceId }           // Group by service ID
-                .maxByOrNull { it.value.size }      // Find the group with the most bookings
-                ?.key                               // Get the service ID
-
-            // Fetch all services and prioritize the recommended one
-            val allServicesResult = getAllServices()
-            if (allServicesResult.isFailure) {
-                return@withContext allServicesResult // Return the failure result
-            }
-
+            // A. Fetch All Global Services from Firestore
+            val allServicesResult = firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
             val allServices = allServicesResult.getOrThrow()
 
-            if (mostPopularServiceId != null) {
-                // If a popular service was found, move it to the top of the list
-                val recommendedList = allServices.sortedByDescending { it.serviceId == mostPopularServiceId }
-                Result.success(recommendedList)
-            } else {
-                // If no booking data exists for this breed, return all services as-is
-                Result.success(allServices)
+            // B. Fetch Branch Specific Settings from Firestore
+            val branchSettingsResult = firestoreHelper.getSubcollectionDocuments(
+                parentCollection = COLLECTION_BRANCH,
+                parentId = branchId,
+                subcollection = SUBCOLLECTION_BRANCH_SERVICES,
+                clazz = BranchService::class.java
+            )
+            val branchSettings = branchSettingsResult.getOrThrow()
+
+            // C. Convert to Room Entities
+            val serviceEntities = allServices.map { it.toEntity() }
+
+            val branchServiceEntities = branchSettings.map { setting ->
+                BranchServiceEntity(
+                    branchId = setting.branchId,
+                    serviceId = setting.serviceId,
+                    availability = setting.availability
+                )
             }
 
+            // D. Save to Room (Single Source of Truth)
+            serviceDao.insertServices(serviceEntities)
+            serviceDao.insertBranchServices(branchServiceEntities)
+
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    // =========================================================================
+    // DATA ACCESS (Room -> UI)
+    // =========================================================================
+
+    /**
+     * Helper to listen to all services (Real-time)
+     * Used by HomeViewModel's loadServices()
+     */
+    fun listenToServices(): Flow<List<Service>> {
+        return firestoreHelper.listenToCollection(
+            COLLECTION_SERVICE,
+            Service::class.java
+        )
+    }
+
+    /**
+     * The UI observes this Flow. It reads purely from Room.
+     * This ensures the UI works even if offline.
+     */
+    fun getServicesForBranch(branchId: String): Flow<List<Service>> {
+        return serviceDao.getServicesForBranch(branchId).map { list ->
+            list.map { item ->
+                // Convert Entity back to Domain Model
+                Service(
+                    serviceId = item.service.serviceId,
+                    serviceName = item.service.serviceName,
+                    description = item.service.description,
+                    price = item.service.price,
+                    type = item.service.type
+                )
+            }
+        }
+    }
+
+    /**
+     * Load recommended services based on a Pet ID.
+     * Currently fetches all services, but can be filtered by pet type/breed in the future.
+     */
+    suspend fun loadRecommendedServices(petId: String): Result<List<Service>> {
+        return try {
+            // Fetch all services from Firestore
+            val result = firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
+
+            // Filter logic could go here based on the petId
+            // For now, we return the successful result directly
+            result
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // =========================================================================
+    // MAPPERS (Helper functions)
+    // =========================================================================
+
+    private fun Service.toEntity(): ServiceEntity {
+        return ServiceEntity(
+            serviceId = this.serviceId,
+            serviceName = this.serviceName,
+            description = this.description,
+            price = this.price,
+            type = this.type
+        )
+    }
 }

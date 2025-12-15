@@ -24,8 +24,8 @@ import com.example.pethub.data.model.Notification
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.repository.NotificationRepository
 import com.example.pethub.navigation.NavGraph
-import com.example.pethub.utils.SharedPrefs
 import com.example.pethub.ui.theme.PetHubTheme
+import com.example.pethub.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -37,29 +37,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var firebaseService: FirebaseService
 
-    @Inject
-    lateinit var notificationRepository: NotificationRepository
-
-    private var notificationJob: Job? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                101
-            )
-        }
-
-        // Setup channel and start listening
-        createNotificationChannel()
-        observeNotifications()
-
-        val prefs = getSharedPreferences(SharedPrefs.NAME, MODE_PRIVATE)
-        val remember = prefs.getBoolean(SharedPrefs.REMEMBER_ME, false)
+        val prefs = getSharedPreferences(Constants.NAME, MODE_PRIVATE)
+        val remember = prefs.getBoolean(Constants.REMEMBER_ME, false)
 
         if (!remember) {
             firebaseService.signOut()
@@ -75,7 +58,7 @@ class MainActivity : ComponentActivity() {
                     NavGraph(
                         navController = navController,
                         firebaseService = firebaseService
-                    )
+                        )
                 }
             }
         }
@@ -86,7 +69,7 @@ class MainActivity : ComponentActivity() {
             // Restart listener whenever user logs in/out
             firebaseService.observeAuthState().collectLatest { user ->
                 notificationJob?.cancel()
-                
+
                 if (user != null) {
                     notificationJob = launch {
                         var isFirstLoad = true
@@ -111,7 +94,7 @@ class MainActivity : ComponentActivity() {
     private fun showSystemNotification(notification: Notification) {
         val intent = Intent(this, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        
+
         // Navigate to notification screen (optional handling in NavGraph needed to deep link)
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
@@ -120,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
         val channelId = "pethub_notifications"
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        
+
         // Use your app logo for the notification icon
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.logo_pethub_nobg) // Changed to your logo
@@ -141,13 +124,13 @@ class MainActivity : ComponentActivity() {
             val channelName = "PetHub Notifications"
             val channelDescription = "Notifications for appointments and updates"
             val importance = NotificationManager.IMPORTANCE_HIGH
-            
+
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = channelDescription
                 enableLights(true)
                 enableVibration(true)
             }
-            
+
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }

@@ -1,26 +1,17 @@
 package com.example.pethub.ui.auth
 
+import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.repository.AuthRepository
+import com.example.pethub.utils.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import android.content.Context
-import android.provider.Settings.Global.getString
-import android.util.Log
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.CustomCredential
-import com.example.pethub.utils.SharedPrefs
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
-import com.example.pethub.R
 
 
 @HiltViewModel
@@ -56,19 +47,22 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = "")
-            val result = authRepository.signIn(email, password)  // concern with firebase
-            
-            if (result.isSuccess) {
-                val isAdmin = authRepository.isAdmin()
+
+            val result = authRepository.signIn(email, password)
+
+            result.onSuccess { authData ->
+                // Use the isAdmin flag directly from the result
+                val role = if (authData.isAdmin) "admin" else "customer"
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isLoginSuccessful = true,
-                    loggedInUserRole = if (isAdmin) "admin" else "customer"
+                    loggedInUserRole = role
                 )
-            } else {
+            }.onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Login failed"
+                    errorMessage = error.message ?: "Login failed"
                 )
             }
         }
@@ -93,10 +87,10 @@ class LoginViewModel @Inject constructor(
         context: Context,
         remember: Boolean){
         val prefs = context.getSharedPreferences(
-            SharedPrefs.NAME,
+            Constants.NAME,
             Context.MODE_PRIVATE)
 
-        prefs.edit().putBoolean(SharedPrefs.REMEMBER_ME, remember).apply()
+        prefs.edit { putBoolean(Constants.REMEMBER_ME, remember) }
     }
 
     fun signInWithGoogle(){

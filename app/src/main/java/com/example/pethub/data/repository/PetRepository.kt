@@ -11,7 +11,7 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_PET
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,14 +28,10 @@ class PetRepository @Inject constructor(
 
     fun getPetsForCurrentUser(): Flow<List<Pet>> {
         // Get the current user's ID from the AuthRepository
-        val userId = authRepository.getCurrentUserId()
+        // If there's no user logged in, return a flow with an empty list
+        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
-        // If there's no user logged in, return an empty flow to prevent crashes
-        if (userId == null) {
-            return emptyFlow()
-        }
-
-        // Call the existing function that listens to pets in the subcollection
+        // Call the function that listens to pets in the top-level collection
         return listenToUserPets(userId)
     }
 
@@ -44,10 +40,11 @@ class PetRepository @Inject constructor(
      * -------------------------------------------------- */
 
     suspend fun getCustomerPets(userId: String): Result<List<Pet>> {
-        return firestoreHelper.getSubcollectionDocuments(
-            COLLECTION_CUSTOMER,
-            userId,
+        // Query top-level collection where custId matches
+        return firestoreHelper.queryDocuments(
             COLLECTION_PET,
+            "custId",
+            userId,
             Pet::class.java
         )
     }
@@ -56,18 +53,20 @@ class PetRepository @Inject constructor(
      * Live pets listener (Real-time updates)
      * -------------------------------------------------- */
     fun listenToUserPets(userId: String): Flow<List<Pet>> {
-        return firestoreHelper.listenToSubcollection(
-            COLLECTION_CUSTOMER,
-            userId,
+        // Listen to top-level collection with query
+        return firestoreHelper.listenToCollection(
             COLLECTION_PET,
             Pet::class.java
-        )
+        ) { query ->
+            query.whereEqualTo("custId", userId)
+        }
     }
 
     /** --------------------------------------------------
-     * Get specific pet by ID (Only if stored under "pets")
+     * Get specific pet by ID
      * -------------------------------------------------- */
-    suspend fun getPetById(petId: String): Result<Pet?> {
+    suspend fun getPetById(userId: String, petId: String): Result<Pet?> {
+        // Get from top-level collection
         return firestoreHelper.getDocument(
             COLLECTION_PET,
             petId,
@@ -76,7 +75,7 @@ class PetRepository @Inject constructor(
     }
 
     /** --------------------------------------------------
-     * Add new pet (Auto ID under customers/userId/pets)
+     * Add new pet (Auto ID under top-level 'pet' collection)
      * -------------------------------------------------- */
     suspend fun addPet(userId: String, pet: Pet): Result<String> {
         val petData = pet.copy(
@@ -85,9 +84,8 @@ class PetRepository @Inject constructor(
             updatedAt = firestoreHelper.getServerTimestamp()
         )
 
-        return firestoreHelper.createSubcollectionDocument(
-            COLLECTION_CUSTOMER,
-            userId,
+        // Create document in top-level collection
+        return firestoreHelper.createDocument(
             COLLECTION_PET,
             petData
         )
@@ -98,7 +96,7 @@ class PetRepository @Inject constructor(
      * -------------------------------------------------- */
     suspend fun updatePet(userId: String, petId: String, updates: Map<String, Any>): Result<Unit> {
         return firestoreHelper.updateDocument(
-            "$COLLECTION_CUSTOMER/$userId/$COLLECTION_PET",
+            COLLECTION_PET,
             petId,
             updates
         )
@@ -109,9 +107,7 @@ class PetRepository @Inject constructor(
      * -------------------------------------------------- */
     suspend fun deletePet(userId: String, petId: String): Result<Unit> {
         val docRef = firestoreHelper
-            .getDocumentReference(COLLECTION_CUSTOMER, userId)
-            .collection(COLLECTION_PET)
-            .document(petId)
+            .getDocumentReference(COLLECTION_PET, petId)
 
         return try {
             docRef.delete().await()
