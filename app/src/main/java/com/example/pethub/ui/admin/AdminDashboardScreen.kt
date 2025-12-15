@@ -33,7 +33,8 @@ fun AdminDashboardScreen(
     onNavigateToStocks: () -> Unit,
     onNavigateToServices: () -> Unit,
     onNavigateToScanner: () -> Unit,
-    onNavigateToAppointmentDetails: (String) -> Unit
+    onNavigateToAppointmentDetails: (String) -> Unit,
+    onViewAllClick:() -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val appointments by viewModel.recentAppointments.collectAsState()
@@ -72,7 +73,7 @@ fun AdminDashboardScreen(
                 AdminDashboardContent(
                     modifier = Modifier.padding(paddingValues),
                     appointments = appointments,
-                    onViewAllClick = { /* Handle view all */ },
+                    onViewAllClick = {onViewAllClick()},
                     onViewAppointmentClick = onNavigateToAppointmentDetails
                 )
             }

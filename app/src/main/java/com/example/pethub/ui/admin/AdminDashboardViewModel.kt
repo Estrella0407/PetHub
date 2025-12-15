@@ -34,26 +34,6 @@ class AdminDashboardViewModel @Inject constructor(
         loadData()
     }
 
-   /* fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = AdminDashboardUiState.Loading
-            try {
-                // TODO: Fetch actual appointments from Firestore
-                // For now, mocking the data based on your screenshot
-                _recentAppointments.value = listOf(
-                    AdminAppointment("IT001", "29 Sept 2025"),
-                    AdminAppointment("PG002", "28 Sept 2025"),
-                    AdminAppointment("PW001", "25 Sept 2025"),
-                    AdminAppointment("PG001", "25 Sept 2025"),
-                    AdminAppointment("IT002", "24 Sept 2025"),
-                    AdminAppointment("IT003", "23 Sept 2025")
-                )
-                _uiState.value = AdminDashboardUiState.Success
-            } catch (e: Exception) {
-                _uiState.value = AdminDashboardUiState.Error(e.message ?: "Unknown error")
-            }
-        }
-    }*/
    fun loadData() {
        viewModelScope.launch {
            _uiState.value = AdminDashboardUiState.Loading

@@ -22,6 +22,7 @@ import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
+import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -133,19 +134,32 @@ fun NavGraph(
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
                 onNavigateToAppointmentDetails = { appointmentId ->
                     navController.navigate("admin_appointment_details")
-                }
+                },
+                onViewAllClick = {navController.navigate("admin_view_all_appointments")}
             )
         }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
         composable("admin_scanner") {
             AdminScannerScreen { qr ->
-                println("Scanned QR: $qr")
                 navController.navigate("petProfile/${qr}")
             }
         }
-
-        composable("admin_appointment_details") { PlaceholderScreen("Appointment details coming soon") }
-
+        composable(
+            route = "appointmentDetail/{appointmentId}",
+            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
+        ){
+            PlaceholderScreen("Appointment details coming soon")
+        }
+        composable("admin_view_all_appointments"){
+            AdminViewAllAppointmentsScreen(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = {navController.popBackStack()},
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                onViewAppointmentClick = {}
+            )
+        }
         composable("admin_services") {
             ServiceManagementScreen(
                 onNavigateToAdminHome = { navController.navigate("admin_home") },
