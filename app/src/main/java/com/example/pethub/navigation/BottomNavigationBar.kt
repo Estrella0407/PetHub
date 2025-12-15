@@ -1,4 +1,4 @@
-package com.example.pethub.ui.components
+package com.example.pethub.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
@@ -16,13 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.pethub.R
 import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.CreamLight
 import com.example.pethub.ui.theme.DarkBrown
-import com.example.pethub.ui.theme.MutedColor
+import com.example.pethub.ui.theme.MutedBrown
 
 /**
  * Data class for Bottom Navigation items
@@ -51,7 +51,7 @@ fun BottomNavigationBar(
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = CreamDark,
+            containerColor = CreamLight,
             contentColor = DarkBrown
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -94,13 +94,13 @@ private fun BottomNavItem(
         Icon(
             painter = painterResource(id = iconRes),
             contentDescription = label,
-            tint = if (isSelected) DarkBrown else MutedColor,
+            tint = if (isSelected) DarkBrown else MutedBrown,
             modifier = Modifier.size(32.dp)
         )
         Text(
             text = label,
             modifier = Modifier.padding(top = 2.dp),
-            color = if (isSelected) DarkBrown else MutedColor,
+            color = if (isSelected) DarkBrown else MutedBrown,
             style = MaterialTheme.typography.bodySmall
         )
     }

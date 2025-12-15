@@ -1,10 +1,8 @@
 package com.example.pethub.ui.profile
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -20,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.isEmpty
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -34,13 +31,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pethub.R
 import com.example.pethub.data.model.Pet // 👈 Make sure you have this Pet data class
-import com.example.pethub.ui.components.BottomNavigationBar
+import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.status.ErrorScreen
 import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.*
 import com.example.pethub.util.calculateAge
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +100,6 @@ fun ProfileContent(
     onLogoutClick: () -> Unit,
     onAddPetClick: () -> Unit,
     onFaqClick: () -> Unit,
-    // 3. RECEIVE the pet click listener
     onPetClick: (petId: String) -> Unit
 ) {
     LazyColumn(
@@ -140,9 +134,9 @@ fun ProfileContent(
 
         // --- My Pet Section ---
         item {
-            SectionHeader(title = "My Pet", onAddClick = onAddPetClick)
+            SectionHeader(title = "My Pets", onAddClick = onAddPetClick)
             Spacer(modifier = Modifier.height(8.dp))
-            // 4. CHECK for pets and display them
+            // CHECK for pets and display them
             if (uiState.pets.isEmpty()) {
                 Text("No pets added yet.", modifier = Modifier.padding(16.dp))
             } else {
@@ -193,7 +187,7 @@ fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = uiState.customer?.custName ?: "", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = CreamDark)
+            Text(text = uiState.customer?.custName ?: "", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Text(text = uiState.customer?.custPhone ?: "", fontSize = 14.sp, color = Color.Gray)
             Text(text = uiState.customer?.custEmail ?: "", fontSize = 14.sp, color = Color.Gray)
         }
@@ -212,7 +206,7 @@ fun SectionHeader(title: String, viewAllText: String = "View All", onViewAllClic
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = CreamDark)
+        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Spacer(modifier = Modifier.weight(1f))
         onViewAllClick?.let {
             Text(
@@ -279,13 +273,12 @@ fun OrderCard(orderNumber: String, date: String, price: String, status: String, 
     }
 }
 
-// 6. SIMPLIFY PetInfoCard to only require a Pet object and a Modifier
 @Composable
 fun PetInfoCard(
     pet: Pet,
     modifier: Modifier = Modifier
 ) {
-    val age = calculateAge(pet.dateOfBirth)
+    val age = calculateAge(pet.dateOfBirth?.time)
 
     Card(
         modifier = modifier.fillMaxWidth(), // Apply the clickable modifier here

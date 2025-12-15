@@ -1,9 +1,7 @@
 package com.example.pethub.ui.auth
 
-import android.app.Activity
+//import androidx.hilt.navigation.compose.hiltViewModel
 import android.content.res.Configuration
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,9 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -29,36 +25,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-//import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import com.example.pethub.R
-import com.example.pethubself.ui.components.AuthenticationSwitch
-import com.example.pethubself.ui.components.AuthenticationTextField
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import androidx.compose.ui.platform.LocalContext
-import androidx.credentials.CustomCredential
-import com.example.pethubself.ui.components.AuthenticationGoogleButton
-import com.example.pethubself.ui.components.AuthenticationImagesFooter
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.example.pethub.R
+import com.example.pethub.ui.components.*
+import androidx.compose.ui.res.stringResource
 
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onNavigateToAdmin: () -> Unit,
+    onNavigateToAdminHome: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,11 +48,29 @@ fun LoginScreen(
         CredentialManager.create(context)
     }
 
-    val clientId = context.getString(R.string.default_web_client_id)
-
-    LaunchedEffect(uiState.isLoginSuccessful) { //Run this code everytime isLoginSuccessful is changed
+    // Check the role inside LaunchedEffect
+    LaunchedEffect(uiState.isLoginSuccessful, uiState.loggedInUserRole) {
         if (uiState.isLoginSuccessful) {
-            onLoginSuccess()
+
+            // Logic to determine destination
+            when (uiState.loggedInUserRole) {
+                "admin" -> {
+                    onNavigateToAdminHome()
+                }
+
+                "customer" -> {
+                    onLoginSuccess()
+                }
+
+                "guest" -> {
+                    onLoginSuccess()
+                }
+
+                else -> {
+                    onLoginSuccess() // Fallback
+                }
+            }
+
             viewModel.onLoginHandled()
             viewModel.saveRememberMe(context, uiState.rememberMe)
         }
@@ -224,17 +222,8 @@ fun LoginScreen(
             onGoogleClick = {viewModel.signInWithGoogle( )}
         )
 
-        TextButton(
-            onClick = { onNavigateToAdmin() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "Login as Admin",
-                textDecoration = TextDecoration.Underline
-            )
-        }
         Spacer(modifier = Modifier.weight(1f))
-        AuthenticationImagesFooter()
+        ServiceIconsRow()
 
     }
 }
@@ -440,10 +429,7 @@ fun LoginScreenContent(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-            AuthenticationImagesFooter()
-
-
-
+            ServiceIconsRow()
 
         }
     }

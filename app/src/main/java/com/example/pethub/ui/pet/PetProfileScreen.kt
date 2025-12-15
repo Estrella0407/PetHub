@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.example.pethub.ui.petimport.PetProfileUiState
-import com.example.pethub.ui.petimport.PetProfileViewModel
+import com.example.pethub.data.model.Pet
+import com.example.pethub.ui.pet.PetProfileUiState
+import com.example.pethub.ui.pet.PetProfileViewModel
 import com.example.pethub.ui.status.ErrorScreen
 import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
@@ -75,12 +76,11 @@ fun PetProfileScreen(
 }
 
 @Composable
-fun PetProfileContent(modifier: Modifier = Modifier, pet: com.example.pethub.data.model.Pet) {
-    val age = calculateAge(pet.dateOfBirth)
-    // 2. THIS WILL NOW WORK CORRECTLY
+fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
+    val age = calculateAge(pet.dateOfBirth?.time)
     val formattedDob = pet.dateOfBirth?.let {
         val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-        sdf.format(Date(it)) // Uses java.util.Date and java.util.Locale
+        sdf.format(it)
     } ?: "Not set"
 
     LazyColumn(

@@ -7,8 +7,6 @@ data class Service(
     val price: Double = 0.0,
     val serviceName: String = "",
     val imageUrl: String = "", // Kept for UI
-    val createdAt: Any? = null,
-    val updatedAt: Any? = null
 )
 
 /**
@@ -17,12 +15,10 @@ data class Service(
 data class ServiceItem(
     val id: String,
     val type: String,
-    val name: String,
+    val serviceName: String,
     val description: String,
-    val category: String,
     val price: Double,
     val imageUrl: String,
-    val availability: Boolean
 )
 
 /**
@@ -32,11 +28,9 @@ fun Service.toServiceItem(): ServiceItem {
     return ServiceItem(
         id = serviceId,
         type = type,
-        name = serviceName,
+        serviceName = serviceName,
         description = description,
-        category = type,
         price = price,
         imageUrl = imageUrl,
-        availability = true
     )
 }

@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,14 +21,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import com.example.pethub.navigation.PetHubBottomBar
 import com.example.pethub.R
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
 import com.example.pethub.ui.theme.*
 import androidx.compose.foundation.shape.CircleShape
 import com.example.pethub.data.model.ServiceItem
+import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.components.*
 import com.example.pethub.ui.status.*
 import com.example.pethub.utils.getServiceIcon
@@ -62,11 +60,14 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            PetHubBottomBar(
+            BottomNavigationBar(
+                modifier = Modifier.fillMaxWidth(),
                 currentRoute = "home",
                 onNavigate = { route ->
                     when (route) {
-                        "home" -> { /* Stay */ }
+                        "home" -> { /* Stay */
+                        }
+
                         "services" -> onNavigateToService()
                         "shop" -> onNavigateToShop()
                         "profile" -> onNavigateToProfile()
@@ -117,7 +118,7 @@ fun HomeTopBar(
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = MutedColor,
+                    tint = MutedBrown,
                     modifier = Modifier
                         .background(
                             color = CreamDark,
@@ -130,7 +131,7 @@ fun HomeTopBar(
                 Icon(
                     imageVector = Icons.Default.ManageAccounts,
                     contentDescription = "Change Account",
-                    tint = MutedColor,
+                    tint = MutedBrown,
                     modifier = Modifier
                         .background(
                             color = CreamDark,
@@ -198,7 +199,6 @@ fun HomeContent(
                  // Shop Details / Branches
                  ShopDetailsSection(
                      branches = branches,
-                     services = recommendedServices,
                      modifier = Modifier.fillMaxWidth()
                  )
             }
@@ -361,7 +361,7 @@ fun RecommendedServiceCard(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = getServiceIcon(service.category)),
+                    painter = painterResource(id = getServiceIcon(service.serviceName)),
                     contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )
@@ -371,7 +371,7 @@ fun RecommendedServiceCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = service.name,
+                text = service.type,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
@@ -405,12 +405,12 @@ fun SectionHeader(
         TextButton(onClick = onActionClick) {
             Text(
                 text = actionText,
-                color = MutedColor
+                color = MutedBrown
             )
             Icon(
                 imageVector = Icons.Default.ArrowForward,
                 contentDescription = null,
-                tint = MutedColor,
+                tint = MutedBrown,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -455,12 +455,11 @@ fun PetSelectionDropdown(
 @Composable
 fun ShopDetailsSection(
     branches: List<Branch>,
-    services: List<ServiceItem>,
     modifier: Modifier = Modifier
 ) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = CreamDark,
+            containerColor = CreamLight,
             contentColor = DarkBrown
         ),
         modifier = modifier
@@ -500,10 +499,7 @@ fun ShopDetailsSection(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            ServiceIconsRow(
-                services = services,
-                modifier = Modifier.fillMaxWidth()
-            )
+            ServiceIconsRow()
         }
     }
 }

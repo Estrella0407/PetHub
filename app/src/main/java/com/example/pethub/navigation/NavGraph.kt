@@ -14,10 +14,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -49,41 +51,52 @@ fun NavGraph(
                     }
                 },
                 onNavigateToRegister = { navController.navigate("register") },
-                onNavigateToAdmin = {
-                    navController.navigate("admin_services") {
+                onNavigateToAdminHome = {
+                    navController.navigate("admin_home") {
                         popUpTo("login") { inclusive = true }
                     }
                 }
             )
         }
 
-        composable("register") { backStackEntry ->
-            RegisterScreen(
-                onRegisterSuccessOld = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                onReturnClick = {navController.popBackStack()},
-                onNavigateToCompleteProfile={navController.navigate("completeProfile")},
-                onNavigateToLogin = { navController.popBackStack() }
-            )
-        }
+        navigation(startDestination = "register", route = "auth_flow") {
 
-        composable("completeProfile"){backStackEntry ->
-            val parentEntry = remember {
-                navController.getBackStackEntry("register")
+            composable("register") { backStackEntry ->
+                // Get the ViewModel scoped to the "auth_flow" graph
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry("auth_flow")
+                }
+                val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
+
+                RegisterScreen(
+                    viewModel = sharedVm, // Pass the shared VM
+                    onRegisterSuccessOld = {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
+                    onReturnClick = { navController.popBackStack() },
+                    onNavigateToCompleteProfile = { navController.navigate("completeProfile") },
+                    onNavigateToLogin = { navController.popBackStack() }
+                )
             }
-            val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
-            CompleteProfileScreen(
-                onProfileCompleted = {navController.navigate("home")},
-                viewModel = sharedVm
-            )
+
+            composable("completeProfile") { backStackEntry ->
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry("auth_flow")
+                }
+                val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
+
+                CompleteProfileScreen(
+                    onProfileCompleted = { navController.navigate("home") },
+                    viewModel = sharedVm
+                )
+            }
         }
 
         composable("home") {
             HomeScreen(
-                onNavigateToService = { navController.navigate("service") },
+                onNavigateToService = { navController.navigate("services") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
@@ -95,27 +108,9 @@ fun NavGraph(
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
-                onNavigateToHome = { 
-                    navController.navigate("home") {
-                        popUpTo("home") { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onNavigateToServices = { 
-                    navController.navigate("services") {
-                         popUpTo("home") { saveState = true }
-                         launchSingleTop = true
-                         restoreState = true
-                    }
-                },
-                onNavigateToProfile = { 
-                    navController.navigate("profile") {
-                         popUpTo("home") { saveState = true }
-                         launchSingleTop = true
-                         restoreState = true
-                    }
-                }
+                onNavigateToHome = { navController.navigate("home")},
+                onNavigateToServices = { navController.navigate("services") },
+                onNavigateToProfile = { navController.navigate("profile") }
             )
         }
 
@@ -127,10 +122,28 @@ fun NavGraph(
         composable("cart") { PlaceholderScreen("Cart coming soon") }
 
         // Admin screens
-        composable("admin_home") { PlaceholderScreen("Admin Home coming soon") }
+        composable("admin_home") {
+            AdminDashboardScreen(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                onNavigateToAppointmentDetails = { appointmentId ->
+                    navController.navigate("admin_appointment_details")
+                }
+            )
+        }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
         composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
-        composable("admin_services") { ServiceManagementScreen(navController = navController) }
+        composable("admin_appointment_details") { PlaceholderScreen("Appointment details coming soon") }
+
+        composable("admin_services") {
+            ServiceManagementScreen(
+                onNavigateToAdminHome = { navController.navigate("admin_home") },
+                onNavigateToAdminStocks = { navController.navigate("admin_stocks") },
+                onNavigateToAdminScanner = { navController.navigate("admin_scanner") }
+            )
+        }
 
 
         composable("profile") {

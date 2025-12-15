@@ -1,4 +1,4 @@
-package com.example.pethubself.ui.components
+package com.example.pethub.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pethub.R
 import com.example.pethub.ui.auth.LoginViewModel
+import com.example.pethub.ui.theme.getTextFieldColors
 
 
 @Composable
@@ -80,11 +81,7 @@ fun AuthenticationTextField(
         shape = RoundedCornerShape(12.dp),
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            focusedContainerColor = Color(0xFFEDE3D1),
-            unfocusedContainerColor = Color(0xFFEDE3D1)),
+        colors = getTextFieldColors(),
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
         keyboardActions =  keyboardActions
@@ -120,41 +117,6 @@ fun AuthenticationSwitch(
             text = placeholder,
             fontSize = 14.sp,
             color = Color.Black
-        )
-    }
-}
-
-@Composable
-fun AuthenticationImagesFooter(
-){
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ){
-        Image(
-            painter = painterResource(R.drawable.daycare_nobg),
-            contentDescription = "Daycare",
-            modifier = Modifier.size(50.dp).alpha(0.8f)
-        )
-        Image(
-            painter = painterResource(R.drawable.boarding_nobg),
-            contentDescription = "Boarding",
-            modifier = Modifier.size(50.dp).alpha(0.8f)
-        )
-        Image(
-            painter = painterResource(R.drawable.grooming_nobg),
-            contentDescription = "Grooming",
-            modifier = Modifier.size(50.dp).alpha(0.8f)
-        )
-        Image(
-            painter = painterResource(R.drawable.training_nobg),
-            contentDescription = "Training",
-            modifier = Modifier.size(50.dp).alpha(0.8f)
-        )
-        Image(
-            painter = painterResource(R.drawable.walking_nobg),
-            contentDescription = "Walking",
-            modifier = Modifier.size(50.dp).alpha(0.8f)
         )
     }
 }

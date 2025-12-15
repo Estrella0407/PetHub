@@ -1,9 +1,10 @@
-package com.example.pethub.ui.petimport
+package com.example.pethub.ui.pet
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Pet
+import com.example.pethub.data.repository.AuthRepository
 import com.example.pethub.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PetProfileViewModel @Inject constructor(
     private val petRepository: PetRepository,
+    private val authRepository: AuthRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -32,25 +34,32 @@ class PetProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = PetProfileUiState.Loading
             try {
-                // Call the suspend function directly and get the Result
-                val result = petRepository.getPetById(petId)
+                // Get current User ID
+                val userId = authRepository.getCurrentUserId()
 
-                if (result.isSuccess) {
-                    val pet = result.getOrNull()
-                    _uiState.value = if (pet != null) {
-                        PetProfileUiState.Success(pet)
+                if (userId != null) {
+                    // Pass userId to the repository
+                    val result = petRepository.getPetById(userId, petId)
+
+                    if (result.isSuccess) {
+                        val pet = result.getOrNull()
+                        _uiState.value = if (pet != null) {
+                            PetProfileUiState.Success(pet)
+                        } else {
+                            PetProfileUiState.Error("Pet not found.")
+                        }
                     } else {
-                        PetProfileUiState.Error("Pet not found.")
+                        _uiState.value = PetProfileUiState.Error(result.exceptionOrNull()?.message ?: "Failed to load pet details.")
                     }
                 } else {
-                    _uiState.value = PetProfileUiState.Error(result.exceptionOrNull()?.message ?: "Failed to load pet details.")
+                    _uiState.value = PetProfileUiState.Error("User not logged in.")
                 }
 
             } catch (e: Exception) {
                 _uiState.value = PetProfileUiState.Error("An unexpected error occurred.")
             }
-        }
     }
+}
 
     // TODO: Add functions to update pet details, handle image uploads, and remove pet
 }
