@@ -5,20 +5,17 @@ import androidx.room.PrimaryKey
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
-@Entity(tableName = "pets")
+@Entity(tableName = "pet")
 data class PetEntity(
     @PrimaryKey
     val petId: String,
-    val ownerId: String,
-    val name: String,
-    val species: String,
+    val petName: String,
+    val dateOfBirth: Date?,
+    val type: String,
     val breed: String,
-    val gender: String,
-    val dateOfBirth: Long?,
     val weight: Double?,
-    val medicalRecords: String?,
+    val sex: String,
+    val remarks: String?,
+    val custId: String,
     val imageUrl: String?,
-    @ServerTimestamp
-    val createdAt: Date? = null,
-    val updatedAt: Long?
 )

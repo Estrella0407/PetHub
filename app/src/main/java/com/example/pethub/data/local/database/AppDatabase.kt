@@ -10,6 +10,7 @@ import com.example.pethub.data.local.database.dao.PetDao
 import com.example.pethub.data.local.database.dao.ServiceDao
 import com.example.pethub.data.local.database.entity.AppointmentEntity
 import com.example.pethub.data.local.database.entity.BranchEntity
+import com.example.pethub.data.local.database.entity.BranchServiceEntity
 import com.example.pethub.data.local.database.entity.CustomerEntity
 import com.example.pethub.data.local.database.entity.PetEntity
 import com.example.pethub.data.local.database.entity.ServiceEntity
@@ -21,11 +22,12 @@ import com.example.pethub.data.local.database.entity.ServiceEntity
     entities = [
         CustomerEntity::class,
         BranchEntity::class,
+        BranchServiceEntity::class,
         PetEntity::class,
         ServiceEntity::class,
         AppointmentEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

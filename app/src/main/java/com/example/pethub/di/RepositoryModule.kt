@@ -111,7 +111,6 @@ object RepositoryModule {
     @Singleton
     fun provideServiceRepository(
         firestoreHelper: FirestoreHelper,
-        cloudinaryService: CloudinaryService,
         serviceDao: ServiceDao,
         petRepository: PetRepository,
         appointmentRepository: AppointmentRepository,
@@ -119,7 +118,6 @@ object RepositoryModule {
     ): ServiceRepository {
         return ServiceRepository(
             firestoreHelper,
-            cloudinaryService,
             serviceDao,
             petRepository,
             appointmentRepository,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.pethub.R
 import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.AdminBottomNavigation
 
@@ -56,6 +56,11 @@ fun ServiceManagementScreen(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = { Text("PetHub") },
+                actions = {
+                    IconButton(onClick = { /* TODO: Logout */ }) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
+                    }
+                }
             )
         },
         bottomBar = { AdminBottomNavigation(navController = navController) }
@@ -106,8 +111,9 @@ fun ServiceRow(service: Service) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Placeholder for the icon
                 Image(
-                    painter = painterResource(id = iconRes),
+                    imageVector = Icons.Default.Pets,
                     contentDescription = service.serviceName,
                     modifier = Modifier.size(40.dp)
                 )

@@ -1,12 +1,28 @@
 package com.example.pethub.ui.theme
 
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val CreamBackground = Color(0xFFF8F7E9)
-val CreamLight = Color(0xFFF6E8B5)
-val CreamDark = Color(0xFFA28970)
-val NeutralText = Color(0xFF2C2C2C)
-val MutedColor = Color(0xFF998061)
-val DarkBrown = Color(0xFF322B1B)
+val CreamBackground = Color(0xFFF8F7E9) // Background
+val CreamFair = Color(0xFFEDE4D1) // Container
+val CreamLight = Color(0xFFF7F1D4) // Card
+val CreamDark = Color(0xFFF6E8B5) // Card
+val LightBrown = Color(0xFFA28970) // Border
+val Gray = Color(0xFF2C2C2C) // Text (Labels)
+val MutedBrown = Color(0xFF998061) // Text (Dropdowns, Links)
+val VibrantBrown = Color(0xFFAC7F5E) // Button
+val DarkBrown = Color(0xFF322B1B) // Title, Header
 val NeutralBrown = Color(0xFF5B3A29)
-val CardBackground = Color(0xFFF6E8B5)
+
+@Composable
+fun getTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = CreamFair,
+    unfocusedContainerColor = CreamFair,
+
+    focusedBorderColor = LightBrown,
+    unfocusedBorderColor = LightBrown,
+
+    focusedLabelColor = LightBrown,
+    unfocusedLabelColor = LightBrown
+)
