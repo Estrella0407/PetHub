@@ -28,6 +28,13 @@ import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
+import com.example.pethub.ui.faq.BookingAppointmentScreenFAQ
+import com.example.pethub.ui.faq.CancellationRescheduleFAQScreen
+import com.example.pethub.ui.faq.FAQScreen
+import com.example.pethub.ui.faq.PetParentsFAQScreen
+import com.example.pethub.ui.faq.SupportHelpFAQScreen
+import com.example.pethub.ui.faqimport.PolicyFAQScreen
+import com.example.pethub.ui.faq.PetInformationFAQScreen
 import com.example.pethub.ui.home.HomeScreen
 import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
@@ -213,11 +220,72 @@ fun NavGraph(
             )
         }
 
+        composable("faq") {FAQScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onTopicClick = { topicId ->
+                // This 'when' block handles navigation for all FAQ topics
+                when (topicId) {
+                    "pet_parents" -> navController.navigate("petParentsFaq")
+                    "pet_information" -> navController.navigate("petInformationFaq")
+                    "booking_appointment" -> navController.navigate("bookingAppointmentFaq")
+                    "cancellation_reschedule" -> navController.navigate("cancellationRescheduleFaq")
+                    "payments" -> navController.navigate("paymentsFaq")
+                    "policies" -> navController.navigate("policyFaq")
+                    "support_help" -> navController.navigate("supportHelpFaq")
+                }
+            }
+        )
+        }
+
+        composable("petParentsFaq") {
+            PetParentsFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("petInformationFaq") {
+            PetInformationFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("bookingAppointmentFaq") {
+            BookingAppointmentScreenFAQ(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("cancellationRescheduleFaq") {
+            CancellationRescheduleFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("paymentsFaq") {
+            com.example.pethub.ui.faq.PaymentFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("policyFaq") {
+            PolicyFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("supportHelpFaq") {
+            SupportHelpFAQScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         composable("addPet") {
             AddPetScreen(
-                onPetAdded = {
-                    // Go back to profile after adding pet
-                    navController.popBackStack()
+                onPetAdded = { petId ->
+                    navController.navigate("petProfile/$petId") {
+                        popUpTo("addPet") { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateBack = { navController.popBackStack() }
             )
@@ -232,6 +300,11 @@ fun NavGraph(
             )
         }
     }
+}
+
+@Composable
+fun PetInformationFAQScreen(onNavigateBack: () -> Boolean) {
+    TODO("Not yet implemented")
 }
 
 

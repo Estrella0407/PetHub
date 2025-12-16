@@ -33,6 +33,7 @@ import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamDark
 import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.util.calculateAge
 // 1. ADD THE CORRECT JAVA IMPORTS
 import java.text.SimpleDateFormat
@@ -52,7 +53,7 @@ fun PetProfileScreen(
         containerColor = CreamBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = CreamDark) },
+                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = DarkBrown) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -103,7 +104,7 @@ fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
                 text = pet.petName,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = CreamDark
+                color = DarkBrown
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -161,7 +162,7 @@ fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
                 onClick = { /* TODO: Save changes */ },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
+                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown)
             ) {
                 Text("Save", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
             }
@@ -190,14 +191,14 @@ fun EditablePetInfoField(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CreamDark)
+        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkBrown)
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (value != null) {
                 BasicTextField(
                     value = value,
                     onValueChange = { /* TODO: Update ViewModel state */ },
                     modifier = Modifier.weight(1f),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = CreamDark),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = DarkBrown),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
             }

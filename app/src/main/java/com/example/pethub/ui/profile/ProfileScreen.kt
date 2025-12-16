@@ -192,7 +192,9 @@ fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
             Text(text = uiState.customer?.custEmail ?: "", fontSize = 14.sp, color = Color.Gray)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onFaqClick) { Icon(Icons.Default.HelpOutline, contentDescription = "Help") }
+            IconButton(onClick = onFaqClick) { // This onFaqClick is already passed from the NavGraph
+                Icon(Icons.Default.HelpOutline, contentDescription = "Help")
+            }
             IconButton(onClick = { /* TODO: Navigate to Edit Profile */ }) { Icon(Icons.Default.Edit, contentDescription = "Edit Profile") }
         }
     }
