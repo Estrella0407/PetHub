@@ -55,7 +55,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             HomeTopBar(
-                onNotificationClick = { /* Navigate to notifications */ },
+                onNotificationClick = {/*navigate to notification*/ },
                 onChangeAccTypeClick = { /* Change account type */ }
             )
         },
@@ -170,9 +170,10 @@ fun HomeContent(
             Image(
                 painter = painterResource(id = R.drawable.pethub_logo_rvbg),
                 contentDescription = "PetHub Logo",
-                modifier = Modifier.fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .size(200.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .size(200.dp)
             )
         }
 
@@ -289,13 +290,6 @@ fun RecommendedServiceSection(
                 fontWeight = FontWeight.Bold,
                 color = DarkBrown
             )
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SectionHeader(
-                title = "Check out these services for $petName:",
-                actionText = "Change Pet",
-                onActionClick = { showPetSelection = true } // Open the dropdown
-            )
 
             // If showPetSelection is true, display the dropdown
             PetSelectionDropdown(
@@ -307,6 +301,14 @@ fun RecommendedServiceSection(
                 },
                 onDismiss = { showPetSelection = false }, // Close if clicked outside
                 expanded = showPetSelection // Pass the state
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            SectionHeader(
+                title = "Check out these services for $petName:",
+                actionText = "Change Pet",
+                onActionClick = { showPetSelection = true } // Open the dropdown
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -480,7 +482,7 @@ fun ShopDetailsSection(
 
             Text(
                 text = "Pet Services | Pet Care | Pawsome Food",
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
             )
 

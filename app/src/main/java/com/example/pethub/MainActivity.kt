@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
                     NavGraph(
                         navController = navController,
                         firebaseService = firebaseService
-                        )
+                    )
                 }
             }
         }
