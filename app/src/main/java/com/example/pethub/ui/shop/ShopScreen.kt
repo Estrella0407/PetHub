@@ -23,7 +23,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pethub.data.model.Product
-import com.example.pethub.navigation.PetHubBottomBar
+import com.example.pethub.navigation.BottomNavigationBar
+import com.example.pethub.ui.theme.CreamBackground
+import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.ui.theme.Gray
+import com.example.pethub.ui.theme.MutedBrown
+import com.example.pethub.ui.theme.NeutralBrown
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,12 +79,13 @@ fun ShopScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFFFDF8E4) // Light cream background
+                    containerColor = CreamBackground
                 )
             )
         },
         bottomBar = {
-            PetHubBottomBar(
+            BottomNavigationBar(
+                modifier = Modifier.fillMaxWidth(),
                 currentRoute = "shop",
                 onNavigate = { route ->
                     when (route) {
@@ -94,8 +100,8 @@ fun ShopScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCart,
-                containerColor = Color(0xFFF5E6C8),
-                contentColor = Color(0xFF5D4037),
+                containerColor = CreamLight,
+                contentColor = NeutralBrown,
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -124,7 +130,7 @@ fun ShopScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFFDF8E4)) // Main background
+                .background(CreamBackground) // Main background
         ) {
             // Sidebar Menu
             Column(
@@ -150,7 +156,7 @@ fun ShopScreen(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(2.dp)
-                            .background(Color(0xFF8D6E63))
+                            .background(MutedBrown)
                             .align(Alignment.CenterEnd)
                     )
 
@@ -208,31 +214,31 @@ fun CategoryItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = 12.dp, horizontal = 8.dp),
         contentAlignment = Alignment.CenterEnd
     ) {
         Row(
-             verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = name.replace(" ", "\n"), // Split text for vertical layout feel
+                text = name.replace(" ", "\n"),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color(0xFF2C2C2C) else Color(0xFF5D4037),
-                modifier = Modifier.weight(1f),
-                lineHeight = 18.sp
+                color = if (isSelected) Gray else NeutralBrown,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(start = 8.dp)
             )
-            
-            if (isSelected) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(Color(0xFF5D4037), CircleShape)
-                )
-            } else {
-                 Spacer(modifier = Modifier.width(12.dp)) // Placeholder for dot alignment
-            }
+
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        if (isSelected) NeutralBrown else Color.Transparent,
+                        CircleShape
+                    )
+            )
         }
     }
 }
@@ -283,12 +289,12 @@ fun ProductItem(
                 text = product.name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2C2C2C)
+                color = Gray
             )
             Text(
                 text = product.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF5D4037)
+                color = NeutralBrown
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -300,16 +306,16 @@ fun ProductItem(
                     text = "RM${String.format(Locale.getDefault(), "%.2f", product.price)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5D4037)
+                    color = NeutralBrown
                 )
                 
                 IconButton(onClick = onAddClick) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add to cart",
-                        tint = Color(0xFF2C2C2C),
+                        tint = Gray,
                          modifier = Modifier
-                             .border(1.5.dp, Color(0xFF2C2C2C), CircleShape)
+                             .border(1.5.dp, Gray, CircleShape)
                              .padding(2.dp)
                              .size(20.dp)
 

@@ -1,4 +1,4 @@
-package com.example.pethub.ui.components
+package com.example.pethub.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
@@ -16,42 +16,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.pethub.R
 import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.CreamLight
 import com.example.pethub.ui.theme.DarkBrown
-import com.example.pethub.ui.theme.MutedColor
+import com.example.pethub.ui.theme.MutedBrown
 
-/**
- * Data class for Bottom Navigation items
- */
-data class BottomNavItemData(
+data class AdminBottomNavData(
     val label: String,
     val route: String,
     @DrawableRes val iconRes: Int
 )
 
-/**
- * Bottom navigation bar
- */
 @Composable
-fun BottomNavigationBar(
-    modifier: Modifier = Modifier,
+fun AdminBottomNavigationBar(
+    modifier: Modifier,
     currentRoute: String?,
     onNavigate: (String) -> Unit
 ) {
     val items = listOf(
-        BottomNavItemData(label = "Home", route = "home", iconRes = R.drawable.customer_home),
-        BottomNavItemData(label = "Services", route = "service", iconRes = R.drawable.admin_footer_service),
-        BottomNavItemData(label = "Shop", route = "shop", iconRes = R.drawable.admin_footer_stock),
-        BottomNavItemData(label = "Profile", route = "profile", iconRes = R.drawable.admin_footer_home)
+        AdminBottomNavData("Admin Home", "admin_home", R.drawable.admin_footer_home),
+        AdminBottomNavData("Stocks", "admin_stocks", R.drawable.admin_footer_stock),
+        AdminBottomNavData("Services", "admin_services", R.drawable.admin_footer_service),
+        AdminBottomNavData("Scanner", "admin_scanner", R.drawable.admin_footer_qr)
     )
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = CreamDark,
+            containerColor = CreamLight,
             contentColor = DarkBrown
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -64,7 +58,7 @@ fun BottomNavigationBar(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             items.forEach { item ->
-                BottomNavItem(
+                AdminBottomNavItem(
                     iconRes = item.iconRes,
                     label = item.label,
                     isSelected = currentRoute == item.route,
@@ -75,11 +69,8 @@ fun BottomNavigationBar(
     }
 }
 
-/**
- * Bottom navigation item
- */
 @Composable
-private fun BottomNavItem(
+private fun AdminBottomNavItem(
     iconRes: Int,
     label: String,
     isSelected: Boolean,
@@ -94,13 +85,13 @@ private fun BottomNavItem(
         Icon(
             painter = painterResource(id = iconRes),
             contentDescription = label,
-            tint = if (isSelected) DarkBrown else MutedColor,
+            tint = if (isSelected) DarkBrown else MutedBrown,
             modifier = Modifier.size(32.dp)
         )
         Text(
             text = label,
             modifier = Modifier.padding(top = 2.dp),
-            color = if (isSelected) DarkBrown else MutedColor,
+            color = if (isSelected) DarkBrown else MutedBrown,
             style = MaterialTheme.typography.bodySmall
         )
     }

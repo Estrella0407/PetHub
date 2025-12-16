@@ -16,9 +16,9 @@ private val LightColors = lightColorScheme(
     secondary = NeutralBrown,
     onSecondary = CreamBackground,
     background = CreamBackground,
-    onBackground = NeutralText,
+    onBackground = Gray,
     surface = CreamBackground,
-    onSurface = NeutralText,
+    onSurface = Gray,
 )
 
 @Composable

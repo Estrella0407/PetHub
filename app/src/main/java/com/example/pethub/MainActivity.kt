@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.navigation.NavGraph
-import com.example.pethub.utils.SharedPrefs
 import com.example.pethub.ui.theme.PetHubTheme
+import com.example.pethub.utils.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -25,8 +25,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val prefs = getSharedPreferences(SharedPrefs.NAME, MODE_PRIVATE)
-        val remember = prefs.getBoolean(SharedPrefs.REMEMBER_ME, false)
+        val prefs = getSharedPreferences(Constants.NAME, MODE_PRIVATE)
+        val remember = prefs.getBoolean(Constants.REMEMBER_ME, false)
 
         if (!remember) {
             firebaseService.signOut()
@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
                     NavGraph(
                         navController = navController,
                         firebaseService = firebaseService
-                        )
+                    )
                 }
             }
         }

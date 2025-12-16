@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.security.GeneralSecurityException
+import java.io.IOException
 
 class PreferenceManager(context: Context) {
 
@@ -11,13 +13,23 @@ class PreferenceManager(context: Context) {
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "pet_services_secure_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val prefs: SharedPreferences = try {
+        createEncryptedPrefs(context, masterKey)
+    } catch (e: Exception) {
+        // If keys are invalidated or corrupted (AEADBadTagException), clear and recreate
+        context.getSharedPreferences("pet_services_secure_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+        createEncryptedPrefs(context, masterKey)
+    }
+
+    private fun createEncryptedPrefs(context: Context, masterKey: MasterKey): SharedPreferences {
+        return EncryptedSharedPreferences.create(
+            context,
+            "pet_services_secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     companion object {
         private const val KEY_USER_ID = "user_id"

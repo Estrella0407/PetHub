@@ -8,7 +8,7 @@ import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,7 +27,8 @@ class AppointmentRepository @Inject constructor(
 
     suspend fun createAppointment(appointment: Appointment) {
         // Get the pet's details
-        val petResult = petRepository.getPetById(appointment.petId)
+        val userId = authRepository.getCurrentUserId()?:""
+        val petResult = petRepository.getPetById(userId, appointment.petId)
         val pet = petResult.getOrNull()
 
         // Create the final appointment object with the breed included
@@ -37,12 +38,27 @@ class AppointmentRepository @Inject constructor(
 
         // Save the new object to Firestore
         firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
+
+        // Trigger notification
+        confirmBooking()
     }
+
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
             Appointment::class.java
+        )
+    }
+
+    suspend fun getAppointmentDetail(
+        appointmentId: String
+    ): Result<Appointment?> {
+
+        return firestoreHelper.getDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointmentId,
+            clazz = Appointment::class.java
         )
     }
 
@@ -64,7 +80,7 @@ class AppointmentRepository @Inject constructor(
     }
 
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val userId = authRepository.getCurrentUserId() ?: return emptyFlow() // Return an empty flow if no user is logged in
+        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
 
         return firestoreHelper.listenToCollection(
             collection = COLLECTION_APPOINTMENT,
@@ -72,7 +88,7 @@ class AppointmentRepository @Inject constructor(
         ) { query ->
             // Chain multiple query conditions
             query
-                .whereEqualTo("userId", userId) // Filter by the current user's ID
+                .whereEqualTo("custId", userId) // Filter by the current user's ID
                 .whereGreaterThanOrEqualTo("dateTime",
                     Timestamp.now()) // Filter for appointments from now onwards
                 .orderBy("dateTime") // Order by the soonest appointment first
@@ -80,19 +96,18 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-    fun confirmBooking() {
-        CoroutineScope(ioDispatcher).launch {
-
-            // After successfully saving, send a notification
-            val userId = authRepository.getCurrentUserId()
-            if (userId != null) {
-                notificationRepository.sendNotification(
-                    userId = userId,
-                    title = "Appointment Confirmed!",
-                    message = "Your appointment for Grooming on May 25th is confirmed.",
-                    type = "appointment"
-                )
+        fun confirmBooking() {
+            CoroutineScope(ioDispatcher).launch {
+                // After successfully saving, send a notification
+                val userId = authRepository.getCurrentUserId()
+                if (userId != null) {
+                    notificationRepository.sendNotification(
+                        userId = userId,
+                        title = "Appointment Confirmed!",
+                        message = "Your appointment has been successfully booked.",
+                        type = "appointment"
+                    )
+                }
             }
         }
     }
-}

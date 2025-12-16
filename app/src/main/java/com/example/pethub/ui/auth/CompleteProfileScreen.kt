@@ -4,26 +4,16 @@ import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -35,492 +25,300 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-
+import com.example.pethub.ui.theme.CreamBackground
+import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.CreamFair
+import com.example.pethub.ui.theme.VibrantBrown
+import com.example.pethub.ui.theme.getTextFieldColors
 
 @Composable
-fun CompleteProfileScreen (
+fun CompleteProfileScreen(
     viewModel: RegisterViewModel = hiltViewModel(),
     onProfileCompleted: () -> Unit
-){
-
+) {
     val uiState by viewModel.uiState.collectAsState()
-    val textFieldColour = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color(0xFFEDE4D1),
-        unfocusedContainerColor = Color(0xFFEDE4D1),
 
-        focusedBorderColor = Color(0xFFA28970),
-        unfocusedBorderColor = Color(0xFFA28970),
-
-        focusedLabelColor = Color(0xFFA28970),
-        unfocusedLabelColor = Color(0xFFA28970)
-    )
+    // Local state for address fields
     var houseNo by remember { mutableStateOf("") }
     var streetName by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var postcode by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
 
+    // Update ViewModel when address changes
+    val updateAddress = {
+        viewModel.onAddressUpdated(houseNo, streetName, city, postcode, state)
+    }
+
     LaunchedEffect(uiState.completed) {
         if (uiState.completed) {
-//            onRegisterSuccessOld()
             onProfileCompleted()
         }
     }
 
-    Column(
+    CompleteProfileContent(
+        uiState = uiState,
+        houseNo = houseNo,
+        streetName = streetName,
+        city = city,
+        postcode = postcode,
+        state = state,
+        onUsernameChange = viewModel::onUsernameChange,
+        onPhoneChange = viewModel::onPhoneChange,
+        onHouseNoChange = { houseNo = it; updateAddress() },
+        onStreetNameChange = { streetName = it; updateAddress() },
+        onCityChange = { city = it; updateAddress() },
+        onPostcodeChange = { postcode = it; updateAddress() },
+        onStateChange = { state = it; updateAddress() },
+        onCompleteClick = viewModel::completeProfile
+    )
+}
+
+@Composable
+fun CompleteProfileContent(
+    uiState: RegisterUiState,
+    houseNo: String,
+    streetName: String,
+    city: String,
+    postcode: String,
+    state: String,
+    onUsernameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit,
+    onHouseNoChange: (String) -> Unit,
+    onStreetNameChange: (String) -> Unit,
+    onCityChange: (String) -> Unit,
+    onPostcodeChange: (String) -> Unit,
+    onStateChange: (String) -> Unit,
+    onCompleteClick: () -> Unit
+) {
+    LazyColumn(
         modifier = Modifier
-            .fillMaxSize()                 // Make it full screen
-            .background(Color(0xFFF8F7E9))       // Apply background first
-            .padding(24.dp)
-    ){
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ){
-            Image(
-                painter = painterResource(R.drawable.pethub_rvbg),
-                contentDescription = "PetHub Logo",
-                modifier = Modifier.width(100.dp)
+            .fillMaxSize()
+            .background(CreamBackground)
+            .padding(24.dp),
+    ) {
+        item {
+            ProfileHeader()
+        }
+
+        item {
+            BasicInfoSection(
+                username = uiState.username,
+                phone = uiState.phone,
+                onUsernameChange = onUsernameChange,
+                onPhoneChange = onPhoneChange
             )
         }
 
-        //Finish your profile!
-        Text(
-            text = "Finish your profile!",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(bottom=10.dp)
-        )
-
-        Text(
-            text = "Username",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = viewModel::onUsernameChange,
-            colors = textFieldColour,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .height(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Phone Number",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = uiState.phone,
-            onValueChange = viewModel::onPhoneChange,
-            colors = textFieldColour,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number
-            ),
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .height(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Address",
-            fontSize = 24.sp,
-            color = Color(0xFFA28970),
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = "Unit / House No",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = houseNo,
-            onValueChange = {
-                houseNo = it
-                viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
-            colors = textFieldColour,
-            singleLine=true,
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Street / Building Name",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = streetName,
-            onValueChange = {
-                streetName = it
-                viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
-            colors = textFieldColour,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()){
-            Column() {
-                Text(
-                    text = "City",
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                OutlinedTextField(
-                    value = city,
-                    onValueChange = {
-                        city = it
-                        viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
-                    colors = textFieldColour,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(50.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFFA28970)
-                        )
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column() {
-                Text(
-                    text = "Postcode",
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                OutlinedTextField(
-                    value = postcode,
-                    onValueChange = {
-                        postcode = it
-                        viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
-                    colors = textFieldColour,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .height(50.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFFA28970)
-                        )
-                )
-            }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            AddressSection(
+                houseNo = houseNo,
+                streetName = streetName,
+                city = city,
+                postcode = postcode,
+                state = state,
+                onHouseNoChange = onHouseNoChange,
+                onStreetNameChange = onStreetNameChange,
+                onCityChange = onCityChange,
+                onPostcodeChange = onPostcodeChange,
+                onStateChange = onStateChange
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "State",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = state,
-            onValueChange = {
-                state = it
-                viewModel.onAddressUpdated(houseNo,streetName,city,postcode,state)},
-            colors = textFieldColour,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(50.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = viewModel::completeProfile,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFAC7F5E),   // Background color
-                    contentColor = Color.White      // Text color
-                ),
-                shape = RoundedCornerShape(12.dp)
-
-            ) {
-                Text(
-                    text = "Complete",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            CompleteButton(onClick = onCompleteClick)
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun CompleteProfileScreenContent (
-    uiState: RegisterUiState
-){
-
-    val textFieldColour = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color(0xFFEDE4D1),
-        unfocusedContainerColor = Color(0xFFEDE4D1),
-
-        focusedBorderColor = Color(0xFFA28970),
-        unfocusedBorderColor = Color(0xFFA28970),
-
-        focusedLabelColor = Color(0xFFA28970),
-        unfocusedLabelColor = Color(0xFFA28970)
-    )
-    var houseNo = ""
-    var streetName = ""
-    var city = ""
-    var postcode = ""
-    var state = ""
-
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()                 // Make it full screen
-            .background(Color(0xFFF8F7E9))       // Apply background first
-            .padding(24.dp)
-    ){
+fun ProfileHeader() {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
-        ){
+        ) {
             Image(
                 painter = painterResource(R.drawable.pethub_rvbg),
                 contentDescription = "PetHub Logo",
                 modifier = Modifier.width(100.dp)
             )
         }
-
-        //Finish your profile!
         Text(
             text = "Finish your profile!",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
-            .padding(bottom=10.dp)
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
+    }
+}
+
+@Composable
+fun BasicInfoSection(
+    username: String,
+    phone: String,
+    onUsernameChange: (String) -> Unit,
+    onPhoneChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        ProfileTextField(
+            label = "Username",
+            value = username,
+            onValueChange = onUsernameChange,
+            modifier = Modifier.fillMaxWidth(0.95f)
         )
 
-        Text(
-            text = "Username",
-            fontSize = 14.sp
+        ProfileTextField(
+            label = "Phone Number",
+            value = phone,
+            onValueChange = onPhoneChange,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(0.95f)
         )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = { },
-            colors = textFieldColour,
-            textStyle = LocalTextStyle.current.copy(
-                fontSize = 12.sp
-            ),
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .height(40.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun AddressSection(
+    houseNo: String,
+    streetName: String,
+    city: String,
+    postcode: String,
+    state: String,
+    onHouseNoChange: (String) -> Unit,
+    onStreetNameChange: (String) -> Unit,
+    onCityChange: (String) -> Unit,
+    onPostcodeChange: (String) -> Unit,
+    onStateChange: (String) -> Unit
+) {
+    Text(
+        text = "Address",
+        fontSize = 24.sp,
+        color = CreamDark,
+        fontWeight = FontWeight.Bold
+    )
 
-        Text(
-            text = "Phone Number",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
-            value = uiState.phone,
-            onValueChange = { },
-            colors = textFieldColour,
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .height(40.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Address",
-            fontSize = 24.sp,
-            color = Color(0xFFA28970),
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-        
-        Text(
-            text = "Unit / House No",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        ProfileTextField(
+            label = "Unit / House No",
             value = houseNo,
-            onValueChange = { },
-            colors = textFieldColour,
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(40.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
+            onValueChange = onHouseNoChange,
+            modifier = Modifier.fillMaxWidth(0.6f)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Street / Building Name",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
+        ProfileTextField(
+            label = "Street / Building Name",
             value = streetName,
-            onValueChange = { },
-            colors = textFieldColour,
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(40.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
+            onValueChange = onStreetNameChange,
+            modifier = Modifier.fillMaxWidth(0.8f)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()){
-            Column() {
-                Text(
-                    text = "City",
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                OutlinedTextField(
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(0.6f)) {
+                ProfileTextField(
+                    label = "City",
                     value = city,
-                    onValueChange = { },
-                    colors = textFieldColour,
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(40.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFFA28970)
-                        )
+                    onValueChange = onCityChange,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             Spacer(modifier = Modifier.width(10.dp))
-            Column() {
-                Text(
-                    text = "Postcode",
-                    fontSize = 14.sp
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                OutlinedTextField(
+            Column(modifier = Modifier.weight(0.4f)) {
+                ProfileTextField(
+                    label = "Postcode",
                     value = postcode,
-                    onValueChange = { },
-                    colors = textFieldColour,
-                    modifier = Modifier
-                        .fillMaxWidth(1f)
-                        .height(40.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFFA28970)
-                        )
+                    onValueChange = onPostcodeChange,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "State",
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(3.dp))
-        OutlinedTextField(
+        ProfileTextField(
+            label = "State",
             value = state,
-            onValueChange = { },
-            colors = textFieldColour,
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(40.dp)
-                .border(
-                    width = 2.dp,
-                    color = Color(0xFFA28970)
-                )
+            onValueChange = onStateChange,
+            modifier = Modifier.fillMaxWidth(0.6f)
         )
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+@Composable
+fun CompleteButton(onClick: () -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = VibrantBrown,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Button(
-                onClick = { },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFAC7F5E),   // Background color
-                    contentColor = Color.White      // Text color
-                ),
-                shape = RoundedCornerShape(12.dp)
-
-            ) {
-                Text(
-                    text = "Complete",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = "Complete",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
+
+@Composable
+fun ProfileTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    Column {
+        Text(
+            text = label,
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Using BasicTextField for precise height control
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontSize = 14.sp,
+                color = Color.Black
+            ),
+            singleLine = true,
+            keyboardOptions = keyboardOptions,
+            modifier = modifier
+                .height(40.dp)
+                .background(
+                    color = CreamFair,
+                    shape = RoundedCornerShape(5.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = CreamDark,
+                    shape = RoundedCornerShape(5.dp)
+                ),
+            decorationBox = { innerTextField ->
+                Box(
+                    contentAlignment = androidx.compose.ui.Alignment.CenterStart,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
 
 @Preview(
     showBackground = true,
@@ -530,13 +328,29 @@ fun CompleteProfileScreenContent (
     heightDp = 640
 )
 @Composable
-fun CompleteProfileScreenPreview(){
-    CompleteProfileScreenContent(
-        RegisterUiState(
-            username = "",
-            email = "",
-            password = "",
-            confirmPassword = ""
-        )
+fun CompleteProfileScreenPreview() {
+    // Mock UI State
+    val mockUiState = RegisterUiState(
+        username = "User123",
+        email = "test@example.com",
+        password = "password",
+        confirmPassword = "password"
+    )
+
+    CompleteProfileContent(
+        uiState = mockUiState,
+        houseNo = "12A",
+        streetName = "Pet Street",
+        city = "Pet City",
+        postcode = "12345",
+        state = "Selangor",
+        onUsernameChange = {},
+        onPhoneChange = {},
+        onHouseNoChange = {},
+        onStreetNameChange = {},
+        onCityChange = {},
+        onPostcodeChange = {},
+        onStateChange = {},
+        onCompleteClick = {}
     )
 }

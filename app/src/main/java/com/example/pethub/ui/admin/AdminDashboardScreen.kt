@@ -1,23 +1,18 @@
 package com.example.pethub.ui.admin
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,274 +20,280 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.pethub.R // Make sure to import your R file
-import com.example.pethub.ui.theme.CreamBackground
-import com.example.pethub.ui.theme.CreamDark
-import com.example.pethub.ui.theme.CreamLight
-import java.text.NumberFormat
-import java.util.Locale
+import com.example.pethub.R
+import com.example.pethub.navigation.AdminBottomNavigationBar
+import com.example.pethub.ui.status.ErrorScreen
+import com.example.pethub.ui.status.LoadingScreen
+import com.example.pethub.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: AdminDashboardViewModel = hiltViewModel()
+    viewModel: AdminDashboardViewModel = hiltViewModel(),
+    onNavigateToLogin: () -> Unit,
+    onNavigateToStocks: () -> Unit,
+    onNavigateToServices: () -> Unit,
+    onNavigateToScanner: () -> Unit,
+    onNavigateToAppointmentDetails: (String) -> Unit,
+    onViewAllClick:() -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val appointments by viewModel.recentAppointments.collectAsState()
 
     Scaffold(
-        containerColor = CreamBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Image(
-                        painter = painterResource(id = R.drawable.pethub_logo_rvbg),
-                        contentDescription = "PetHub Logo",
-                        modifier = Modifier.height(40.dp)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CreamBackground,
-                    navigationIconContentColor = CreamDark
-                )
+            AdminTopBar(
+                onLogoutClick = {
+                    viewModel.logout(onLogoutSuccess = onNavigateToLogin)
+                }
             )
+        },
+        bottomBar = {
+            AdminBottomNavigationBar(
+                modifier = Modifier,
+                currentRoute = "admin_home",
+                onNavigate = { route ->
+                    when (route) {
+                        "admin_home" -> { /* Current */ }
+                        "admin_stocks" -> onNavigateToStocks()
+                        "admin_services" -> onNavigateToServices()
+                        "admin_scanner" -> onNavigateToScanner()
+                    }
+                }
+            )
+        },
+        containerColor = CreamBackground // Using your theme color
+    ) { paddingValues ->
+        when (uiState) {
+            is AdminDashboardUiState.Loading -> LoadingScreen()
+            is AdminDashboardUiState.Error -> ErrorScreen(
+                message = (uiState as AdminDashboardUiState.Error).message,
+                onRetry = viewModel::loadData
+            )
+            is AdminDashboardUiState.Success -> {
+                AdminDashboardContent(
+                    modifier = Modifier.padding(paddingValues),
+                    appointments = appointments,
+                    onViewAllClick = {onViewAllClick()},
+                    onViewAppointmentClick = onNavigateToAppointmentDetails
+                )
+            }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // --- Profile Header ---
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminTopBar(onLogoutClick: () -> Unit) {
+    CenterAlignedTopAppBar(
+        title = {
             Image(
-                painter = painterResource(id = R.drawable.pethub_logo_rvbg),
-                contentDescription = "Admin Profile Picture",
+                painter = painterResource(id = R.drawable.pethub_rvbg), // Ensure this resource exists
+                contentDescription = "PetHub Logo",
                 modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, CreamDark, CircleShape)
+                    .height(40.dp)
+                    .width(120.dp)
             )
+        },
+        actions = {
+            IconButton(onClick = onLogoutClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = "Logout",
+                    tint = Color.Black
+                )
+            }
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = CreamBackground
+        )
+    )
+    // Divider line below top bar
+    HorizontalDivider(thickness = 2.dp, color = DarkBrown)
+}
 
+@Composable
+fun AdminDashboardContent(
+    modifier: Modifier = Modifier,
+    appointments: List<AdminAppointment>,
+    onViewAllClick: () -> Unit,
+    onViewAppointmentClick: (String) -> Unit
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+        // --- New Appointment Section ---
+        item {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "PetHub",
+                    text = "New Appointment",
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = CreamDark
-                )
-                MonthDropdown(
-                    selectedMonth = uiState.selectedMonth,
-                    onMonthSelected = { viewModel.onMonthSelected(it) }
-                )
-            }
-
-            // --- Monthly Sales Report Card ---
-            ReportCard(
-                title = "Monthly Sales Report",
-                // Pass the ServiceDropdown to be displayed inside the card
-                headerAction = {
-                    ServiceDropdown(
-                        selectedService = uiState.selectedService,
-                        onServiceSelected = { viewModel.onServiceSelected(it) }
-                    )
-                }
-            ) {
-                val salesReport = uiState.salesReport
-                // The content of the card starts here
-                Text(
-                    "Total Revenue",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = CreamDark
+                    color = Color.Black,
+                    // Use a cursive-style font if available in your theme, simulating the image
                 )
                 Text(
-                    formatCurrency(salesReport.totalRevenue),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp,
-                    color = CreamDark
+                    text = "view all",
+                    fontSize = 14.sp,
+                    textDecoration = TextDecoration.Underline,
+                    color = Color.Black,
+                    modifier = Modifier.clickable { onViewAllClick() }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                salesReport.salesByService.forEach { (service, amount) ->
-                    Text(
-                        "• $service - ${formatCurrency(amount)}",
-                        fontSize = 16.sp,
-                        color = CreamDark
-                    )
-                }
             }
-
-            // --- Service Usage Report Card (does not have a header action) ---
-            ReportCard(title = "Service Usage Report") {
-                val usageReport = uiState.usageReport
-                usageReport.usageByService.forEach { (service, times) ->
-                    Text(
-                        "• $service - $times times",
-                        fontSize = 16.sp,
-                        color = CreamDark
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-}
 
-// Dropdown for selecting the month
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MonthDropdown(
-    selectedMonth: String,
-    onMonthSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val months = listOf("This month", "Last month", "January", "February", "March") // Add more as needed
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        Button(
-            onClick = { expanded = true },
-            modifier = Modifier.menuAnchor(),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CreamDark),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-        ) {
-            Text(selectedMonth, color = Color.White)
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Open month selection",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
+        item {
+            AppointmentListCard(
+                appointments = appointments,
+                onViewClick = onViewAppointmentClick
             )
         }
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            months.forEach { month ->
-                DropdownMenuItem(
-                    text = { Text(month) },
-                    onClick = {
-                        onMonthSelected(month)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-// DROPDOWN for selecting the service
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ServiceDropdown(
-    selectedService: String,
-    onServiceSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val services = listOf("Training", "Boarding", "Grooming", "Walking", "Daycare")
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        Button(
-            onClick = { expanded = true },
-            modifier = Modifier.menuAnchor(),
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CreamDark),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-        ) {
-            Text(selectedService, color = Color.White)
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = "Open service selection",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
+        // --- Reports Section ---
+        item {
+            Text(
+                text = "Reports",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
         }
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            services.forEach { service ->
-                DropdownMenuItem(
-                    text = { Text(service) },
-                    onClick = {
-                        onServiceSelected(service)
-                        expanded = false
-                    }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ReportCard(
+                    title = "Monthly Sales\nReport",
+                    modifier = Modifier.weight(1f),
+                    onClick = { /* Handle Report Click */ }
+                )
+                ReportCard(
+                    title = "Service Usage\nReport",
+                    modifier = Modifier.weight(1f),
+                    onClick = { /* Handle Report Click */ }
                 )
             }
         }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
     }
 }
 
-
-// *** THIS IS THE CORRECTED ReportCard COMPOSABLE ***
 @Composable
-private fun ReportCard(
-    title: String,
-    headerAction: (@Composable () -> Unit)? = null, // Optional composable for the dropdown
-    content: @Composable ColumnScope.() -> Unit
+fun AppointmentListCard(
+    appointments: List<AdminAppointment>,
+    onViewClick: (String) -> Unit
 ) {
     Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CreamFair),
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CreamLight)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
-            // If a header action (the dropdown) is provided, display it here, aligned to the right.
-            headerAction?.let {
+            // Scrollable list inside the card if there are many items,
+            // but usually nested scrolling is tricky. Since we are in a LazyColumn,
+            // we'll display a fixed number or column items.
+            // For the specific design, a Column is fine.
+
+            appointments.take(4).forEachIndexed { index, appt ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    it()
+                    Text(
+                        text = "#${appt.id.take(5)}",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.width(80.dp)
+                    )
+                    Text(
+                        text = appt.date,
+                        color = Color.Black,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "view",
+                        textDecoration = TextDecoration.Underline,
+                        fontSize = 14.sp,
+                        color = Color.Black,
+                        modifier = Modifier.clickable { onViewClick(appt.id) }
+                    )
                 }
-                // Add a small spacer between the dropdown and the title
-                Spacer(modifier = Modifier.height(8.dp))
+
+                if (index < appointments.take(4).size - 1) {
+                    HorizontalDivider(color = Color.LightGray, thickness = 1.dp)
+                }
             }
 
-            // The main title of the card
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
-                color = CreamDark,
-                textDecoration = TextDecoration.Underline
-            )
-
             Spacer(modifier = Modifier.height(12.dp))
-            // The rest of the card's content (Total Revenue, etc.) goes below
-            content()
+
+            Text(
+                text = "Click \"view all\" to view more appointments",
+                fontSize = 12.sp,
+                color = MutedBrown,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
 
-private fun formatCurrency(amount: Double): String {
-    val format = NumberFormat.getCurrencyInstance(Locale("ms", "MY"))
-    return format.format(amount).replace("MYR", "RM")
+@Composable
+fun ReportCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE2DCC8)), // Slightly darker cream/grey
+        modifier = modifier
+            .height(140.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.TopStart)
+            )
+
+            // "View" Button pill
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = CreamFair,
+                modifier = Modifier.align(Alignment.BottomEnd)
+            ) {
+                Text(
+                    text = "View",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color.Black
+                )
+            }
+        }
+    }
 }

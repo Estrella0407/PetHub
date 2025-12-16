@@ -1,67 +1,85 @@
 package com.example.pethub.ui.admin
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pethub.data.repository.AppointmentRepository
+import com.example.pethub.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
+/**
+ * ViewModel for Admin Dashboard
+ */
 @HiltViewModel
-class AdminDashboardViewModel @Inject constructor() : ViewModel() {
+class AdminDashboardViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val appointmentRepository: AppointmentRepository
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(createInitialState())
-    val uiState: StateFlow<AdminProfileUiState> = _uiState.asStateFlow()
+    // UI State
+    private val _uiState = MutableStateFlow<AdminDashboardUiState>(AdminDashboardUiState.Loading)
+    val uiState: StateFlow<AdminDashboardUiState> = _uiState.asStateFlow()
 
-    private fun createInitialState(): AdminProfileUiState {
-        // Hardcoded data for "This month"
-        val sales = SalesReport(
-            totalRevenue = 5200.00,
-            salesByService = mapOf(
-                "Grooming" to 3000.00,
-                "Boarding" to 1500.00,
-                "Daycare" to 500.00,
-                "Walking" to 200.00
-            )
-        )
-        val usage = UsageReport(
-            usageByService = mapOf(
-                "Grooming" to 50,
-                "Boarding" to 15,
-                "Daycare" to 10,
-                "Walking" to 5
-            )
-        )
-        return AdminProfileUiState(salesReport = sales, usageReport = usage)
+    // Temporary mock data for appointments (Replace with Repository call later)
+    private val _recentAppointments = MutableStateFlow<List<AdminAppointment>>(emptyList())
+    val recentAppointments: StateFlow<List<AdminAppointment>> = _recentAppointments.asStateFlow()
+
+    init {
+        loadData()
     }
 
-    fun onMonthSelected(month: String) {
-        _uiState.update { it.copy(selectedMonth = month) }
-        //TODO: Fetch new data based on the selected month
+   fun loadData() {
+       viewModelScope.launch {
+           _uiState.value = AdminDashboardUiState.Loading
 
-    }
-    fun onServiceSelected(service: String) {
-        _uiState.update { it.copy(selectedService = service) }
-        //TODO: Fetch new data based on the selected service
+           val result = appointmentRepository.getAllAppointments()
+
+           result
+               .onSuccess { appointments ->
+                   _recentAppointments.value = appointments.map {
+                       AdminAppointment(
+                           id = it.appointmentId,
+                           date = it.dateTime?.toDate()?.let { date ->
+                               SimpleDateFormat(
+                                   "dd MMM yyyy",
+                                   Locale.getDefault()
+                               ).format(date)
+                           } ?: ""
+                       )
+                   }
+                   _uiState.value = AdminDashboardUiState.Success
+               }
+               .onFailure { e ->
+                   _uiState.value =
+                       AdminDashboardUiState.Error(e.message ?: "Failed to load data")
+               }
+       }
+   }
+
+
+    fun logout(onLogoutSuccess: () -> Unit) {
+        viewModelScope.launch {
+            authRepository.signOut()
+            onLogoutSuccess()
+        }
     }
 }
 
-// Hardcoded data models for the reports
-data class SalesReport(
-    val totalRevenue: Double,
-    val salesByService: Map<String, Double>
-)
+// Sealed class for UI State
+sealed class AdminDashboardUiState {
+    object Loading : AdminDashboardUiState()
+    object Success : AdminDashboardUiState()
+    data class Error(val message: String) : AdminDashboardUiState()
+}
 
-data class UsageReport(
-    val usageByService: Map<String, Int>
-)
-
-// UI State for the screen
-data class AdminProfileUiState(
-    val selectedMonth: String = "This month",
-    val salesReport: SalesReport,
-    val selectedService: String = "By Service",
-    val usageReport: UsageReport,
-    val isLoading: Boolean = false
+// Simple data class for the list item
+data class AdminAppointment(
+    val id: String,
+    val date: String
 )

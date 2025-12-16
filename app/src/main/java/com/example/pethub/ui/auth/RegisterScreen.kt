@@ -31,10 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
-import com.example.pethubself.ui.components.AuthenticationGoogleButton
-import com.example.pethubself.ui.components.AuthenticationImagesFooter
-import com.example.pethubself.ui.components.AuthenticationTextField
-import kotlin.String
+import com.example.pethub.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,7 +236,7 @@ fun RegisterScreen(
         )
 
         Spacer(modifier = Modifier.weight(1f))
-        AuthenticationImagesFooter()
+        ServiceIconsRow()
     }
 }
 
@@ -429,7 +426,7 @@ fun RegisterScreenContent(
         )
 
         Spacer(modifier = Modifier.weight(1f))
-        AuthenticationImagesFooter()
+        ServiceIconsRow()
 
     }
 }
