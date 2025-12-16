@@ -29,6 +29,7 @@ import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
+import com.example.pethub.ui.cart.CartScreen
 
 @Composable
 fun NavGraph(
@@ -113,13 +114,23 @@ fun NavGraph(
                 onNavigateToProfile = { navController.navigate("profile") }
             )
         }
+        
+        composable("cart") {
+            CartScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateHome = {
+                     navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
+        }
 
         composable("services") { PlaceholderScreen("Services coming soon") }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
         composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
-        composable("cart") { PlaceholderScreen("Cart coming soon") }
 
         // Admin screens
         composable("admin_home") {
@@ -208,9 +219,3 @@ private fun PlaceholderScreen(message: String) {
 //                }
 //            )
 //        }
-
-
-
-
-
-
