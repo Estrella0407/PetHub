@@ -104,6 +104,28 @@ class FirestoreHelper @Inject constructor(
         }
     }
 
+    // Get a specific field from a document
+    suspend fun <T : Any> getDocumentField(
+        collection: String,
+        documentId: String,
+        fieldName: String,
+        fieldClass: Class<T>
+    ): Result<T?> {
+        return try {
+            val snapshot = firestore.collection(collection)
+                .document(documentId)
+                .get()
+                .await()
+
+            val value = snapshot.get(fieldName, fieldClass)
+            Result.success(value)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
+
     /**
      * Get document snapshot (includes ID)
      */
