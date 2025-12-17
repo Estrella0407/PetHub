@@ -21,8 +21,9 @@ data class Appointment(
  */
 data class AppointmentItem(
     val id: String,
-    val serviceName: String,
-    val petName: String,
+    val serviceName: String?,
+    val owner: Customer,
+    val pet: Pet,
     val dateTime: String,
     val locationName: String,
     val status: String
