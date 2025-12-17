@@ -49,6 +49,14 @@ class ServiceRepository @Inject constructor(
         )
     }
 
+    fun listenToBranchServiceAvailability(branchId: String, serviceId: String): Flow<BranchService?> {
+        return firestoreHelper.listenToDocument(
+            collection = "$COLLECTION_BRANCH/$branchId/$SUBCOLLECTION_BRANCH_SERVICES",
+            documentId = serviceId,
+            clazz = BranchService::class.java
+        )
+    }
+
     suspend fun setBranchServiceAvailability(branchId: String, serviceId: String, isAvailable: Boolean): Result<Unit> {
         val branchService = BranchService(
             branchId = branchId,

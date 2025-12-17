@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
+import com.example.pethub.ui.appoinment.AppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -38,7 +39,7 @@ fun NavGraph(
     val startDestination = if (firebaseService.isUserAuthenticated()) {
         "profile"
     } else {
-        "login"
+       "login"
     }
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -104,7 +105,7 @@ fun NavGraph(
                 }
             )
         }
-
+        
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
@@ -124,11 +125,18 @@ fun NavGraph(
                 }
             )
         }
+
+        composable(
+            route = "appointment/{serviceId}",
+            arguments = listOf(navArgument("serviceId") { type = NavType.StringType })
+        ) {
+            AppointmentScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
         composable("cart") { PlaceholderScreen("Cart coming soon") }
-        composable("appointment/{serviceId}") { PlaceholderScreen("Appointment screen coming soon") }
 
         // Admin screens
         composable("admin_home") {
@@ -146,7 +154,13 @@ fun NavGraph(
         composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
         composable("admin_appointment_details") { PlaceholderScreen("Appointment details coming soon") }
 
-        composable("admin_services") {
+        composable(
+            route = "admin_services?branchId={branchId}",
+            arguments = listOf(navArgument("branchId") {
+                type = NavType.StringType
+                nullable = true
+            })
+        ) {
             ServiceManagementScreen(
                 onNavigateToAdminHome = { navController.navigate("admin_home") },
                 onNavigateToAdminStocks = { navController.navigate("admin_stocks") },

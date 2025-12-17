@@ -1,7 +1,9 @@
 package com.example.pethub.data.model
 
+import com.google.firebase.firestore.DocumentId
+
 data class Branch(
-    val branchId: String = "",
+    @DocumentId val branchId: String = "",
     val branchName: String = "",
     val branchAddress: String = "",
     val branchPhone: String = "",
