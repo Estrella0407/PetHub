@@ -2,6 +2,7 @@ package com.example.pethub.ui.admin
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,22 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -37,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.R
-import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.AdminBottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,21 +41,14 @@ fun ServiceManagementScreen(
     onNavigateToAdminHome: () -> Unit,
     onNavigateToAdminStocks: () -> Unit,
     onNavigateToAdminScanner: () -> Unit,
-    viewModel: AdminDashboardViewModel = hiltViewModel()
+    viewModel: ServiceManagementViewModel = hiltViewModel()
 ) {
-    // Dummy list of services based on the image
-    val services = listOf(
-        Service(serviceName = "Grooming"),
-        Service(serviceName = "Boarding"),
-        Service(serviceName = "Walking"),
-        Service(serviceName = "DayCare"),
-        Service(serviceName = "Training")
-    )
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("PetHub") },
+                title = { Text("PetHub") }
             )
         },
         bottomBar = {
@@ -90,12 +78,32 @@ fun ServiceManagementScreen(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(services) { service ->
-                    ServiceRow(service = service)
+
+            when (val state = uiState) {
+                is ServiceManagementUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is ServiceManagementUiState.Success -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.services) { service ->
+                            ServiceRow(
+                                service = service,
+                                onCheckedChange = { isEnabled ->
+                                    viewModel.updateServiceAvailability(service.serviceId, isEnabled)
+                                }
+                            )
+                        }
+                    }
+                }
+                is ServiceManagementUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
@@ -103,10 +111,11 @@ fun ServiceManagementScreen(
 }
 
 @Composable
-fun ServiceRow(service: Service) {
-    var isEnabled by remember { mutableStateOf(false) }
-
-    val iconRes = when (service.serviceName) {
+fun ServiceRow(
+    service: ServiceManagementItem,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val iconRes = when (service.name) {
         "Grooming" -> R.drawable.grooming_nobg
         "Boarding" -> R.drawable.boarding_nobg
         "Walking" -> R.drawable.walking_nobg
@@ -126,15 +135,15 @@ fun ServiceRow(service: Service) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
                     painter = painterResource(id = iconRes),
-                    contentDescription = service.serviceName,
+                    contentDescription = service.name,
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(text = service.serviceName, fontSize = 18.sp)
+                Text(text = service.name, fontSize = 18.sp)
             }
             Switch(
-                checked = isEnabled,
-                onCheckedChange = { isEnabled = it }
+                checked = service.isEnabled,
+                onCheckedChange = onCheckedChange
             )
         }
         Divider()
