@@ -1,4 +1,4 @@
-package com.example.pethub.ui.appoinment
+package com.example.pethub.ui.appointnment
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.pethub.ui.appointment.AppointmentViewModel
 import com.example.pethub.ui.theme.CreamLight
 import com.example.pethub.ui.theme.DarkBrown
 

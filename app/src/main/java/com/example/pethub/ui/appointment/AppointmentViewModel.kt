@@ -1,4 +1,4 @@
-package com.example.pethub.ui.appoinment
+package com.example.pethub.ui.appointment
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
