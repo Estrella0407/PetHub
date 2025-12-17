@@ -96,7 +96,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.coil.compose)
     implementation(libs.androidx.hilt.navigation.compose)
-    kapt(libs.hilt.compiler)
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.play.services.auth)
@@ -110,6 +109,9 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.0")
 
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+    implementation("com.google.android.gms:play-services-auth:21.0.1")
+
 
 }
 

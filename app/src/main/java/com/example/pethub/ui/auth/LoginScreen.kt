@@ -31,7 +31,9 @@ import androidx.credentials.CredentialManager
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
 import com.example.pethub.ui.components.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -210,6 +212,7 @@ fun LoginScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        val scope = rememberCoroutineScope()
 
         // Login with Google Button
         AuthenticationGoogleButton(
@@ -219,7 +222,19 @@ fun LoginScreen(
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(20.dp)
                 )},
-            onGoogleClick = {viewModel.signInWithGoogle( )}
+            onGoogleClick = {scope.launch {
+                signInWithGoogle(
+                    context,
+                    webClientId = context.getString(R.string.default_web_client_id),
+                    onTokenReceived = { token ->
+                        firebaseSignInWithGoogle(
+                            token,
+                            onSuccess = { onLoginSuccess() },
+                            onError = { /* TODO show error */ }
+                        )
+                    }
+                )
+            }}
         )
 
         Spacer(modifier = Modifier.weight(1f))

@@ -93,15 +93,6 @@ class LoginViewModel @Inject constructor(
         prefs.edit { putBoolean(Constants.REMEMBER_ME, remember) }
     }
 
-    fun signInWithGoogle(){
-
-    }
-
-
-
-
-
-
 }
 
 data class LoginUiState(
