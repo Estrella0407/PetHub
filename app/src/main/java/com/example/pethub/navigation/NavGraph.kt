@@ -26,6 +26,7 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
+import com.example.pethub.ui.appointnment.AppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -53,6 +54,7 @@ fun NavGraph(
 
         composable("login") {
             LoginScreen(
+                onReturnClick = {navController.popBackStack()},
                 onLoginSuccess = {
                     // Pop login from backstack so back button exits app
                     navController.navigate("home") {

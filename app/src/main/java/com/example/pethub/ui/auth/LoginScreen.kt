@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
+    onReturnClick: () -> Unit,
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToAdminHome: () -> Unit,
@@ -94,7 +95,7 @@ fun LoginScreen(
                 contentDescription = "Return Button",
                 modifier = Modifier
                     .size(30.dp)
-                    .clickable{viewModel.loginAsGuest()}
+                    .clickable{onReturnClick()}
             )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),

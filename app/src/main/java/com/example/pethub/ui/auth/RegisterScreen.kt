@@ -69,7 +69,7 @@ fun RegisterScreen(
                 contentDescription = "Return Button",
                 modifier = Modifier
                     .size(30.dp)
-                    .clickable{onReturnClick()}//viewModel.loginAsGuest()}
+                    .clickable{onReturnClick()}
             )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),
