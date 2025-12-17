@@ -26,6 +26,8 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
+import com.example.pethub.ui.admin.MonthlySalesReportScreen
+import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -42,11 +44,12 @@ fun NavGraph(
     navController: NavHostController,
     firebaseService: FirebaseService
 ) {
-    val startDestination = if (firebaseService.isUserAuthenticated()) {
-        "profile"
+    /*val startDestination = if (firebaseService.isUserAuthenticated()) {
+        "admin_home"
     } else {
         "login"
-    }
+    }*/
+    val startDestination = "admin_home"
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable("login") {
@@ -148,7 +151,9 @@ fun NavGraph(
                 onNavigateToAppointmentDetails = {appointmentId->
                     navController.navigate("appointmentDetail/${appointmentId}")
                 },
-                onViewAllClick = {navController.navigate("admin_view_all_appointments")}
+                onViewAllClick = {navController.navigate("admin_view_all_appointments")},
+                onNavigateToMonthlySalesReport = { navController.navigate("monthly_sales_report") },
+                onNavigateToServiceUsageReport = { navController.navigate("service_usage_report") }
             )
         }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
@@ -193,6 +198,16 @@ fun NavGraph(
                 onNavigateToAdminScanner = { navController.navigate("admin_scanner") }
             )
         }
+        composable("monthly_sales_report") {
+            MonthlySalesReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable("service_usage_report") {
+            ServiceUsageReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
 
         composable("profile") {
@@ -234,7 +249,6 @@ fun NavGraph(
         }
     }
 }
-
 
 @Composable
 private fun PlaceholderScreen(message: String) {
