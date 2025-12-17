@@ -16,6 +16,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.example.pethub.ui.service.ServiceScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
@@ -27,8 +29,6 @@ import com.example.pethub.ui.home.HomeScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
-import com.example.pethub.ui.service.ServiceScreen
-import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(
@@ -104,7 +104,7 @@ fun NavGraph(
                 }
             )
         }
-
+        
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
@@ -125,6 +125,7 @@ fun NavGraph(
             )
         }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
+        composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
         composable("cart") { PlaceholderScreen("Cart coming soon") }
@@ -209,3 +210,12 @@ private fun PlaceholderScreen(message: String) {
         )
     }
 }
+
+//        composable("service") {
+//            ServiceScreen(
+//                onNavigateUp = { navController.popBackStack() },
+//                onServiceClick = { serviceId ->
+//                    navController.navigate("service/$serviceId")
+//                }
+//            )
+//        }
