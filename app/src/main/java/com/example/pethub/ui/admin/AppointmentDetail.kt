@@ -1,5 +1,6 @@
 package com.example.pethub.ui.admin
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -132,21 +133,26 @@ fun AppointmentDetail(
                         verticalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxHeight()
                     ){
-                        Text(
-                            text= "Pet Grooming"
-                        )
-                        Text(
-                            text = "jenny@gmail.com"
-                        )
-                        Text(
-                            text = "28 Sept 2025"
-                        )
-                        Text(
-                            text = "PetHub KL"
-                        )
-                        Text(
-                            text = "QR"
-                        )
+                        uiState.appointmentItem?.let { item ->
+                            Text(text = "${item.serviceName}")
+                        }
+
+                        uiState.appointmentItem?.let { item ->
+                            Text(text = "${uiState.appointmentItem?.owner?.custPhone}")
+                        }
+
+                        uiState.appointmentItem?.let { item ->
+                            Text(text = "${item.dateTime}")
+                        }
+
+                        uiState.appointmentItem?.let { item ->
+                            Text(text = "${uiState.appointmentItem?.locationName}")
+                        }
+
+                        uiState.appointmentItem?.let { item ->
+                            Text(text = "Pet Profile")
+                        }
+
                     }
                 }
             }
