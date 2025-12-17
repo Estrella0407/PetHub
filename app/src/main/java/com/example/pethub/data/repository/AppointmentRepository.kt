@@ -52,6 +52,13 @@ class AppointmentRepository @Inject constructor(
         confirmBooking()
     }
 
+    suspend fun removeAppointment(appointment: Appointment){
+        firestoreHelper.deleteDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointment.appointmentId
+        )
+    }
+
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(

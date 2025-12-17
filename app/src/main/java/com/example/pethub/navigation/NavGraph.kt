@@ -170,7 +170,8 @@ fun NavGraph(
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                appointmentId = appointmentId
+                appointmentId = appointmentId,
+                onAppointmentCanceled = {navController.navigate("admin_home")}
             )
         }
         composable("admin_view_all_appointments"){

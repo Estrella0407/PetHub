@@ -12,6 +12,8 @@ import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
+
 
 @HiltViewModel
 class AppointmentDetailViewModel @Inject constructor(
@@ -72,6 +74,19 @@ class AppointmentDetailViewModel @Inject constructor(
             onLogoutSuccess()
         }
     }
+
+    fun updateShowCancelOverlay(bool: Boolean){
+        _uiState.update{
+            it.copy(showCancelOverlay = bool)
+        }
+    }
+
+    fun removeAppointment(appointment: Appointment) {
+        viewModelScope.launch {
+            appointmentRepository.removeAppointment(appointment)
+        }
+    }
+
 }
 
 
@@ -79,5 +94,6 @@ data class AppointmentDetailUiState(
     val isLoading: Boolean = false,
     val appointment: Appointment? = null,
     val appointmentItem: AppointmentItem? = null,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
+    val showCancelOverlay: Boolean = false
 )
