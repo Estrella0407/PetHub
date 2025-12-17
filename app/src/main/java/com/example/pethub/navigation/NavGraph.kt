@@ -31,6 +31,7 @@ import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
+import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
 import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
@@ -139,7 +140,16 @@ fun NavGraph(
         composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
-        composable("cart") { PlaceholderScreen("Cart coming soon") }
+        composable("cart") {
+            CartScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateHome = {
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(
             route = "appointment/{serviceId}",
             arguments = listOf(navArgument("serviceId") { type = NavType.StringType })
