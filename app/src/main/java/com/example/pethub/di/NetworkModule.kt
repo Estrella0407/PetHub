@@ -61,15 +61,15 @@ object NetworkModule {
     /**
      * Provide FirebaseService
      */
-    @Provides
-    @Singleton
-    fun provideFirebaseService(
-        auth: FirebaseAuth,
-        messaging: FirebaseMessaging,
-        @ApplicationContext context: Context
-    ): FirebaseService {
-        return FirebaseService(auth, messaging, context)
-    }
+//    @Provides
+//    @Singleton
+//    fun provideFirebaseService(
+//        auth: FirebaseAuth,
+//        messaging: FirebaseMessaging,
+//        @ApplicationContext context: Context
+//    ): FirebaseService {
+//        return FirebaseService(auth = auth, messaging = messaging, context = context)
+//    }
 
     /**
      * Provide FirestoreHelper

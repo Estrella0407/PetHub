@@ -2,12 +2,15 @@ package com.example.pethub.ui.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -15,7 +18,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {
 
     // UI State
@@ -30,26 +34,34 @@ class AdminDashboardViewModel @Inject constructor(
         loadData()
     }
 
-    fun loadData() {
-        viewModelScope.launch {
-            _uiState.value = AdminDashboardUiState.Loading
-            try {
-                // TODO: Fetch actual appointments from Firestore
-                // For now, mocking the data based on your screenshot
-                _recentAppointments.value = listOf(
-                    AdminAppointment("IT001", "29 Sept 2025"),
-                    AdminAppointment("PG002", "28 Sept 2025"),
-                    AdminAppointment("PW001", "25 Sept 2025"),
-                    AdminAppointment("PG001", "25 Sept 2025"),
-                    AdminAppointment("IT002", "24 Sept 2025"),
-                    AdminAppointment("IT003", "23 Sept 2025")
-                )
-                _uiState.value = AdminDashboardUiState.Success
-            } catch (e: Exception) {
-                _uiState.value = AdminDashboardUiState.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
+   fun loadData() {
+       viewModelScope.launch {
+           _uiState.value = AdminDashboardUiState.Loading
+
+           val result = appointmentRepository.getAllAppointments()
+
+           result
+               .onSuccess { appointments ->
+                   _recentAppointments.value = appointments.map {
+                       AdminAppointment(
+                           id = it.appointmentId,
+                           date = it.dateTime?.toDate()?.let { date ->
+                               SimpleDateFormat(
+                                   "dd MMM yyyy",
+                                   Locale.getDefault()
+                               ).format(date)
+                           } ?: ""
+                       )
+                   }
+                   _uiState.value = AdminDashboardUiState.Success
+               }
+               .onFailure { e ->
+                   _uiState.value =
+                       AdminDashboardUiState.Error(e.message ?: "Failed to load data")
+               }
+       }
+   }
+
 
     fun logout(onLogoutSuccess: () -> Unit) {
         viewModelScope.launch {

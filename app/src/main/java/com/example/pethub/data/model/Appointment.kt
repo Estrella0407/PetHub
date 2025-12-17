@@ -1,8 +1,11 @@
 package com.example.pethub.data.model
 
+import com.google.firebase.Timestamp
+
+
 data class Appointment(
     val appointmentId: String = "",
-    val dateTime: Long? = null,
+    val dateTime: Timestamp? = null,
     val status: String = "pending",
     val branchId: String = "",
     val petId: String = "",

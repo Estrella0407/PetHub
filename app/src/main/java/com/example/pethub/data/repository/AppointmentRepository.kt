@@ -38,12 +38,27 @@ class AppointmentRepository @Inject constructor(
 
         // Save the new object to Firestore
         firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
+
+        // Trigger notification
+        confirmBooking()
     }
+
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
             Appointment::class.java
+        )
+    }
+
+    suspend fun getAppointmentDetail(
+        appointmentId: String
+    ): Result<Appointment?> {
+
+        return firestoreHelper.getDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointmentId,
+            clazz = Appointment::class.java
         )
     }
 
@@ -81,19 +96,18 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-    fun confirmBooking() {
-        CoroutineScope(ioDispatcher).launch {
-
-            // After successfully saving, send a notification
-            val userId = authRepository.getCurrentUserId()
-            if (userId != null) {
-                notificationRepository.sendNotification(
-                    userId = userId,
-                    title = "Appointment Confirmed!",
-                    message = "Your appointment for Grooming on May 25th is confirmed.",
-                    type = "appointment"
-                )
+        fun confirmBooking() {
+            CoroutineScope(ioDispatcher).launch {
+                // After successfully saving, send a notification
+                val userId = authRepository.getCurrentUserId()
+                if (userId != null) {
+                    notificationRepository.sendNotification(
+                        userId = userId,
+                        title = "Appointment Confirmed!",
+                        message = "Your appointment has been successfully booked.",
+                        type = "appointment"
+                    )
+                }
             }
         }
     }
-}
