@@ -38,7 +38,7 @@ class AdminDashboardViewModel @Inject constructor(
        viewModelScope.launch {
            _uiState.value = AdminDashboardUiState.Loading
 
-           val result = appointmentRepository.getAllAppointments()
+           val result = appointmentRepository.getAllAppointmentsByBranch(branchId = authRepository.getCurrentUserId())
 
            result
                .onSuccess { appointments ->

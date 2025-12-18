@@ -67,6 +67,16 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
+    suspend fun getAllAppointmentsByBranch(branchId: String?): Result<List<Appointment>> {
+        val id = branchId ?: return Result.failure(Exception("Branch ID is required"))
+        return firestoreHelper.queryDocuments(
+            collection = COLLECTION_APPOINTMENT,
+            field = "branchId",
+            value = id,
+            clazz = Appointment::class.java
+        )
+    }
+
     suspend fun getAppointmentDetail(
         appointmentId: String
     ): Result<Appointment?> {
