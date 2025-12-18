@@ -36,7 +36,7 @@ import com.example.pethub.ui.theme.MutedBrown
 
 @Composable
 fun AdminViewAllAppointmentsScreen(
-    viewModel: AdminDashboardViewModel = hiltViewModel(),
+    viewModel: AdminHomeViewModel = hiltViewModel(),
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToStocks: () -> Unit,

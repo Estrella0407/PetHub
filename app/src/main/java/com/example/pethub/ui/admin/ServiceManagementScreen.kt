@@ -46,7 +46,7 @@ fun ServiceManagementScreen(
     onNavigateToAdminHome: () -> Unit,
     onNavigateToAdminStocks: () -> Unit,
     onNavigateToAdminScanner: () -> Unit,
-    viewModel: AdminDashboardViewModel = hiltViewModel()
+    viewModel: AdminHomeViewModel = hiltViewModel()
 ) {
     // Dummy list of services based on the image
     val services = listOf(

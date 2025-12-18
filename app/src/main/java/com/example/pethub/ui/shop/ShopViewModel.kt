@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ShopViewModel @Inject constructor(
-    private val repository: ShopRepository
+    private val shopRepository: ShopRepository
 ) : ViewModel() {
 
     // State for the list of products
@@ -27,7 +27,7 @@ class ShopViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    val cartItemCount: StateFlow<Int> = repository.getCartItems()
+    val cartItemCount: StateFlow<Int> = shopRepository.getCartItems()
         .map { items ->
             items.sumOf { it.quantity }
         }
@@ -43,7 +43,7 @@ class ShopViewModel @Inject constructor(
     private fun fetchProducts() {
         viewModelScope.launch {
             _isLoading.value = true
-            repository.getProducts().collect { productList ->
+            shopRepository.getProducts().collect { productList ->
                 _products.value = productList
                 _isLoading.value = false
             }
@@ -52,7 +52,7 @@ class ShopViewModel @Inject constructor(
 
     fun addToCart(product: Product) {
         viewModelScope.launch {
-            repository.addToCart(product)
+            shopRepository.addToCart(product)
         }
     }
 }

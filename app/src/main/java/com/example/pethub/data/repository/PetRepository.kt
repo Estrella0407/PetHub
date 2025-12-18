@@ -80,8 +80,6 @@ class PetRepository @Inject constructor(
     suspend fun addPet(userId: String, pet: Pet): Result<String> {
         val petData = pet.copy(
             custId = userId,
-            createdAt = firestoreHelper.getServerTimestamp(),
-            updatedAt = firestoreHelper.getServerTimestamp()
         )
 
         // Create document in top-level collection

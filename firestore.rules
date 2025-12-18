@@ -10,55 +10,59 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
+    function isDocumentOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     function isAdmin() {
-      return isSignedIn() && (request.auth.token.keys().hasAny(['admin']) && request.auth.token.admin == true);
+      // This is a placeholder. For this to work, you must set a custom claim 'admin=true' on the user's auth token.
+      // See Firebase docs for "Custom Claims".
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     // ============================================================================
     // RULES
     // ============================================================================
 
-    // 1. CUSTOMER
-    match /customer/{custId} {
-      allow read, write: if isOwner(custId) || isAdmin();
+    // 1. CUSTOMER > CART
+    match /customer/{customerId} {
+      allow read: if isDocumentOwner(customerId) || isAdmin();
+
+      // Allow a user to update their own document.
+      allow update: if isDocumentOwner(customerId) || isAdmin();
+      // Allow any signed-in user to create their own customer document upon sign-up.
+      allow create: if isSignedIn();
+
+      // Cart subcollection rule is correct, as it correctly uses the parent `customerId`.
+      match /cart/{cartItemId} {
+         allow read, write: if isDocumentOwner(customerId);
+      }
     }
 
     // 2. PET
     match /pet/{petId} {
        allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-       allow read, update, delete: if resource.data.custId == request.auth.uid || isAdmin();
+       allow read: if request.auth.uid == resource.data.custId || isAdmin();
+       allow update, delete: if request.auth.uid == resource.data.custId || isAdmin();
     }
 
     // 3. BRANCH
     match /branch/{branchId} {
       allow read: if isSignedIn();
+      allow write: if isAdmin(); // Typically only admins should write to branches
 
-      // Only the branch owner (whose UID matches the document ID) or a super-admin can edit.
-      allow write: if request.auth.uid == branchId || isAdmin();
-
-      // Subcollection: BRANCH_SERVICES
       match /branch_services/{docId} {
         allow read: if true;
-        allow write: if request.auth.uid == branchId || isAdmin();
+        allow write: if isAdmin();
       }
     }
 
-
     // 4. APPOINTMENT
     match /appointment/{appointmentId} {
-      allow read: if resource.data.custId == request.auth.uid ||
-                     resource.data.branchId == request.auth.uid ||
-                     isAdmin();
-
+      // The query in AppointmentRepository `.whereEqualTo("custId", userId)` works with this rule.
       allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-
-      allow update, delete: if resource.data.custId == request.auth.uid ||
-                               resource.data.branchId == request.auth.uid ||
-                               isAdmin();
+      allow read: if resource.data.custId == request.auth.uid || isAdmin();
+      allow update, delete: if resource.data.custId == request.auth.uid || isAdmin();
     }
 
     // 5. SERVICE
@@ -69,7 +73,23 @@ service cloud.firestore {
 
     // 6. NOTIFICATION
     match /notification/{notificationId} {
-      allow read, write: if resource.data.userId == request.auth.uid || isAdmin();
+      allow read, write: if resource.data.custId == request.auth.uid || isAdmin();
+    }
+
+    // 7. PRODUCT
+    match /product/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 8. ORDERS
+    match /order/{orderId} {
+      allow read, create: if request.auth.uid == resource.data.custId || isAdmin();
+    }
+
+    // 9. PRODUCT ORDERS
+    match /productOrder/{productOrderId} {
+       allow read, create: if request.auth.uid == request.resource.data.custId || isAdmin();
     }
   }
 }

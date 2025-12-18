@@ -4,17 +4,21 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Appointment
+import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.model.Customer
+import com.example.pethub.data.model.Order
+import com.example.pethub.data.model.OrderItem
 import com.example.pethub.data.model.Pet
 import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.AuthRepository
 import com.example.pethub.data.repository.CustomerRepository
+import com.example.pethub.data.repository.OrderRepository
 import com.example.pethub.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine // 👈 Make sure this is imported
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,7 +27,7 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val customerRepository: CustomerRepository,
     private val appointmentRepository: AppointmentRepository,
-    //private val orderRepository: OrderRepository,
+    private val orderRepository: OrderRepository,
     private val petRepository: PetRepository,
     private val authRepository: AuthRepository,
 ) : ViewModel() {
@@ -40,23 +44,35 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
-                // Use 'combine' to merge multiple data streams into one.
-                // This block will run every time customer, appointments, or pets data changes.
+                // Combine the flows of raw data
                 combine(
                     customerRepository.listenToCurrentCustomer(),
-                    appointmentRepository.getUpcomingAppointments(limit = 2), // Fetches appointments
-                    petRepository.getPetsForCurrentUser()                      // Fetches pets
-                ) { customer: Customer?, appointments: List<Appointment>, pets: List<Pet> ->
-                    // Create a new Success state with all the latest data
-                    ProfileUiState.Success(
-                        customer = customer,
-                        appointments = appointments,
-                        pets = pets
-                    )
-                }.collect { combinedState ->
-                    // Update the UI with the complete, combined state
-                    _uiState.value = combinedState
+                    appointmentRepository.getUpcomingAppointments(limit = 2),
+                    orderRepository.getOrdersForCurrentUser(limit = 2),
+                    petRepository.getPetsForCurrentUser()
+                ) { customer, appointments, orders, pets ->
+                    // Return a data class or tuple holding the RAW data
+                    ProfileRawData(customer, appointments, orders, pets)
                 }
+                    .collect { rawData ->
+                        // ow inside 'collect' (which IS a suspend block), perform the async conversions
+
+                        val appointmentItems = rawData.appointments.mapNotNull {
+                            appointmentRepository.getAppointmentItem(it).getOrNull()
+                        }
+
+                        // Now we can call the suspend function getOrderItem safely
+                        val orderItems = rawData.orders.map { order ->
+                            orderRepository.getOrderItem(order)
+                        }
+
+                        _uiState.value = ProfileUiState.Success(
+                            customer = rawData.customer,
+                            appointments = appointmentItems,
+                            orders = orderItems,
+                            pets = rawData.pets
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = ProfileUiState.Error("Failed to load data: ${e.message}")
             }
@@ -125,8 +141,8 @@ sealed class ProfileUiState(open val customer: Customer? = null) {
 
     data class Success(
         override val customer: Customer?,
-        val appointments: List<Appointment> = emptyList(),
-        //val orders: List<Order> = emptyList(),
+        val appointments: List<AppointmentItem> = emptyList(),
+        val orders: List<OrderItem> = emptyList(),
         val pets: List<Pet> = emptyList(),
         val isUploading: Boolean = false,
         val uploadProgress: Float = 0f
@@ -137,3 +153,10 @@ sealed class ProfileUiState(open val customer: Customer? = null) {
         override val customer: Customer? = null
     ) : ProfileUiState(customer)
 }
+
+data class ProfileRawData(
+    val customer: Customer?,
+    val appointments: List<Appointment>,
+    val orders: List<Order>,
+    val pets: List<Pet>
+)
