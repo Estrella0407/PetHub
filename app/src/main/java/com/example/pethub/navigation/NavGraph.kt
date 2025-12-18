@@ -168,7 +168,11 @@ fun NavGraph(
         // Admin screens
         composable("admin_home") {
             AdminDashboardScreen(
-                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
@@ -195,7 +199,11 @@ fun NavGraph(
                 backStackEntry.arguments?.getString("appointmentId")!!
 
             AppointmentDetail(
-                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onNavigateToHome = {navController.popBackStack()},
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
@@ -206,7 +214,11 @@ fun NavGraph(
         }
         composable("admin_view_all_appointments"){
             AdminViewAllAppointmentsScreen(
-                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onNavigateToHome = {navController.popBackStack()},
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
@@ -220,7 +232,12 @@ fun NavGraph(
             ServiceManagementScreen(
                 onNavigateToAdminHome = { navController.navigate("admin_home") },
                 onNavigateToAdminStocks = { navController.navigate("admin_stocks") },
-                onNavigateToAdminScanner = { navController.navigate("admin_scanner") }
+                onNavigateToAdminScanner = { navController.navigate("admin_scanner") },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
         composable("monthly_sales_report") {
@@ -239,7 +256,7 @@ fun NavGraph(
                 //firebaseService = firebaseService,
                 onLogout = {
                     navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToHome = { navController.navigate("home") },

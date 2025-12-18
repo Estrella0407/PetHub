@@ -62,7 +62,7 @@ fun AdminHomeScreen(
             TopAppBar(
                 title = { Text("PetHub") },
                 actions = {
-                    IconButton(onClick = { /* TODO: Logout */ }) {
+                    IconButton(onClick = onNavigateToLogin) {
                         Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
                     }
                 }

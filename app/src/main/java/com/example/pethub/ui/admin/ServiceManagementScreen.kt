@@ -41,14 +41,17 @@ fun ServiceManagementScreen(
     onNavigateToAdminHome: () -> Unit,
     onNavigateToAdminStocks: () -> Unit,
     onNavigateToAdminScanner: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     viewModel: ServiceManagementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("PetHub") }
+            AdminTopBar(
+                onLogoutClick = {
+                    viewModel.logout(onLogoutSuccess = onNavigateToLogin)
+                }
             )
         },
         bottomBar = {

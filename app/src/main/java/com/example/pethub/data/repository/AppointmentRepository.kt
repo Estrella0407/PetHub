@@ -91,46 +91,55 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentItem (
         appointmentDocument: Appointment,
     ):Result<AppointmentItem?> {
-        val id = appointmentDocument.appointmentId
+        val appointmentId = appointmentDocument.appointmentId.trim()
+        val serviceId = appointmentDocument.serviceId.trim()
+        val branchId = appointmentDocument.branchId.trim()
+        val petId = appointmentDocument.petId.trim()
+
         val serviceResult = firestoreHelper.getDocumentField(
             collection = COLLECTION_SERVICE,
-            documentId = appointmentDocument.serviceId,
+            documentId = serviceId,
             fieldName = "type",
             String::class.java
         )
         val serviceName = serviceResult.getOrElse {
             return Result.failure(Exception("Service name not found"))
         }
+
         val unformatDateTime: Timestamp? = appointmentDocument.dateTime
         val date = unformatDateTime?.toDate()
         val formatter = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
         val dateTime = date?.let { formatter.format(it) } ?: "dateTime failed"
+
         val locationResult = firestoreHelper.getDocumentField(
             collection = COLLECTION_BRANCH,
-            documentId = appointmentDocument.branchId,
+            documentId = branchId,
             fieldName = "branchName",
             String::class.java
         )
-
         val locationName: String = locationResult.getOrNull() ?: "Locaton failed"
+
         val status = appointmentDocument.status
+
         val getPetResult = firestoreHelper.getDocument(
             collection = COLLECTION_PET,
-            documentId = appointmentDocument.petId,
+            documentId = petId,
             clazz = Pet::class.java
         )
         val pet = getPetResult.getOrNull()
             ?: return Result.failure(Exception("Pet not found"))
+
         val getOwnerResult = firestoreHelper.getDocument(
             collection = COLLECTION_CUSTOMER,
-            documentId = pet.custId,
+            documentId = pet.custId.trim(),
             clazz = Customer::class.java
         )
         val owner = getOwnerResult.getOrNull()
             ?: return Result.failure(Exception("Owner not found"))
+
         return Result.success(
             AppointmentItem(
-                id = id,
+                id = appointmentId,
                 dateTime = dateTime,
                 locationName = locationName,
                 owner = owner,
