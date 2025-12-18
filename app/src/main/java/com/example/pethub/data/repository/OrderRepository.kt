@@ -51,6 +51,19 @@ class OrderRepository @Inject constructor(
         }
     }
 
+    fun getAllOrdersForCurrentUser(): Flow<List<Order>> {
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+
+        return firestoreHelper.listenToCollection(
+            collection = COLLECTION_ORDER,
+            clazz = Order::class.java
+        ) { query ->
+            query
+                .whereEqualTo("custId", custId)
+                .orderBy("pickupDateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        }
+    }
+
     suspend fun getOrderItem(order: Order): OrderItem {
         // This part to get the title is correct and can remain.
         val productOrdersResult = firestoreHelper.queryDocuments(

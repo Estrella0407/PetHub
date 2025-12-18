@@ -15,6 +15,7 @@ import com.example.pethub.data.repository.CustomerRepository
 import com.example.pethub.data.repository.OrderRepository
 import com.example.pethub.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,7 +35,7 @@ class ProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
-
+    val dataLoadingJob: Job? = null
 
     init {
         loadCustomerData()
@@ -130,7 +131,14 @@ class ProfileViewModel @Inject constructor(
 
 
     fun logout() {
+        dataLoadingJob?.cancel()
+
+        // This detaches the sign-out action from the lifecycle of the data loading job.
         viewModelScope.launch {
+            // Optional but recommended: Wait for the cancellation to fully complete.
+            // This gives the listeners a chance to detach before auth state changes.
+            dataLoadingJob?.join()
+
             authRepository.signOut()
         }
     }

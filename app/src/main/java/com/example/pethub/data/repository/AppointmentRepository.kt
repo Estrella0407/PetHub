@@ -159,7 +159,20 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-        fun confirmBooking() {
+    fun getAllAppointmentsForCurrentUser(): Flow<List<Appointment>> {
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+
+        return firestoreHelper.listenToCollection(
+            collection = COLLECTION_APPOINTMENT,
+            clazz = Appointment::class.java
+        ) { query ->
+            query
+                .whereEqualTo("custId", custId)
+                .orderBy("dateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        }
+    }
+
+    fun confirmBooking() {
             CoroutineScope(ioDispatcher).launch {
                 // After successfully saving, send a notification
                 val custId = authRepository.getCurrentUserId()

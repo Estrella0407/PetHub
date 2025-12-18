@@ -54,7 +54,9 @@ fun ProfileScreen(
     onAppointmentClick: (appointmentId: String) -> Unit,
     onOrderClick: (orderId: String) -> Unit,
     onFaqClick: () -> Unit,
-    onNavigateToPetProfile: (petId: String) -> Unit
+    onNavigateToPetProfile: (petId: String) -> Unit,
+    onNavigateToAllAppointments: () -> Unit,
+    onNavigateToAllOrders: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -94,7 +96,9 @@ fun ProfileScreen(
                         onNavigateToPetProfile(petId)
                     },
                     onAppointmentClick = onAppointmentClick,
-                    onOrderClick = onOrderClick
+                    onOrderClick = onOrderClick,
+                    onNavigateToAllAppointments = onNavigateToAllAppointments,
+                    onNavigateToAllOrders = onNavigateToAllOrders
                 )
             }
         }
@@ -110,7 +114,9 @@ fun ProfileContent(
     onFaqClick: () -> Unit,
     onPetClick: (petId: String) -> Unit,
     onAppointmentClick: (appointmentId: String) -> Unit,
-    onOrderClick: (orderId: String) -> Unit
+    onOrderClick: (orderId: String) -> Unit,
+    onNavigateToAllAppointments: () -> Unit,
+    onNavigateToAllOrders: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -124,7 +130,7 @@ fun ProfileContent(
 
         // --- Appointments Section
         item {
-            SectionHeader(title = "Appointments", onViewAllClick = { /* TODO: onNavigateToAppointments() */ })
+            SectionHeader(title = "Appointments", onViewAllClick = onNavigateToAllAppointments)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -164,7 +170,7 @@ fun ProfileContent(
 
         // --- My Orders Section ---
         item {
-            SectionHeader(title = "Orders", onPastOrdersClick = { /* TODO */ })
+            SectionHeader(title = "Orders", onPastOrdersClick = onNavigateToAllOrders)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -288,22 +294,35 @@ fun SectionHeader(
     ) {
         Text(text = title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Spacer(modifier = Modifier.weight(1f))
-        onViewAllClick?.let {
-            Text(
-                text = viewAllText,
-                color = Color.Gray,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable(onClick = it)
-            )
-        }
-        onAddClick?.let {
-            Text(
-                text = "+ Add Pet",
-                color = Color.Gray,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable(onClick = it),
-                fontWeight = FontWeight.SemiBold
-            )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            onViewAllClick?.let {
+                Text(
+                    text = viewAllText,
+                    color = Color.Gray,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable(onClick = it)
+                )
+            }
+            onPastOrdersClick?.let {
+                Text(
+                    text = "Past Orders",
+                    color = Color.Gray,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable(onClick = it)
+                )
+            }
+            onAddClick?.let {
+                Text(
+                    text = "+ Add Pet",
+                    color = Color.Gray,
+                    textDecoration = TextDecoration.Underline,
+                    modifier = Modifier.clickable(onClick = it),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
@@ -404,24 +423,12 @@ fun OrderCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = status,
-                    color = statusColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    "Past Orders",
-                    textDecoration = TextDecoration.Underline,
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-            }
+            Text(
+                text = status,
+                color = statusColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
         }
     }
 }
@@ -486,6 +493,8 @@ fun ProfileScreenPreview() {
         onFaqClick = {},
         onPetClick = {},
         onAppointmentClick = {},
-        onOrderClick = {}
+        onOrderClick = {},
+        onNavigateToAllAppointments = {},
+        onNavigateToAllOrders = {}
     )
 }

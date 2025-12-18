@@ -20,7 +20,9 @@ import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
+import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
+import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -29,6 +31,8 @@ import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
+import com.example.pethub.ui.profile.AllAppointmentsScreen
+import com.example.pethub.ui.profile.AllOrdersScreen
 import com.example.pethub.ui.profile.ProfileScreen
 import com.example.pethub.ui.service.ServiceDetailScreen
 import com.example.pethub.ui.service.ServiceScreen
@@ -166,6 +170,30 @@ fun NavGraph(
                 },
                 onOrderClick = { orderId ->
                     navController.navigate("orderDetail/$orderId")
+                },
+                onNavigateToAllAppointments = {
+                    navController.navigate("all_appointments")
+                },
+                onNavigateToAllOrders = {
+                    navController.navigate("all_orders")
+                }
+            )
+        }
+
+        composable("all_appointments") {
+            AllAppointmentsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                }
+            )
+        }
+
+        composable("all_orders") {
+            AllOrdersScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
                 }
             )
         }
@@ -199,7 +227,9 @@ fun NavGraph(
                 onNavigateToAppointmentDetails = {appointmentId->
                     navController.navigate("appointmentDetail/${appointmentId}")
                 },
-                onViewAllClick = {navController.navigate("admin_view_all_appointments")}
+                onViewAllClick = {navController.navigate("admin_view_all_appointments")},
+                onNavigateToMonthlySalesReport = {navController.navigate("monthly_sales_report")},
+                onNavigateToServiceUsageReport = {navController.navigate("service_usage_report")}
             )
         }
 
@@ -247,6 +277,19 @@ fun NavGraph(
                 navController.navigate("petProfile/${qr}")
             }
         }
+
+        composable("monthly_sales_report") {
+            MonthlySalesReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("service_usage_report") {
+            ServiceUsageReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
     }
 }
 
