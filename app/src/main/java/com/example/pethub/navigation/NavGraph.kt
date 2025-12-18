@@ -39,6 +39,7 @@ import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
+import com.example.pethub.ui.auth.StartupRouterScreen
 import com.example.pethub.ui.profile.ProfileScreen
 import com.example.pethub.ui.service.ServiceScreen
 import com.example.pethub.ui.shop.ShopScreen
@@ -48,12 +49,27 @@ fun NavGraph(
     navController: NavHostController,
     firebaseService: FirebaseService
 ) {
-    val startDestination = if (firebaseService.isUserAuthenticated()) {
-        "profile"
-    } else {
-        "login"
-    }
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(navController = navController, startDestination = "startup_router") {
+
+        composable("startup_router") {
+            StartupRouterScreen(
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("startup_router") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate("home") {
+                        popUpTo("startup_router") { inclusive = true }
+                    }
+                },
+                onNavigateToAdminHome = {
+                    navController.navigate("admin_home") {
+                        popUpTo("startup_router") { inclusive = true }
+                    }
+                }
+            )
+        }
 
         composable("login") {
             LoginScreen(
@@ -143,7 +159,6 @@ fun NavGraph(
             )
         }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
         composable("cart") {
