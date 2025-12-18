@@ -67,6 +67,43 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
+
+    fun checkGoogleUserStatus() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = "")
+
+            val result = authRepository.signInWithGoogle()
+
+            result.onSuccess { signInResult ->
+                when (signInResult) {
+                    is com.example.pethub.data.repository.GoogleSignInResult.ExistingUser -> {
+                        val authData = signInResult.authResult
+                        val role = if (authData.isAdmin) "admin" else "customer"
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isLoginSuccessful = true,
+                            loggedInUserRole = role
+                        )
+                    }
+                    is com.example.pethub.data.repository.GoogleSignInResult.NewUser -> {
+                         _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isNewGoogleUser = true
+                        )
+                    }
+                }
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Google Sign-In failed"
+                )
+            }
+        }
+    }
+    
+    fun onNewUserHandled() {
+        _uiState.value = _uiState.value.copy(isNewGoogleUser = false)
+    }
     
     fun loginAsGuest() {
          _uiState.value = _uiState.value.copy(
@@ -101,6 +138,7 @@ data class LoginUiState(
     val passwordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val isLoginSuccessful: Boolean = false,
+    val isNewGoogleUser: Boolean = false,
     val loggedInUserRole: String? = null,
     val errorMessage: String = "",
     val rememberMe: Boolean = false

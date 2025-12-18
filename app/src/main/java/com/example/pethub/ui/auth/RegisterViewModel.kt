@@ -102,8 +102,14 @@ class RegisterViewModel @Inject constructor(
             _uiState.value = state.copy(errorMessage = "All fields are required")
             return
         }
+        
+        // Smart Dispatch: If user is already authenticated (e.g. via Google), use the Google flow
+        if (authRepository.isUserAuthenticated()) {
+            completeGoogleProfile()
+            return
+        }
 
-        // If valid
+        // If valid and not authenticated, proceed with full registration (Auth + Firestore)
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
 
@@ -123,6 +129,38 @@ class RegisterViewModel @Inject constructor(
             }
         }
 
+    }
+
+    fun completeGoogleProfile() {
+        val state = _uiState.value
+        // Validation
+        if (state.username.isBlank() || state.phone.isBlank() || state.address.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "All fields are required")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+            
+            val result = authRepository.createCustomerProfile(
+                username = state.username, 
+                phone = state.phone, 
+                address = state.address
+            )
+
+            if(result.isSuccess) {
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    completed = true,
+                    successMessage = "Profile completed successfully!"
+                )
+            } else {
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Profile completion failed"
+                )
+            }
+        }
     }
 }
 

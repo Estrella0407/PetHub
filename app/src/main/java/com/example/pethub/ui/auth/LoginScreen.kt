@@ -35,13 +35,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun LoginScreen(
     onReturnClick: () -> Unit,
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToAdminHome: () -> Unit,
+    onNavigateToCompleteProfile: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,7 +52,7 @@ fun LoginScreen(
     }
 
     // Check the role inside LaunchedEffect
-    LaunchedEffect(uiState.isLoginSuccessful, uiState.loggedInUserRole) {
+    LaunchedEffect(uiState.isLoginSuccessful, uiState.loggedInUserRole, uiState.isNewGoogleUser) {
         if (uiState.isLoginSuccessful) {
 
             // Logic to determine destination
@@ -76,6 +76,11 @@ fun LoginScreen(
 
             viewModel.onLoginHandled()
             viewModel.saveRememberMe(context, uiState.rememberMe)
+        }
+        
+        if (uiState.isNewGoogleUser) {
+            onNavigateToCompleteProfile()
+            viewModel.onNewUserHandled()
         }
     }
 
@@ -230,8 +235,13 @@ fun LoginScreen(
                     onTokenReceived = { token ->
                         firebaseSignInWithGoogle(
                             token,
-                            onSuccess = { onLoginSuccess() },
-                            onError = { /* TODO show error */ }
+                            onSuccess = { 
+                                // Instead of direct success, we check the user status
+                                viewModel.checkGoogleUserStatus() 
+                            },
+                            onError = { 
+                                // Handle error
+                            }
                         )
                     }
                 )

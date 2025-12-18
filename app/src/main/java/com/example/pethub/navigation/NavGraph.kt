@@ -69,6 +69,10 @@ fun NavGraph(
                     navController.navigate("admin_home") {
                         popUpTo("login") { inclusive = true }
                     }
+                },
+                onNavigateToCompleteProfile = {
+                    // Navigate to the completeProfile route in the auth_flow graph
+                    navController.navigate("completeProfile")
                 }
             )
         }

@@ -171,7 +171,7 @@ fun AppointmentDetailHero(
                         .width(2.dp)
                         .fillMaxHeight()
                         .background(Color.Black)
-                        .padding(horizontal = 2.dp)
+                        .padding(horizontal = 8.dp)
                     )
                     Column(
                         verticalArrangement = Arrangement.SpaceBetween,
