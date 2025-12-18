@@ -103,15 +103,20 @@ fun NavGraph(
                 val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
 
                 RegisterScreen(
-                    viewModel = sharedVm, // Pass the shared VM
-                    onRegisterSuccessOld = {
+                    onLoginSuccess = {
                         navController.navigate("home") {
                             popUpTo("login") { inclusive = true }
                         }
                     },
-                    onReturnClick = { navController.popBackStack() },
+                    onNavigateToAdminHome = {
+                        navController.navigate("admin_home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
                     onNavigateToCompleteProfile = { navController.navigate("completeProfile") },
-                    onNavigateToLogin = { navController.popBackStack() }
+                    onNavigateToLogin = { navController.popBackStack() },
+                    onReturnClick = { navController.popBackStack() },
+                    viewModel = sharedVm
                 )
             }
 

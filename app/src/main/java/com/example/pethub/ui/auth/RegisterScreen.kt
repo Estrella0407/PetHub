@@ -4,7 +4,6 @@ import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,24 +33,41 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.pethub.R
 import com.example.pethub.ui.components.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    viewModel: RegisterViewModel = hiltViewModel(),
-    onRegisterSuccessOld: () -> Unit,
+    onLoginSuccess: () -> Unit,
+    onNavigateToAdminHome: () -> Unit,
     onNavigateToCompleteProfile: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onReturnClick: () -> Unit
+    onReturnClick: () -> Unit,
+    viewModel: RegisterViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // Handle successful registration navigation
-    LaunchedEffect(uiState.isSuccess) {
+    // Handle navigation logic
+    LaunchedEffect(uiState.isSuccess, uiState.isLoginSuccessful, uiState.loggedInUserRole, uiState.isNewGoogleUser) {
         if (uiState.isSuccess) {
-//            onRegisterSuccessOld()
             onNavigateToCompleteProfile()
+        }
+
+        if (uiState.isLoginSuccessful) {
+            when (uiState.loggedInUserRole) {
+                "admin" -> onNavigateToAdminHome()
+                else -> onLoginSuccess()
+            }
+            viewModel.onLoginHandled()
+            viewModel.saveRememberMe(context, uiState.rememberMe)
+        }
+
+        if (uiState.isNewGoogleUser) {
+            onNavigateToCompleteProfile()
+            viewModel.onNewUserHandled()
         }
     }
 
@@ -217,6 +235,7 @@ fun RegisterScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+        // Login with Google Button
         AuthenticationGoogleButton(
             icon =
                 {Image(
@@ -224,7 +243,23 @@ fun RegisterScreen(
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(20.dp)
                 )},
-            onGoogleClick = {}//Login with google}
+            onGoogleClick = {scope.launch {
+                signInWithGoogle(
+                    context,
+                    webClientId = context.getString(R.string.default_web_client_id),
+                    onTokenReceived = { token ->
+                        firebaseSignInWithGoogle(
+                            token,
+                            onSuccess = { 
+                                viewModel.checkGoogleUserStatus() 
+                            },
+                            onError = { 
+                                // Handle error
+                            }
+                        )
+                    }
+                )
+            }}
         )
 
         Spacer(modifier = Modifier.weight(1f))
