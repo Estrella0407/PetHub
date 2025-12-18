@@ -93,21 +93,13 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.returnbutton),
-                contentDescription = "Return Button",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable{onReturnClick()}
-            )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),
                 contentDescription = "Logo",
-                modifier = Modifier
-                    .padding(start = 65.dp)
-                    .size(100.dp)
+                modifier = Modifier.size(100.dp)
             )
         }
 
@@ -278,20 +270,13 @@ fun LoginScreenContent(
             verticalArrangement = Arrangement.Center
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.returnbutton),
-                    contentDescription = "Return Button",
-                    modifier = Modifier
-                        .size(30.dp)
-                )
                 Image(
                     painter = painterResource(id = R.drawable.logo_nobg),
                     contentDescription = "Logo",
-                    modifier = Modifier
-                        .padding(start = 62.dp)
-                        .size(120.dp)
+                    modifier = Modifier.size(120.dp)
                 )
             }
 
