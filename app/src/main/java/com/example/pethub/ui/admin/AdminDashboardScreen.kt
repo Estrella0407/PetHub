@@ -34,7 +34,9 @@ fun AdminDashboardScreen(
     onNavigateToServices: () -> Unit,
     onNavigateToScanner: () -> Unit,
     onNavigateToAppointmentDetails: (String) -> Unit,
-    onViewAllClick:() -> Unit
+    onViewAllClick:() -> Unit,
+    onNavigateToMonthlySalesReport: () -> Unit,
+    onNavigateToServiceUsageReport: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val appointments by viewModel.recentAppointments.collectAsState()
@@ -74,7 +76,9 @@ fun AdminDashboardScreen(
                     modifier = Modifier.padding(paddingValues),
                     appointments = appointments,
                     onViewAllClick = {onViewAllClick()},
-                    onViewAppointmentClick = onNavigateToAppointmentDetails
+                    onViewAppointmentClick = onNavigateToAppointmentDetails,
+                    onMonthlySalesReportClick = onNavigateToMonthlySalesReport,
+                    onServiceUsageReportClick = onNavigateToServiceUsageReport
                 )
             }
         }
@@ -116,7 +120,9 @@ fun AdminDashboardContent(
     modifier: Modifier = Modifier,
     appointments: List<AdminAppointment>,
     onViewAllClick: () -> Unit,
-    onViewAppointmentClick: (String) -> Unit
+    onViewAppointmentClick: (String) -> Unit,
+    onMonthlySalesReportClick: () -> Unit,
+    onServiceUsageReportClick: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier
@@ -175,12 +181,12 @@ fun AdminDashboardContent(
                 ReportCard(
                     title = "Monthly Sales\nReport",
                     modifier = Modifier.weight(1f),
-                    onClick = { /* Handle Report Click */ }
+                    onClick = onMonthlySalesReportClick
                 )
                 ReportCard(
                     title = "Service Usage\nReport",
                     modifier = Modifier.weight(1f),
-                    onClick = { /* Handle Report Click */ }
+                    onClick = onServiceUsageReportClick
                 )
             }
         }
