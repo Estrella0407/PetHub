@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -34,7 +33,8 @@ data class BookAppointmentUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val service: ServiceItem? = null,
-    val userPets: List<Pet> = emptyList(),
+    // This screen does not need the full user pet list, only the selected one.
+    // val userPets: List<Pet> = emptyList(),
     val availableBranches: List<Branch> = emptyList(),
     val existingAppointments: List<com.example.pethub.data.model.Appointment> = emptyList(),
     val selectedPet: Pet? = null,
@@ -62,12 +62,16 @@ class BookAppointmentViewModel @Inject constructor(
     val uiState: StateFlow<BookAppointmentUiState> = _uiState.asStateFlow()
 
     init {
-        val serviceId: String? = savedStateHandle.get<String>("serviceId")
+        // FIX: Get ALL required IDs from navigation arguments passed from the previous screen.
+        val serviceId: String? = savedStateHandle.get("serviceId")
+        val petId: String? = savedStateHandle.get("petId")
+        val branchId: String? = savedStateHandle.get("branchId")
 
-        if (serviceId == null) {
-            _uiState.value = BookAppointmentUiState(isLoading = false, error = "Service ID is missing.")
+        if (serviceId == null || petId == null || branchId == null) {
+            _uiState.value = BookAppointmentUiState(isLoading = false, error = "Required booking information is missing.")
         } else {
-            loadInitialData(serviceId)
+            // Pass all three IDs to the loading function
+            loadInitialData(serviceId, petId, branchId)
         }
 
         // This reactive flow automatically updates the time slots whenever the selected date or branch changes.
@@ -84,7 +88,8 @@ class BookAppointmentViewModel @Inject constructor(
         }
     }
 
-    private fun loadInitialData(serviceId: String) {
+    // This function now correctly loads all data needed JUST for this screen.
+    private fun loadInitialData(serviceId: String, petId: String, branchId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
@@ -94,34 +99,29 @@ class BookAppointmentViewModel @Inject constructor(
                     return@launch
                 }
 
-                val allServices = serviceRepository.listenToServices().first()
-                val service = allServices.find { it.serviceId == serviceId }?.toServiceItem()
+                // Fetch all data fresh from repositories using the IDs. This is robust.
+                val serviceResult = serviceRepository.getServiceById(serviceId)
+                val petResult = petRepository.getPetById(userId, petId)
+                val branchResult = branchRepository.getBranchById(branchId)
+                val appointmentsResult = appointmentRepository.getAllAppointments()
 
-                if (service == null) {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Service with ID '$serviceId' not found.")
+                val service = serviceResult.getOrNull()?.toServiceItem()
+                val pet = petResult.getOrNull()
+                val branch = branchResult.getOrNull()
+                val existingAppointments = appointmentsResult.getOrNull() ?: emptyList()
+
+                if (service == null || pet == null || branch == null) {
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to load booking details.")
                     return@launch
                 }
 
-                val petsResult = petRepository.getCustomerPets(userId)
-                val branchesResult = branchRepository.getAllBranches()
-                val appointmentsResult = appointmentRepository.getAllAppointments()
-
-                val userPets = petsResult.getOrNull() ?: emptyList()
-                val branches = branchesResult.getOrNull() ?: emptyList()
-                val existingAppointments = appointmentsResult.getOrNull() ?: emptyList()
-
-                val initialBranch = branches.firstOrNull()
-                val initialTimeSlots = calculateTimeSlots(LocalDate.now(), initialBranch, existingAppointments)
-
+                // Update the state with the freshly loaded, guaranteed up-to-date data.
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     service = service,
-                    userPets = userPets,
-                    availableBranches = branches,
-                    existingAppointments = existingAppointments,
-                    selectedPet = userPets.firstOrNull(),
-                    selectedBranch = initialBranch,
-                    availableTimeSlots = initialTimeSlots
+                    selectedPet = pet,
+                    selectedBranch = branch,
+                    existingAppointments = existingAppointments
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to load data: ${e.message}")
@@ -137,16 +137,11 @@ class BookAppointmentViewModel @Inject constructor(
             val apptDate = it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDate()
             it.branchId == branch.branchId && apptDate == date
         }.map {
-            it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalTime() to it.petId
+            it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalTime()
         }.toSet()
 
         return allSlots.map { slot ->
-            val bookingInfo = bookedSlotsForDay.find { it.first == slot }
-            if (bookingInfo != null) {
-                TimeSlot(time = slot, isAvailable = false, bookedByPetName = "Booked")
-            } else {
-                TimeSlot(time = slot, isAvailable = true)
-            }
+            TimeSlot(time = slot, isAvailable = !bookedSlotsForDay.contains(slot))
         }
     }
 
@@ -169,25 +164,17 @@ class BookAppointmentViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedTimeSlot = time)
     }
 
-    fun onBranchSelected(branch: Branch) {
-        _uiState.value = _uiState.value.copy(selectedBranch = branch, selectedTimeSlot = null)
-    }
-
     fun onSpecialInstructionsChanged(text: String) {
         _uiState.value = _uiState.value.copy(specialInstructions = text)
     }
 
-    fun onPetSelected(pet: Pet) {
-        _uiState.value = _uiState.value.copy(selectedPet = pet)
-    }
-
     fun confirmBooking() {
         val userId = authRepository.getCurrentUserId()
-        val serviceId: String? = savedStateHandle.get("serviceId")
         val state = _uiState.value
+        val serviceId = state.service?.id // Get serviceId safely from the state
 
         if (userId == null || serviceId == null || state.selectedPet == null || state.selectedBranch == null || state.selectedTimeSlot == null) {
-            _uiState.value = state.copy(error = "Please make sure a pet, branch, and time slot are selected.")
+            _uiState.value = state.copy(error = "Please make sure a time slot is selected.")
             return
         }
 
@@ -208,12 +195,8 @@ class BookAppointmentViewModel @Inject constructor(
 
             try {
                 appointmentRepository.createAppointment(newAppointment)
-
-
                 _uiState.value = _uiState.value.copy(bookingInProgress = false, bookingSuccess = true)
-
             } catch (e: Exception) {
-
                 _uiState.value = _uiState.value.copy(bookingInProgress = false, error = e.message ?: "Booking failed.")
             }
         }
