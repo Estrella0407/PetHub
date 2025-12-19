@@ -14,6 +14,7 @@ data class Pet(
     val remarks: String? = null,
     val custId: String = "",
     val imageUrl: String? = null,
+    val qrUrl: String? = null,
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null
 )

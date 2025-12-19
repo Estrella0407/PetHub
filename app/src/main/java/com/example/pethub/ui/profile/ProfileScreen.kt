@@ -287,16 +287,41 @@ fun PetInfoCard(
                 Text(pet.petName, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkBrown)
                 Text("${pet.type} | ${pet.breed}", fontSize = 14.sp, color = Color.Gray)
             }
-            // --- THIS IS THE FIX ---
-            // The clickable action is now only on this TextButton
-            TextButton(onClick = onEditClick) {
-                Text("Edit Pet")
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Pet",
-                    modifier = Modifier.size(16.dp),
-                    tint = MutedBrown
-                )
+            // QR Code and Edit Button Column
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (!pet.qrUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = pet.qrUrl,
+                        contentDescription = "Pet QR Code",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+                
+                TextButton(
+                    onClick = onEditClick,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        "Edit Pet",
+                        fontSize = 12.sp,
+                        textDecoration = TextDecoration.Underline,
+                        color = MutedBrown
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MutedBrown
+                    )
+                }
             }
         }
     }
