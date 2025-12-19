@@ -1,6 +1,5 @@
 package com.example.pethub.data.repository
 
-import androidx.compose.ui.geometry.isEmpty
 import com.example.pethub.data.local.database.dao.BranchDao
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.remote.FirestoreHelper
@@ -21,19 +20,9 @@ class BranchRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    fun listenToBranches(): Flow<List<Branch>> {
-        return firestoreHelper.listenToCollection(
-            COLLECTION_BRANCH,
-            Branch::class.java
-        )
-    }
+    fun listenToBranches(): Flow<List<Branch>> = firestoreHelper.listenToCollection(COLLECTION_BRANCH, Branch::class.java)
 
-    suspend fun getAllBranches(): Result<List<Branch>> {
-        return firestoreHelper.getAllDocuments(
-            COLLECTION_BRANCH,
-            Branch::class.java
-        )
-    }
+    suspend fun getAllBranches(): Result<List<Branch>> = firestoreHelper.getAllDocuments(COLLECTION_BRANCH, Branch::class.java)
 
     suspend fun getBranchById(branchId: String): Result<Branch?> {
         return firestoreHelper.getDocument(
@@ -44,42 +33,44 @@ class BranchRepository @Inject constructor(
     }
 
     /**
-     * Fetches all branches that offer a specific service and have it marked as available.
-     * This uses a collection group query on the 'branch_services' subcollection.
+     * Simpler logic: Fetch ALL branches, then check availability for each directly.
+     * This avoids PERMISSION_DENIED on collectionGroup queries.
+     * If a branch has no record in branch_services for this category, it's ENABLED by default.
      */
-    suspend fun getBranchesOfferingService(serviceId: String): Result<List<Branch>> = withContext(ioDispatcher) {
-        if (serviceId.isBlank()) {
-            return@withContext Result.success(emptyList())
-        }
-
+    suspend fun getAvailableBranchesForService(categoryName: String): Result<List<Branch>> = withContext(ioDispatcher) {
         try {
-            // Query the 'branch_services' subcollection across all documents
-            // to find which branches offer the service and have it available.
-            val branchIds = firestoreHelper.getFirestoreInstance()
-                .collectionGroup("branchService")
-                .whereEqualTo("serviceId", serviceId)
-                .whereEqualTo("availability", true)
-                .get()
-                .await()
-                .documents
-                .mapNotNull { it.getString("branchId") }
-                .distinct() // Ensure we have unique branch IDs
+            val allBranches = getAllBranches().getOrThrow()
+            val firestore = firestoreHelper.getFirestoreInstance()
+            val availableBranches = mutableListOf<Branch>()
 
-            if (branchIds.isEmpty()) {
-                // No branches offer this service, return an empty list.
-                return@withContext Result.success(emptyList())
+            for (branch in allBranches) {
+                try {
+                    // Check the specific sub-document for this branch and service
+                    val doc = firestore.collection("branch")
+                        .document(branch.branchId)
+                        .collection("branch_services")
+                        .document(categoryName.lowercase())
+                        .get()
+                        .await()
+
+                    // If the document exists, check 'availability' field. 
+                    // If it doesn't exist, we assume it's available by default.
+                    val isAvailable = if (doc.exists()) {
+                        doc.getBoolean("availability") ?: true
+                    } else {
+                        true
+                    }
+
+                    if (isAvailable) {
+                        availableBranches.add(branch)
+                    }
+                } catch (e: Exception) {
+                    // Assuming available by default for safety.
+                    availableBranches.add(branch)
+                }
             }
 
-            // Now that we have the IDs, fetch the full branch documents.
-            val branches = firestoreHelper.getFirestoreInstance()
-                .collection(COLLECTION_BRANCH)
-                .whereIn(FieldPath.documentId(), branchIds)
-                .get()
-                .await()
-                .toObjects(Branch::class.java)
-
-            Result.success(branches)
-
+            Result.success(availableBranches)
         } catch (e: Exception) {
             Result.failure(e)
         }

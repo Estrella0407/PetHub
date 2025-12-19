@@ -41,13 +41,13 @@ fun ServiceScreen(
     onNavigateToProfile: () -> Unit,
     onServiceClick: (String) -> Unit
 ) {
-    // Dummy list of services based on the image
+    // Hardcoded list as requested - simple UI only
     val services = listOf(
-        Service(serviceId = "grooming", serviceName = "Grooming", description = "Cleaning and maintaining a pet’s hygiene and appearance.", imageUrl = ""),
-        Service(serviceId = "boarding", serviceName = "Boarding", description = "Temporary care for pets when owners are away.", imageUrl = ""),
-        Service(serviceId = "walking", serviceName = "Walking", description = "Taking pets out for exercise and bathroom breaks.", imageUrl = ""),
-        Service(serviceId = "daycare", serviceName = "Daycare", description = "Daytime care, play, and supervision for pets.", imageUrl = ""),
-        Service(serviceId = "training", serviceName = "Training", description = "Teaching pets good behavior and basic commands.", imageUrl = "")
+        Service(serviceId = "grooming", serviceName = "Grooming", description = "Cleaning and maintaining a pet’s hygiene and appearance."),
+        Service(serviceId = "boarding", serviceName = "Boarding", description = "Temporary care for pets when owners are away."),
+        Service(serviceId = "walking", serviceName = "Walking", description = "Taking pets out for exercise and bathroom breaks."),
+        Service(serviceId = "daycare", serviceName = "Daycare", description = "Daytime care, play, and supervision for pets."),
+        Service(serviceId = "training", serviceName = "Training", description = "Teaching pets good behavior and basic commands.")
     )
 
     Scaffold(
@@ -86,13 +86,13 @@ fun ServiceScreen(
 
 @Composable
 fun ServiceCard(service: Service, onClick: () -> Unit) {
-    val iconRes = when (service.serviceName) {
-        "Grooming" -> R.drawable.grooming_nobg
-        "Boarding" -> R.drawable.boarding_nobg
-        "Walking" -> R.drawable.walking_nobg
-        "Daycare" -> R.drawable.daycare_nobg
-        "Training" -> R.drawable.training_nobg
-        else -> R.drawable.pethub_rvbg // A default icon
+    val iconRes = when (service.serviceName.lowercase()) {
+        "grooming" -> R.drawable.grooming_nobg
+        "boarding" -> R.drawable.boarding_nobg
+        "walking" -> R.drawable.walking_nobg
+        "daycare" -> R.drawable.daycare_nobg
+        "training" -> R.drawable.training_nobg
+        else -> R.drawable.pethub_rvbg
     }
 
     Card(
