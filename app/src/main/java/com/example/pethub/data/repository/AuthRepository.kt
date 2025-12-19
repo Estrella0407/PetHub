@@ -29,6 +29,26 @@ class AuthRepository @Inject constructor(
 
     fun isUserAuthenticated() = firebaseService.isUserAuthenticated()
 
+    // 👇 =================== NEW FUNCTION ADDED HERE =================== 👇
+    /**
+     * Gets the current user ID from Firebase Auth and uses it to fetch
+     * the corresponding customer profile from Firestore.
+     * This is the correct way to get the CustomerEntity for the logged-in user.
+     */
+    suspend fun getCustomerDetails(): Result<CustomerEntity?> {
+        // Get the current user's ID from Firebase Auth
+        val userId = firebaseService.getCurrentUserId()
+            ?: return Result.failure(Exception("No authenticated user found."))
+
+        // Use the ID to fetch the CustomerEntity from Firestore
+        return firestoreHelper.getDocument(
+            collection = COLLECTION_CUSTOMER,
+            documentId = userId,
+            clazz = CustomerEntity::class.java
+        )
+    }
+    // 👆 =============================================================== 👆
+
     suspend fun signIn(email: String, password: String): Result<AuthResult> {
         // Attempt to sign in with Firebase Auth
         val authResult = firebaseService.signIn(email, password)
@@ -59,6 +79,24 @@ class AuthRepository @Inject constructor(
 
         // Return both the user and the isAdmin flag
         return Result.success(AuthResult(user, isAdmin))
+    }
+
+    suspend fun signInWithGoogle(): Result<GoogleSignInResult> {
+        val user = firebaseService.getCurrentUser()
+            ?: return Result.failure(Exception("No user logged in via Google"))
+
+        // Check if a customer document exists for this user
+        val customerExists = firestoreHelper.documentExists(COLLECTION_CUSTOMER, user.uid)
+            .getOrDefault(false)
+
+        return if (customerExists) {
+            // If customer exists, check if they are an admin
+            val isAdmin = isAdmin()
+            Result.success(GoogleSignInResult.ExistingUser(AuthResult(user, isAdmin)))
+        } else {
+            // New user needs to complete profile
+            Result.success(GoogleSignInResult.NewUser(user))
+        }
     }
 
 
@@ -122,6 +160,34 @@ class AuthRepository @Inject constructor(
         return branchExists.getOrDefault(false)
     }
 
+    suspend fun createCustomerProfile(username: String, phone: String, address: String): Result<Unit> {
+        val user = firebaseService.getCurrentUser() ?: return Result.failure(Exception("No authenticated user"))
+
+        val customerData = Customer(
+            custId = user.uid,
+            custName = username,
+            custEmail = user.email ?: "",
+            custPassword = "", // No password for Google users
+            custAddress = address,
+            custPhone = phone,
+            createdAt = firestoreHelper.getServerTimestamp(),
+            updatedAt = firestoreHelper.getServerTimestamp()
+        )
+
+        val createResult = firestoreHelper.createDocumentWithId(
+            COLLECTION_CUSTOMER,
+            user.uid,
+            customerData
+        )
+
+        return if (createResult.isSuccess) {
+            firebaseService.updateFCMToken()
+            Result.success(Unit)
+        } else {
+            Result.failure(createResult.exceptionOrNull()!!)
+        }
+    }
+
     suspend fun getUserRole(): String {
         val userId = firebaseService.getCurrentUserId() ?: return "guest"
 
@@ -138,3 +204,9 @@ data class AuthResult(
     val user: com.google.firebase.auth.FirebaseUser,
     val isAdmin: Boolean
 )
+
+sealed class GoogleSignInResult {
+    data class ExistingUser(val authResult: AuthResult) : GoogleSignInResult()
+    data class NewUser(val user: com.google.firebase.auth.FirebaseUser) : GoogleSignInResult()
+}
+

@@ -43,11 +43,11 @@ fun ServiceScreen(
 ) {
     // Dummy list of services based on the image
     val services = listOf(
-        Service(serviceId = "grooming", serviceName = "Grooming", description = "This service ....", imageUrl = ""),
-        Service(serviceId = "boarding", serviceName = "Boarding", description = "This service ....", imageUrl = ""),
-        Service(serviceId = "walking", serviceName = "Walking", description = "This service ....", imageUrl = ""),
-        Service(serviceId = "daycare", serviceName = "Daycare", description = "This service ....", imageUrl = ""),
-        Service(serviceId = "training", serviceName = "Training", description = "This service ....", imageUrl = "")
+        Service(serviceId = "grooming", serviceName = "Grooming", description = "Cleaning and maintaining a pet’s hygiene and appearance.", imageUrl = ""),
+        Service(serviceId = "boarding", serviceName = "Boarding", description = "Temporary care for pets when owners are away.", imageUrl = ""),
+        Service(serviceId = "walking", serviceName = "Walking", description = "Taking pets out for exercise and bathroom breaks.", imageUrl = ""),
+        Service(serviceId = "daycare", serviceName = "Daycare", description = "Daytime care, play, and supervision for pets.", imageUrl = ""),
+        Service(serviceId = "training", serviceName = "Training", description = "Teaching pets good behavior and basic commands.", imageUrl = "")
     )
 
     Scaffold(

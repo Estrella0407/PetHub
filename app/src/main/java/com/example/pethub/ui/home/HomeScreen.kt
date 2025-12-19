@@ -234,6 +234,7 @@ fun BusinessHoursCard() {
             Image(
                 painter = painterResource(id = R.drawable.opening_nobg),
                 contentDescription = "PetHub Business Hours",
+                modifier = Modifier.size(100.dp)
             )
 
             Spacer(modifier = Modifier.width(16.dp))

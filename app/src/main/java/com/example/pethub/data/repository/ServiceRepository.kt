@@ -30,20 +30,56 @@ class ServiceRepository @Inject constructor(
     }
 
     // =========================================================================
-    // DATA SYNC (Firestore -> Room)
+    // DATA ACCESS (Firestore -> UI)
     // =========================================================================
 
-    /**
-     * This function fetches data from Firebase and saves it to Room.
-     * Call this when the screen loads or when the user pulls-to-refresh.
-     */
+    fun listenToServices(): Flow<List<Service>> {
+        return firestoreHelper.listenToCollection(
+            COLLECTION_SERVICE,
+            Service::class.java
+        )
+    }
+
+    fun listenToAllBranchServices(branchId: String): Flow<List<BranchService>> {
+        return firestoreHelper.listenToSubcollection(
+            parentCollection = COLLECTION_BRANCH,
+            parentId = branchId,
+            subcollection = SUBCOLLECTION_BRANCH_SERVICES,
+            clazz = BranchService::class.java
+        )
+    }
+
+    fun listenToBranchServiceAvailability(branchId: String, serviceId: String): Flow<BranchService?> {
+        return firestoreHelper.listenToDocument(
+            collection = "$COLLECTION_BRANCH/$branchId/$SUBCOLLECTION_BRANCH_SERVICES",
+            documentId = serviceId,
+            clazz = BranchService::class.java
+        )
+    }
+
+    suspend fun setBranchServiceAvailability(branchId: String, serviceId: String, isAvailable: Boolean): Result<Unit> {
+        val branchService = BranchService(
+            branchId = branchId,
+            serviceId = serviceId,
+            availability = isAvailable
+        )
+        return firestoreHelper.setDocument(
+            collection = "$COLLECTION_BRANCH/$branchId/$SUBCOLLECTION_BRANCH_SERVICES",
+            documentId = serviceId,
+            data = branchService,
+            merge = true
+        )
+    }
+
+    // =========================================================================
+    // DATA SYNC (Firestore -> Room) - Kept for other potential uses
+    // =========================================================================
+
     suspend fun syncServicesForBranch(branchId: String): Result<Unit> = withContext(ioDispatcher) {
         try {
-            // A. Fetch All Global Services from Firestore
             val allServicesResult = firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
             val allServices = allServicesResult.getOrThrow()
 
-            // B. Fetch Branch Specific Settings from Firestore
             val branchSettingsResult = firestoreHelper.getSubcollectionDocuments(
                 parentCollection = COLLECTION_BRANCH,
                 parentId = branchId,
@@ -52,7 +88,6 @@ class ServiceRepository @Inject constructor(
             )
             val branchSettings = branchSettingsResult.getOrThrow()
 
-            // C. Convert to Room Entities
             val serviceEntities = allServices.map { it.toEntity() }
 
             val branchServiceEntities = branchSettings.map { setting ->
@@ -63,7 +98,6 @@ class ServiceRepository @Inject constructor(
                 )
             }
 
-            // D. Save to Room (Single Source of Truth)
             serviceDao.insertServices(serviceEntities)
             serviceDao.insertBranchServices(branchServiceEntities)
 
@@ -74,28 +108,12 @@ class ServiceRepository @Inject constructor(
     }
 
     // =========================================================================
-    // DATA ACCESS (Room -> UI)
+    // DATA ACCESS (Room -> UI) - Kept for other potential uses
     // =========================================================================
 
-    /**
-     * Helper to listen to all services (Real-time)
-     * Used by HomeViewModel's loadServices()
-     */
-    fun listenToServices(): Flow<List<Service>> {
-        return firestoreHelper.listenToCollection(
-            COLLECTION_SERVICE,
-            Service::class.java
-        )
-    }
-
-    /**
-     * The UI observes this Flow. It reads purely from Room.
-     * This ensures the UI works even if offline.
-     */
     fun getServicesForBranch(branchId: String): Flow<List<Service>> {
         return serviceDao.getServicesForBranch(branchId).map { list ->
             list.map { item ->
-                // Convert Entity back to Domain Model
                 Service(
                     serviceId = item.service.serviceId,
                     type = item.service.type,
@@ -108,17 +126,9 @@ class ServiceRepository @Inject constructor(
         }
     }
 
-    /**
-     * Load recommended services based on a Pet ID.
-     * Currently fetches all services, but can be filtered by pet type/breed in the future.
-     */
     suspend fun loadRecommendedServices(petId: String): Result<List<Service>> {
         return try {
-            // Fetch all services from Firestore
             val result = firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
-
-            // Filter logic could go here based on the petId
-            // For now, we return the successful result directly
             result
         } catch (e: Exception) {
             Result.failure(e)

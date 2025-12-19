@@ -31,14 +31,17 @@ import androidx.credentials.CredentialManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.R
 import com.example.pethub.ui.components.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
-
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
+    onReturnClick: () -> Unit,
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToAdminHome: () -> Unit,
+    onNavigateToCompleteProfile: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -49,7 +52,7 @@ fun LoginScreen(
     }
 
     // Check the role inside LaunchedEffect
-    LaunchedEffect(uiState.isLoginSuccessful, uiState.loggedInUserRole) {
+    LaunchedEffect(uiState.isLoginSuccessful, uiState.loggedInUserRole, uiState.isNewGoogleUser) {
         if (uiState.isLoginSuccessful) {
 
             // Logic to determine destination
@@ -72,7 +75,11 @@ fun LoginScreen(
             }
 
             viewModel.onLoginHandled()
-            viewModel.saveRememberMe(context, uiState.rememberMe)
+        }
+        
+        if (uiState.isNewGoogleUser) {
+            onNavigateToCompleteProfile()
+            viewModel.onNewUserHandled()
         }
     }
 
@@ -85,21 +92,13 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.returnbutton),
-                contentDescription = "Return Button",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable{viewModel.loginAsGuest()}
-            )
             Image(
                 painter = painterResource(id = R.drawable.logo_nobg),
                 contentDescription = "Logo",
-                modifier = Modifier
-                    .padding(start = 65.dp)
-                    .size(100.dp)
+                modifier = Modifier.size(100.dp)
             )
         }
 
@@ -152,16 +151,11 @@ fun LoginScreen(
         )
 
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         )
         {
-            AuthenticationSwitch(
-                isChecked = uiState.rememberMe,
-                onCheckedChange = {viewModel.onRememberMeChanged(it)},
-                placeholder = "Remember me?"
-            )
             TextButton(
                 onClick = { onNavigateToRegister()},
                 modifier = Modifier.fillMaxWidth()
@@ -210,6 +204,7 @@ fun LoginScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        val scope = rememberCoroutineScope()
 
         // Login with Google Button
         AuthenticationGoogleButton(
@@ -219,7 +214,24 @@ fun LoginScreen(
                     contentDescription = "Google Icon",
                     modifier = Modifier.size(20.dp)
                 )},
-            onGoogleClick = {viewModel.signInWithGoogle( )}
+            onGoogleClick = {scope.launch {
+                signInWithGoogle(
+                    context,
+                    webClientId = context.getString(R.string.default_web_client_id),
+                    onTokenReceived = { token ->
+                        firebaseSignInWithGoogle(
+                            token,
+                            onSuccess = { 
+                                // Instead of direct success, we check the user status
+                                viewModel.checkGoogleUserStatus() 
+                            },
+                            onError = { 
+                                // Handle error
+                            }
+                        )
+                    }
+                )
+            }}
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -252,20 +264,13 @@ fun LoginScreenContent(
             verticalArrangement = Arrangement.Center
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.returnbutton),
-                    contentDescription = "Return Button",
-                    modifier = Modifier
-                        .size(30.dp)
-                )
                 Image(
                     painter = painterResource(id = R.drawable.logo_nobg),
                     contentDescription = "Logo",
-                    modifier = Modifier
-                        .padding(start = 62.dp)
-                        .size(120.dp)
+                    modifier = Modifier.size(120.dp)
                 )
             }
 
@@ -360,16 +365,11 @@ fun LoginScreenContent(
 //                }
 //            )
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             )
             {
-                AuthenticationSwitch(
-                    isChecked = uiState.rememberMe,
-                    onCheckedChange = {  },
-                    placeholder = "Remember me?"
-                )
                 TextButton(
                     onClick = { },
                     modifier = Modifier.fillMaxWidth()

@@ -37,13 +37,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val prefs = getSharedPreferences(Constants.NAME, MODE_PRIVATE)
-        val remember = prefs.getBoolean(Constants.REMEMBER_ME, false)
-
-        if (!remember) {
-            firebaseService.signOut()
-            // or FirebaseAuth.getInstance().signOut()
-        }
         setContent {
             PetHubTheme {
                 Surface(
