@@ -17,7 +17,7 @@ import javax.inject.Inject
  * ViewModel for Admin Dashboard
  */
 @HiltViewModel
-class AdminDashboardViewModel @Inject constructor(
+class AdminHomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {

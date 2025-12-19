@@ -26,7 +26,7 @@ class ServiceRepository @Inject constructor(
 ) {
 
     companion object {
-        const val SUBCOLLECTION_BRANCH_SERVICES = "branch_services"
+        const val SUBCOLLECTION_BRANCH_SERVICES = "branchService"
     }
 
     // =========================================================================
@@ -116,10 +116,11 @@ class ServiceRepository @Inject constructor(
             list.map { item ->
                 Service(
                     serviceId = item.service.serviceId,
-                    serviceName = item.service.serviceName,
+                    type = item.service.type,
                     description = item.service.description,
                     price = item.service.price,
-                    type = item.service.type
+                    serviceName = item.service.serviceName ?: "",
+                    imageUrl = item.service.imageUrl ?: ""
                 )
             }
         }
@@ -135,16 +136,50 @@ class ServiceRepository @Inject constructor(
     }
 
     // =========================================================================
+    // FUNCTIONS FOR SERVICE DETAIL SCREEN
+    // =========================================================================
+
+    /**
+     * Fetches a single service by its ID directly from Firestore.
+     * Used by ServiceDetailViewModel to get the main service's details.
+     */
+    suspend fun getServiceById(serviceId: String): Result<Service?> = withContext(ioDispatcher) {
+        firestoreHelper.getDocument(
+            collection = COLLECTION_SERVICE,
+            documentId = serviceId,
+            clazz = Service::class.java
+        )
+    }
+
+    /**
+     * Fetches all services belonging to a specific category from Firestore.
+     * Used by ServiceDetailViewModel to populate the 'Service Type' dropdown.
+     */
+    suspend fun getServicesByCategory(serviceName: String): Result<List<Service>> = withContext(ioDispatcher) {
+        if (serviceName.isBlank()) {
+            return@withContext Result.success(emptyList())
+        }
+        firestoreHelper.queryDocuments(
+            collection = COLLECTION_SERVICE,
+            field = "serviceName",
+            value = serviceName,
+            clazz = Service::class.java
+        )
+    }
+
+
+    // =========================================================================
     // MAPPERS (Helper functions)
     // =========================================================================
 
     private fun Service.toEntity(): ServiceEntity {
         return ServiceEntity(
             serviceId = this.serviceId,
+            type = this.type,
             serviceName = this.serviceName,
             description = this.description,
             price = this.price,
-            type = this.type
+            imageUrl = this.imageUrl
         )
     }
 }

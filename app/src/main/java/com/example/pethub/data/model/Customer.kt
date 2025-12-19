@@ -8,6 +8,7 @@ data class Customer(
     val custEmail: String = "",
     val custAddress: String = "",
     val profileImageUrl: String? = null, // Added for profile image
+    val fcmToken: String = "",
     val createdAt: Any? = null,
     val updatedAt: Any? = null
 )

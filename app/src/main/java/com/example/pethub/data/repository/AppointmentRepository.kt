@@ -36,8 +36,8 @@ class AppointmentRepository @Inject constructor(
 
     suspend fun createAppointment(appointment: Appointment) {
         // Get the pet's details
-        val userId = authRepository.getCurrentUserId()?:""
-        val petResult = petRepository.getPetById(userId, appointment.petId)
+        val custId = authRepository.getCurrentUserId()?:""
+        val petResult = petRepository.getPetById(custId, appointment.petId)
         val pet = petResult.getOrNull()
 
         // Create the final appointment object with the breed included
@@ -143,7 +143,7 @@ class AppointmentRepository @Inject constructor(
     }
 
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
 
         return firestoreHelper.listenToCollection(
             collection = COLLECTION_APPOINTMENT,
@@ -151,7 +151,7 @@ class AppointmentRepository @Inject constructor(
         ) { query ->
             // Chain multiple query conditions
             query
-                .whereEqualTo("custId", userId) // Filter by the current user's ID
+                .whereEqualTo("custId", custId) // Filter by the current user's ID
                 .whereGreaterThanOrEqualTo("dateTime",
                     Timestamp.now()) // Filter for appointments from now onwards
                 .orderBy("dateTime") // Order by the soonest appointment first
@@ -159,13 +159,26 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-        fun confirmBooking() {
+    fun getAllAppointmentsForCurrentUser(): Flow<List<Appointment>> {
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+
+        return firestoreHelper.listenToCollection(
+            collection = COLLECTION_APPOINTMENT,
+            clazz = Appointment::class.java
+        ) { query ->
+            query
+                .whereEqualTo("custId", custId)
+                .orderBy("dateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        }
+    }
+
+    fun confirmBooking() {
             CoroutineScope(ioDispatcher).launch {
                 // After successfully saving, send a notification
-                val userId = authRepository.getCurrentUserId()
-                if (userId != null) {
+                val custId = authRepository.getCurrentUserId()
+                if (custId != null) {
                     notificationRepository.sendNotification(
-                        userId = userId,
+                        custId = custId,
                         title = "Appointment Confirmed!",
                         message = "Your appointment has been successfully booked.",
                         type = "appointment"

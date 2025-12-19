@@ -4,6 +4,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.WriteBatch
@@ -23,6 +24,14 @@ class FirestoreHelper @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
 
+    /**
+     * Exposes the raw Firestore instance for complex queries that are not
+     * covered by the generic helper methods (e.g., collection group queries).
+     */
+    fun getFirestoreInstance(): FirebaseFirestore {
+        return firestore
+    }
+
     // ============================================
     // COLLECTION REFERENCES
     // ============================================
@@ -35,13 +44,11 @@ class FirestoreHelper @Inject constructor(
         const val COLLECTION_SERVICE = "service"
         const val COLLECTION_APPOINTMENT = "appointment"
         const val COLLECTION_NOTIFICATION = "notification"
-
+        const val COLLECTION_ORDER = "order"
 
         // Common fields
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_AT = "updatedAt"
-        const val FIELD_USER_ID = "userId"
-        const val FIELD_IS_ACTIVE = "isActive"
     }
 
     // ============================================
@@ -334,6 +341,16 @@ class FirestoreHelper @Inject constructor(
             .document(documentId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    // Handle permission denied errors gracefully (e.g., on logout)
+                    if (error is FirebaseFirestoreException &&
+                        error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+                    ) {
+                        // Emit null and close gracefully instead of crashing
+                        trySend(null)
+                        close()
+                        return@addSnapshotListener
+                    }
+                    // For other errors, still close with error
                     close(error)
                     return@addSnapshotListener
                 }
@@ -358,6 +375,16 @@ class FirestoreHelper @Inject constructor(
 
         val listenerRegistration = finalQuery.addSnapshotListener { snapshot, error ->
             if (error != null) {
+                // Handle permission denied errors gracefully (e.g., on logout)
+                if (error is FirebaseFirestoreException &&
+                    error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+                ) {
+                    // Emit empty list and close gracefully instead of crashing
+                    trySend(emptyList())
+                    close()
+                    return@addSnapshotListener
+                }
+                // For other errors, still close with error
                 close(error)
                 return@addSnapshotListener
             }
@@ -470,6 +497,16 @@ class FirestoreHelper @Inject constructor(
             .collection(subcollection)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    // Handle permission denied errors gracefully (e.g., on logout)
+                    if (error is FirebaseFirestoreException &&
+                        error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+                    ) {
+                        // Emit empty list and close gracefully instead of crashing
+                        trySend(emptyList())
+                        close()
+                        return@addSnapshotListener
+                    }
+                    // For other errors, still close with error
                     close(error)
                     return@addSnapshotListener
                 }

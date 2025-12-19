@@ -29,26 +29,6 @@ class AuthRepository @Inject constructor(
 
     fun isUserAuthenticated() = firebaseService.isUserAuthenticated()
 
-    // 👇 =================== NEW FUNCTION ADDED HERE =================== 👇
-    /**
-     * Gets the current user ID from Firebase Auth and uses it to fetch
-     * the corresponding customer profile from Firestore.
-     * This is the correct way to get the CustomerEntity for the logged-in user.
-     */
-    suspend fun getCustomerDetails(): Result<CustomerEntity?> {
-        // Get the current user's ID from Firebase Auth
-        val userId = firebaseService.getCurrentUserId()
-            ?: return Result.failure(Exception("No authenticated user found."))
-
-        // Use the ID to fetch the CustomerEntity from Firestore
-        return firestoreHelper.getDocument(
-            collection = COLLECTION_CUSTOMER,
-            documentId = userId,
-            clazz = CustomerEntity::class.java
-        )
-    }
-    // 👆 =============================================================== 👆
-
     suspend fun signIn(email: String, password: String): Result<AuthResult> {
         // Attempt to sign in with Firebase Auth
         val authResult = firebaseService.signIn(email, password)
@@ -141,6 +121,17 @@ class AuthRepository @Inject constructor(
         val branchExists = firestoreHelper.documentExists(COLLECTION_BRANCH, userId)
         return branchExists.getOrDefault(false)
     }
+
+    suspend fun getUserRole(): String {
+        val userId = firebaseService.getCurrentUserId() ?: return "guest"
+
+        // 1. Check if Admin (reuse your existing isAdmin logic)
+        if (isAdmin()) return "admin"
+
+        // 2. If not admin, assume customer (since they are authenticated)
+        return "customer"
+    }
+
 }
 
 data class AuthResult(

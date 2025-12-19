@@ -16,21 +16,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.example.pethub.ui.service.ServiceScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
+import com.example.pethub.data.repository.AppointmentRepository
+import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
-import com.example.pethub.ui.appointnment.AppointmentScreen
+import com.example.pethub.ui.admin.AdminScannerScreen
+import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
+import com.example.pethub.ui.admin.AppointmentDetail
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
-import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.notifications.NotificationScreen
+import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.ProfileScreen
-import com.example.pethub.ui.service.ServiceScreen
-import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(
@@ -106,7 +111,7 @@ fun NavGraph(
                 }
             )
         }
-
+        
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
@@ -127,22 +132,11 @@ fun NavGraph(
             )
         }
         composable("bookings") { PlaceholderScreen("Bookings coming soon") }
+        composable("profile") { PlaceholderScreen("Profile coming soon") }
         composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
         composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
-        composable("cart") {
-            CartScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateHome = { navController.navigate("home") }
-            )
-        }
-        composable(
-            route = "appointment/{serviceId}",
-            arguments = listOf(navArgument("serviceId") { type = NavType.StringType })
-        ) {
-            AppointmentScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+        composable("cart") { PlaceholderScreen("Cart coming soon") }
+        composable("appointment/{serviceId}") { PlaceholderScreen("Appointment screen coming soon") }
 
         // Admin screens
         composable("admin_home") {
@@ -151,17 +145,47 @@ fun NavGraph(
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onNavigateToAppointmentDetails = {
-                    navController.navigate("admin_appointment_details")
+                onNavigateToAppointmentDetails = {appointmentId->
+                    navController.navigate("appointmentDetail/${appointmentId}")
                 },
-                onViewAllClick = { navController.navigate("admin_all_appointments") }
+                onViewAllClick = {navController.navigate("admin_view_all_appointments")}
             )
         }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
-        composable("admin_scanner") { PlaceholderScreen("Scanner coming soon") }
-        composable("admin_appointment_details") { PlaceholderScreen("Appointment details coming soon") }
-        composable("admin_all_appointments") { PlaceholderScreen("All appointments coming soon") }
+        composable("admin_scanner") {
+            AdminScannerScreen { qr ->
+                navController.navigate("petProfile/${qr}")
+            }
+        }
+        composable(
+            route = "appointmentDetail/{appointmentId}",
+            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
+        ){backStackEntry ->
 
+            val appointmentId =
+                backStackEntry.arguments?.getString("appointmentId")!!
+
+            AppointmentDetail(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = {navController.popBackStack()},
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                appointmentId = appointmentId
+            )
+        }
+        composable("admin_view_all_appointments"){
+            AdminViewAllAppointmentsScreen(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = {navController.popBackStack()},
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                onViewAppointmentClick = {appointmentId->
+                    navController.navigate("appointmentDetail/${appointmentId}")
+                }
+            )
+        }
         composable("admin_services") {
             ServiceManagementScreen(
                 onNavigateToAdminHome = { navController.navigate("admin_home") },
@@ -169,6 +193,7 @@ fun NavGraph(
                 onNavigateToAdminScanner = { navController.navigate("admin_scanner") }
             )
         }
+
 
         composable("profile") {
             ProfileScreen(
@@ -207,8 +232,6 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-
-        composable("faq") { PlaceholderScreen("FAQ coming soon") }
     }
 }
 
