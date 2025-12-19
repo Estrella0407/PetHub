@@ -88,6 +88,15 @@ fun ServiceDetailContent(
     onBranchSelected: (Branch) -> Unit,
     onBookAppointmentClick: () -> Unit
 ) {
+    val iconRes = when (uiState.mainService?.serviceName) {
+        "Grooming" -> R.drawable.grooming_nobg
+        "Boarding" -> R.drawable.boarding_nobg
+        "Walking" -> R.drawable.walking_nobg
+        "Daycare" -> R.drawable.daycare_nobg
+        "Training" -> R.drawable.training_nobg
+        else -> R.drawable.pethub_rvbg // A default icon
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -103,8 +112,8 @@ fun ServiceDetailContent(
             AsyncImage(
                 model = uiState.mainService?.imageUrl,
                 contentDescription = uiState.mainService?.type,
-                placeholder = painterResource(id = R.drawable.grooming_nobg),
-                error = painterResource(id = R.drawable.grooming_nobg),
+                placeholder = painterResource(id = iconRes),
+                error = painterResource(id = iconRes),
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp)),

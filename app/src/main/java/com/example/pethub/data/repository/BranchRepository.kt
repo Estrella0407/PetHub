@@ -1,5 +1,6 @@
 package com.example.pethub.data.repository
 
+import android.util.Log
 import androidx.compose.ui.geometry.isEmpty
 import com.example.pethub.data.local.database.dao.BranchDao
 import com.example.pethub.data.model.Branch
@@ -48,29 +49,34 @@ class BranchRepository @Inject constructor(
      * This uses a collection group query on the 'branch_services' subcollection.
      */
     suspend fun getBranchesOfferingService(serviceId: String): Result<List<Branch>> = withContext(ioDispatcher) {
+        Log.d("BranchRepoDebug", "Searching for branches offering serviceId: $serviceId")
         if (serviceId.isBlank()) {
+            Log.w("BranchRepoDebug", "serviceId is blank, returning empty list.")
             return@withContext Result.success(emptyList())
         }
 
         try {
-            // Query the 'branch_services' subcollection across all documents
-            // to find which branches offer the service and have it available.
-            val branchIds = firestoreHelper.getFirestoreInstance()
+            val branchServiceDocs = firestoreHelper.getFirestoreInstance()
                 .collectionGroup("branchService")
                 .whereEqualTo("serviceId", serviceId)
                 .whereEqualTo("availability", true)
                 .get()
                 .await()
                 .documents
+
+            Log.d("BranchRepoDebug", "Found ${branchServiceDocs.size} branchService documents.")
+
+            val branchIds = branchServiceDocs
                 .mapNotNull { it.getString("branchId") }
-                .distinct() // Ensure we have unique branch IDs
+                .distinct()
+
+            Log.d("BranchRepoDebug", "Extracted distinct branch IDs: $branchIds")
 
             if (branchIds.isEmpty()) {
-                // No branches offer this service, return an empty list.
+                Log.w("BranchRepoDebug", "No branch IDs found. No branches offer this service or it's unavailable.")
                 return@withContext Result.success(emptyList())
             }
 
-            // Now that we have the IDs, fetch the full branch documents.
             val branches = firestoreHelper.getFirestoreInstance()
                 .collection(COLLECTION_BRANCH)
                 .whereIn(FieldPath.documentId(), branchIds)
@@ -78,9 +84,11 @@ class BranchRepository @Inject constructor(
                 .await()
                 .toObjects(Branch::class.java)
 
+            Log.d("BranchRepoDebug", "Successfully fetched ${branches.size} full branch documents.")
             Result.success(branches)
 
         } catch (e: Exception) {
+            Log.e("BranchRepoDebug", "Error fetching branches offering service", e)
             Result.failure(e)
         }
     }
