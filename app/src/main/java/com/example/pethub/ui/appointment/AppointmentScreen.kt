@@ -1,4 +1,4 @@
-package com.example.pethub.ui.appointnment
+package com.example.pethub.ui.appointment
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
