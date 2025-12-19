@@ -48,7 +48,7 @@ class AddPetViewModel @Inject constructor(
         dob: String,
         sex: String,
         weight: String,
-        onSuccess: () -> Unit
+        onSuccess: (newPetId: String) -> Unit
     ) {
         viewModelScope.launch {
             val userId = authRepository.getCurrentUserId()
@@ -77,7 +77,14 @@ class AddPetViewModel @Inject constructor(
 
             val result = petRepository.addPet(userId, newPet)
             if (result.isSuccess) {
-                onSuccess()
+                // MODIFIED: Get the new ID from the result
+                val newPetId = result.getOrNull()
+                if (newPetId != null) {
+                    // MODIFIED: Pass the new ID to the success callback
+                    onSuccess(newPetId)
+                } else {
+                    // Handle the unlikely case where success is true but ID is null
+                }
             } else {
                 // Handle error
             }

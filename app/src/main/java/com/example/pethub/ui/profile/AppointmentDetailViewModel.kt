@@ -1,6 +1,5 @@
 package com.example.pethub.ui.profile
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.AppointmentItem
@@ -27,8 +26,7 @@ class AppointmentDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<CustomerAppointmentUiState>(CustomerAppointmentUiState.Loading)
     val uiState: StateFlow<CustomerAppointmentUiState> = _uiState.asStateFlow()
 
-    // Remove the init block and SavedStateHandle
-
+    // No need for SavedStateHandle if the ID is passed directly to the function
     fun loadAppointmentDetails(id: String) {
         if (id.isBlank()) {
             _uiState.update { CustomerAppointmentUiState.Error("Invalid Appointment ID.") }
@@ -38,11 +36,21 @@ class AppointmentDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { CustomerAppointmentUiState.Loading }
             try {
-                val result = appointmentRepository.getAppointmentById(id)
-                val appointment = result.getOrElse { throw it ?: Exception("Failed to load appointment") }
+                // Step 1: Fetch the base Appointment object using the correct repository function
+                val appointmentResult = appointmentRepository.getAppointmentDetail(id)
+                val appointment = appointmentResult.getOrNull()
 
                 if (appointment != null) {
-                    _uiState.update { CustomerAppointmentUiState.Success(appointment) }
+                    // Step 2: Use the fetched Appointment object to get the detailed AppointmentItem
+                    val itemResult = appointmentRepository.getAppointmentItem(appointment)
+                    val appointmentItem = itemResult.getOrNull()
+
+                    if (appointmentItem != null) {
+                        // Step 3: Update the UI with the complete AppointmentItem
+                        _uiState.update { CustomerAppointmentUiState.Success(appointmentItem) }
+                    } else {
+                        _uiState.update { CustomerAppointmentUiState.Error("Could not process appointment details.") }
+                    }
                 } else {
                     _uiState.update { CustomerAppointmentUiState.Error("Appointment not found.") }
                 }

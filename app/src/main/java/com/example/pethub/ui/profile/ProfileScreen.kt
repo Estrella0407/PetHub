@@ -100,7 +100,6 @@ fun ProfileScreen(
                     onLogoutClick = onLogout,
                     onAddPetClick = onAddPetClick,
                     onFaqClick = onFaqClick,
-                    // PASS the navigation function down
                     onPetClick = { petId ->
                         onNavigateToPetProfile(petId)
                     },
@@ -186,10 +185,7 @@ fun ProfileContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Iterate through OrderItem list
                     uiState.orders.forEach { orderItem ->
-
-                        // Use fields from OrderItem
                         val pickupDate: Date? = orderItem.pickupDateTime.toDate()
                         val formattedDate = if (pickupDate != null) {
                             SimpleDateFormat(
@@ -302,7 +298,7 @@ fun PetInfoCard(
                         contentScale = ContentScale.Fit
                     )
                 }
-                
+
                 TextButton(
                     onClick = onEditClick,
                     contentPadding = PaddingValues(0.dp),

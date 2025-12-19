@@ -28,7 +28,7 @@ import java.util.Locale
 @Composable
 fun NotificationScreen(
     viewModel: NotificationViewModel = hiltViewModel(),
-    onNavigateUp: () -> Unit
+    onNavigateBack: () -> Unit
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -38,7 +38,7 @@ fun NotificationScreen(
             TopAppBar(
                 title = { Text("Notifications") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateUp) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }

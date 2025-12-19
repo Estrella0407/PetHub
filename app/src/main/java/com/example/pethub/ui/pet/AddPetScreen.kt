@@ -31,7 +31,7 @@ import java.util.*
 
 @Composable
 fun AddPetScreen(
-    onPetAdded: () -> Unit,
+    onPetAdded: (petId: String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: AddPetViewModel = hiltViewModel()
 ) {
@@ -72,7 +72,9 @@ fun AddPetScreen(
                  dob = dob,
                  sex = sex,
                  weight = weight,
-                 onSuccess = onPetAdded
+                 onSuccess = { newPetId ->
+                     onPetAdded(newPetId)
+                 }
              )
         }
     )

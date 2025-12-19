@@ -44,7 +44,7 @@ fun AppointmentConfirmedDialog(
 
                 Text(
                     text = "Appointment Confirmed!",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2C2622)
                 )

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.pethub.R
 import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.theme.CreamLight
@@ -75,7 +78,7 @@ fun ServiceScreen(
             items(mainServices, key = { it.serviceId }) { service ->
                 ServiceCard(
                     service = service,
-                    onClick = { onServiceClick(service.serviceName) }
+                    onClick = { onServiceClick(service.serviceId) }
                 )
             }
         }

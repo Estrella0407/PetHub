@@ -1,6 +1,9 @@
 package com.example.pethub.ui.faq
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.ui.status.ErrorScreen
 import com.example.pethub.ui.status.LoadingScreen
+import com.example.pethub.ui.faq.PolicyFAQViewModel
+import com.example.pethub.ui.faq.QAItem
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamDark
 import com.example.pethub.ui.theme.DarkBrown

@@ -352,7 +352,7 @@ fun RecommendedServiceCard(
 ) {
     Card(
         modifier = modifier
-            .height(120.dp) // <-- FIX 1: Set a fixed height
+            .height(120.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
