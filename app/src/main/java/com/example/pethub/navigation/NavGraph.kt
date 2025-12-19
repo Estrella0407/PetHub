@@ -163,6 +163,11 @@ fun NavGraph(
                     navController.navigate("home") {
                         popUpTo("home") { inclusive = true }
                     }
+                },
+                onNavigateToShop = {
+                    navController.navigate("shop") {
+                        popUpTo("shop") { inclusive = true }
+                    }
                 }
             )
         }
