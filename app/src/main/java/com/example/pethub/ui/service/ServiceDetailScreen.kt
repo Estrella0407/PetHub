@@ -10,6 +10,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +42,7 @@ fun ServiceDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(uiState.mainService?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold) },
+                title = { Text(uiState.service?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -93,7 +95,7 @@ fun ServiceDetailContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val iconRes = when (uiState.mainService?.serviceId?.lowercase()) {
+            val iconRes = when (uiState.service?.serviceName?.lowercase()) {
                 "grooming" -> R.drawable.grooming_nobg
                 "boarding" -> R.drawable.boarding_nobg
                 "walking" -> R.drawable.walking_nobg
@@ -108,7 +110,7 @@ fun ServiceDetailContent(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = uiState.selectedServiceType?.description ?: uiState.mainService?.description ?: "Details about this service.",
+                text = uiState.selectedServiceType?.description ?: uiState.service?.description ?: "Details about this service.",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.weight(1f)
@@ -120,7 +122,7 @@ fun ServiceDetailContent(
         // 2. Dropdowns styled like Appointment Screen
         CustomDropdown(
             label = "For Who?",
-            items = uiState.pets,
+            items = uiState.userPets,
             selectedItem = uiState.selectedPet,
             onItemSelected = onPetSelected,
             itemToString = { it.petName },
@@ -131,7 +133,7 @@ fun ServiceDetailContent(
 
         CustomDropdown(
             label = "Service Type",
-            items = uiState.relatedServices,
+            items = uiState.serviceTypes,
             selectedItem = uiState.selectedServiceType,
             onItemSelected = onServiceTypeSelected,
             itemToString = { it.type },
@@ -148,6 +150,16 @@ fun ServiceDetailContent(
             itemToString = { it.branchName },
             placeholder = "Choose Branch"
         )
+
+        if (uiState.selectedServiceType != null && uiState.availableBranches.isEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "No branches available for this service",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 

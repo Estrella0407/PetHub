@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,11 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.pethub.R
 import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.utils.getServiceIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,8 +39,8 @@ fun ServiceScreen(
     onNavigateToProfile: () -> Unit,
     onServiceClick: (String) -> Unit
 ) {
-    // Hardcoded list as requested - simple UI only
-    val services = listOf(
+    // Define the list of main services directly in the composable
+    val mainServices = listOf(
         Service(serviceId = "grooming", serviceName = "Grooming", description = "Cleaning and maintaining a pet’s hygiene and appearance."),
         Service(serviceId = "boarding", serviceName = "Boarding", description = "Temporary care for pets when owners are away."),
         Service(serviceId = "walking", serviceName = "Walking", description = "Taking pets out for exercise and bathroom breaks."),
@@ -74,10 +72,10 @@ fun ServiceScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(services) { service ->
+            items(mainServices, key = { it.serviceId }) { service ->
                 ServiceCard(
                     service = service,
-                    onClick = { onServiceClick(service.serviceId) }
+                    onClick = { onServiceClick(service.serviceName) }
                 )
             }
         }
@@ -86,15 +84,6 @@ fun ServiceScreen(
 
 @Composable
 fun ServiceCard(service: Service, onClick: () -> Unit) {
-    val iconRes = when (service.serviceName.lowercase()) {
-        "grooming" -> R.drawable.grooming_nobg
-        "boarding" -> R.drawable.boarding_nobg
-        "walking" -> R.drawable.walking_nobg
-        "daycare" -> R.drawable.daycare_nobg
-        "training" -> R.drawable.training_nobg
-        else -> R.drawable.pethub_rvbg
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,7 +96,7 @@ fun ServiceCard(service: Service, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = iconRes),
+                painter = painterResource(id = getServiceIcon(service.serviceName)),
                 contentDescription = service.serviceName,
                 modifier = Modifier.size(60.dp)
             )

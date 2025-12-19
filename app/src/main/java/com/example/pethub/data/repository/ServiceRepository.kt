@@ -6,7 +6,6 @@ import com.example.pethub.data.local.database.entity.ServiceEntity
 import com.example.pethub.data.model.BranchService
 import com.example.pethub.data.model.Service
 import com.example.pethub.data.remote.FirestoreHelper
-import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVICE
 import com.example.pethub.di.IoDispatcher
 import com.google.firebase.firestore.SetOptions
@@ -28,7 +27,7 @@ class ServiceRepository @Inject constructor(
 ) {
 
     companion object {
-        const val SUBCOLLECTION_BRANCH_SERVICES = "branch_services"
+        const val COLLECTION_BRANCH_SERVICE = "branchService" // Updated collection name
     }
 
     // =========================================================================
@@ -42,55 +41,60 @@ class ServiceRepository @Inject constructor(
         )
     }
 
+    /**
+     * Listens to all service settings for a specific branch from the top-level collection.
+     */
     fun listenToAllBranchServices(branchId: String): Flow<List<BranchService>> {
-        return firestoreHelper.listenToSubcollection(
-            parentCollection = COLLECTION_BRANCH,
-            parentId = branchId,
-            subcollection = SUBCOLLECTION_BRANCH_SERVICES,
-            clazz = BranchService::class.java
-        )
-    }
-
-    fun listenToBranchServiceAvailability(branchId: String, serviceId: String): Flow<BranchService?> {
-        return firestoreHelper.listenToDocument(
-            collection = "$COLLECTION_BRANCH/$branchId/$SUBCOLLECTION_BRANCH_SERVICES",
-            documentId = serviceId,
+        return firestoreHelper.listenToCollectionQuery(
+            collection = COLLECTION_BRANCH_SERVICE,
+            field = "branchId",
+            value = branchId,
             clazz = BranchService::class.java
         )
     }
 
     /**
-     * Updated to include serviceName in the saved document.
-     * serviceId is used as the document ID.
+     * Listens for changes to a specific service within a specific branch.
+     * Generates a composite ID to find the document.
      */
-    suspend fun setBranchServiceAvailability(
-        branchId: String, 
-        serviceId: String, 
-        serviceName: String, 
-        isAvailable: Boolean
-    ): Result<Unit> = withContext(ioDispatcher) {
-        try {
-            val branchService = mapOf(
-                "branchId" to branchId,
-                "serviceId" to serviceId,
-                "serviceName" to serviceName, // Added serviceName field
-                "availability" to isAvailable
-            )
-            
-            firestoreHelper.getFirestoreInstance()
-                .collection(COLLECTION_BRANCH)
-                .document(branchId)
-                .collection(SUBCOLLECTION_BRANCH_SERVICES)
-                .document(serviceId)
-                .set(branchService, SetOptions.merge())
-                .await()
-                
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    fun listenToBranchServiceAvailability(branchId: String, serviceId: String): Flow<BranchService?> {
+        val documentId = "$branchId-$serviceId" // Composite ID
+        return firestoreHelper.listenToDocument(
+            collection = COLLECTION_BRANCH_SERVICE,
+            documentId = documentId,
+            clazz = BranchService::class.java
+        )
     }
 
+    /**
+     * Sets the availability of a service for a branch in the top-level 'branchService' collection.
+     */
+    suspend fun setBranchServiceAvailability(
+        branchId: String,
+        serviceId: String,
+        serviceName: String,
+        isAvailable: Boolean
+    ): Result<Unit> = withContext(ioDispatcher) {
+            try {
+                val documentId = "$branchId-$serviceId"
+                val branchService = mapOf(
+                    "branchId" to branchId,
+                    "serviceId" to serviceId,
+                    "serviceName" to serviceName,
+                    "availability" to isAvailable
+                )
+
+                firestoreHelper.getFirestoreInstance()
+                    .collection(COLLECTION_BRANCH_SERVICE)
+                    .document(documentId)
+                    .set(branchService, SetOptions.merge())
+                    .await()
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
     // =========================================================================
     // DATA SYNC (Firestore -> Room) - Kept for other potential uses
     // =========================================================================
@@ -100,10 +104,11 @@ class ServiceRepository @Inject constructor(
             val allServicesResult = firestoreHelper.getAllDocuments(COLLECTION_SERVICE, Service::class.java)
             val allServices = allServicesResult.getOrThrow()
 
-            val branchSettingsResult = firestoreHelper.getSubcollectionDocuments(
-                parentCollection = COLLECTION_BRANCH,
-                parentId = branchId,
-                subcollection = SUBCOLLECTION_BRANCH_SERVICES,
+            // Query the top-level 'branchService' collection for the specific branch
+            val branchSettingsResult = firestoreHelper.queryDocuments(
+                collection = COLLECTION_BRANCH_SERVICE,
+                field = "branchId",
+                value = branchId,
                 clazz = BranchService::class.java
             )
             val branchSettings = branchSettingsResult.getOrThrow()

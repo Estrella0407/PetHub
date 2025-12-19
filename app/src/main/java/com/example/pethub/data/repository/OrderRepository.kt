@@ -64,6 +64,19 @@ class OrderRepository @Inject constructor(
         }
     }
 
+    suspend fun getProductOrdersForOrder(orderId: String): Result<List<ProductOrder>> {
+        val result = firestoreHelper.queryDocuments(
+            collection = "product_order",
+            field = "orderId",
+            value = orderId,        clazz = ProductOrder::class.java
+        )
+
+        return result.map { productOrders ->
+            productOrders.sortedBy { it.productName }
+        }
+    }
+
+
     suspend fun getOrderItem(order: Order): OrderItem {
         // This part to get the title is correct and can remain.
         val productOrdersResult = firestoreHelper.queryDocuments(

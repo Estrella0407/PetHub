@@ -1,6 +1,5 @@
 package com.example.pethub.ui.service
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,105 +11,122 @@ import com.example.pethub.data.repository.PetRepository
 import com.example.pethub.data.repository.ServiceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ServiceDetailUiState(
-    val mainService: Service? = null,
-    val pets: List<Pet> = emptyList(),
-    val relatedServices: List<Service> = emptyList(),
+    val service: Service? = null,
+    val serviceTypes: List<Service> = emptyList(),
     val availableBranches: List<Branch> = emptyList(),
+    val userPets: List<Pet> = emptyList(),
     val selectedPet: Pet? = null,
-    val selectedServiceType: Service? = null,
     val selectedBranch: Branch? = null,
+    val selectedServiceType: Service? = null,
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
 @HiltViewModel
 class ServiceDetailViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
-    private val petRepository: PetRepository,
     private val serviceRepository: ServiceRepository,
-    private val branchRepository: BranchRepository
+    private val branchRepository: BranchRepository,
+    private val petRepository: PetRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ServiceDetailUiState())
-    val uiState = _uiState.asStateFlow()
+    val uiState: StateFlow<ServiceDetailUiState> = _uiState.asStateFlow()
 
-    private val serviceId: String = savedStateHandle.get<String>("serviceId") ?: ""
-    private val TAG = "ServiceDetailViewModel"
+    private val serviceName: String =
+        savedStateHandle.get<String>("serviceName")!!
+
+    private val preselectedServiceId: String? =
+        savedStateHandle.get<String>("serviceId")
 
     init {
-        loadInitialData()
+        loadInitialData(serviceName, preselectedServiceId)
     }
 
-    private fun loadInitialData() {
+    private fun loadInitialData(categoryName: String, preselectedId: String?) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+
             try {
-                // 1. Get user's pets
-                val petsList = petRepository.getPetsForCurrentUser().first()
-                
-                // 2. Determine category name from serviceId (e.g. "grooming" -> "Grooming")
-                val categoryName = serviceId.replaceFirstChar { it.uppercase() }
-                Log.d(TAG, "Loading category: $categoryName")
+                // Load service types
+                val serviceTypes = serviceRepository
+                    .getServicesByCategory(categoryName)
+                    .getOrElse { throw it }
 
-                // 3. Fetch all services matching this category from 'service' collection
-                val relatedResult = serviceRepository.getServicesByCategory(categoryName)
-                val related = relatedResult.getOrElse { emptyList() }
-                Log.d(TAG, "Found ${related.size} related services for category: $categoryName")
+                // Load pets
+                val pets = petRepository
+                    .getCurrentUserPets()
+                    .getOrElse { throw it }
 
-                // If nothing found by capitalized, try lowercase
-                val finalRelated = if (related.isEmpty()) {
-                    serviceRepository.getServicesByCategory(serviceId).getOrElse { emptyList() }
-                } else {
-                    related
+                // 3Preselect service if provided
+                val preselectedService = preselectedId?.let { id ->
+                    serviceTypes.find { it.serviceId == id }
                 }
 
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    relatedServices = finalRelated,
-                    pets = petsList,
-                    // Auto-select the first one or set mainService
-                    selectedServiceType = finalRelated.firstOrNull(),
-                    mainService = Service(serviceId = serviceId, serviceName = categoryName)
-                ) }
+                _uiState.update {
+                    it.copy(
+                        service = preselectedService ?: serviceTypes.firstOrNull(),
+                        serviceTypes = serviceTypes,
+                        userPets = pets,
+                        selectedServiceType = preselectedService,
+                        isLoading = false
+                    )
+                }
 
-                // 4. Initial fetch for branches using the serviceId (lowercase)
-                fetchAvailableBranches(serviceId)
+                // 4Load branches ONLY if a service is preselected
+                preselectedService?.let {
+                    loadBranches(it.serviceId)
+                }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading initial data", e)
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update {
+                    it.copy(
+                        error = e.message,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
 
-    private fun fetchAvailableBranches(categoryServiceId: String) {
+    fun onPetSelected(pet: Pet) {
+        _uiState.update { it.copy(selectedPet = pet) }
+    }
+
+    fun onBranchSelected(branch: Branch) {
+        _uiState.update { it.copy(selectedBranch = branch) }
+    }
+
+    fun onServiceTypeSelected(serviceType: Service) {
+        _uiState.update {
+            it.copy(
+                selectedServiceType = serviceType,
+                service = serviceType,
+                selectedBranch = null,
+                availableBranches = emptyList()
+            )
+        }
+
+        loadBranches(serviceType.serviceId)
+    }
+
+    private fun loadBranches(serviceId: String) {
         viewModelScope.launch {
-            Log.d(TAG, "Fetching branches for: $categoryServiceId")
-            val branchesResult = branchRepository.getAvailableBranchesForService(categoryServiceId)
-            val branches = branchesResult.getOrElse { emptyList() }
-            Log.d(TAG, "Found ${branches.size} available branches")
-            
-            _uiState.update { it.copy(
-                availableBranches = branches,
-                selectedBranch = null
-            ) }
+            branchRepository
+                .getAvailableBranchesForService(serviceId)
+                .onSuccess { branches ->
+                    _uiState.update {
+                        it.copy(availableBranches = branches)
+                    }
+                }
         }
     }
-
-    fun onPetSelected(pet: Pet) = _uiState.update { it.copy(selectedPet = pet) }
-
-    fun onServiceTypeSelected(service: Service) {
-        _uiState.update { it.copy(selectedServiceType = service) }
-        // Location depends on the category, so we keep using serviceId
-        fetchAvailableBranches(serviceId)
-    }
-
-    fun onBranchSelected(branch: Branch) = _uiState.update { it.copy(selectedBranch = branch) }
 }
+

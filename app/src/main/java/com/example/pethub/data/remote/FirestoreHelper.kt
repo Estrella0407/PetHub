@@ -45,6 +45,7 @@ class FirestoreHelper @Inject constructor(
         const val COLLECTION_APPOINTMENT = "appointment"
         const val COLLECTION_NOTIFICATION = "notification"
         const val COLLECTION_ORDER = "order"
+        const val COLLECTION_BRANCH_SERVICE = "branchService"
 
         // Common fields
         const val FIELD_CREATED_AT = "createdAt"
@@ -396,6 +397,36 @@ class FirestoreHelper @Inject constructor(
         awaitClose { listenerRegistration.remove() }
     }
 
+    /**
+     * Listen to a collection query in real-time.
+     */
+    fun <T : Any> listenToCollectionQuery(
+        collection: String,
+        field: String,
+        value: Any,
+        clazz: Class<T>
+    ): Flow<List<T>> = callbackFlow {
+        val query = firestore.collection(collection).whereEqualTo(field, value)
+
+        val listenerRegistration = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                if (error is FirebaseFirestoreException && error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    trySend(emptyList())
+                    close()
+                } else {
+                    close(error)
+                }
+                return@addSnapshotListener
+            }
+
+            val documents = snapshot?.documents?.mapNotNull { it.toObject(clazz) } ?: emptyList()
+            trySend(documents)
+        }
+
+        awaitClose { listenerRegistration.remove() }
+    }
+
+
     // ============================================
     // BATCH OPERATIONS
     // ============================================
@@ -543,98 +574,4 @@ class FirestoreHelper @Inject constructor(
      * Decrement field value
      */
     fun decrementValue(value: Long = 1): Any = FieldValue.increment(-value)
-
-    /**
-     * Array union (add elements)
-     */
-    fun arrayUnion(vararg elements: Any): Any = FieldValue.arrayUnion(*elements)
-
-    /**
-     * Array remove (remove elements)
-     */
-    fun arrayRemove(vararg elements: Any): Any = FieldValue.arrayRemove(*elements)
-
-    /**
-     * Delete field
-     */
-    fun deleteField(): Any = FieldValue.delete()
-
-    // ============================================
-    // TRANSACTION SUPPORT
-    // ============================================
-
-    /**
-     * Run a Firestore transaction
-     */
-    suspend fun <T> runTransaction(transaction: suspend (com.google.firebase.firestore.Transaction) -> T): Result<T> {
-        return try {
-            val result = firestore.runTransaction { firestoreTransaction ->
-                // Note: This is a blocking call, but wrapped in a suspend function
-                // The actual transaction logic should be passed as a suspend function
-                null as T // Placeholder - actual implementation depends on use case
-            }.await()
-            Result.success(result)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // ============================================
-    // PAGINATION SUPPORT
-    // ============================================
-
-    /**
-     * Get paginated documents
-     */
-    suspend fun <T : Any> getPaginatedDocuments(
-        collection: String,
-        orderByField: String,
-        pageSize: Long,
-        lastDocument: DocumentSnapshot? = null,
-        clazz: Class<T>
-    ): Result<Pair<List<T>, DocumentSnapshot?>> {
-        return try {
-            var query: Query = firestore.collection(collection)
-                .orderBy(orderByField)
-                .limit(pageSize)
-
-            lastDocument?.let {
-                query = query.startAfter(it)
-            }
-
-            val snapshot = query.get().await()
-            val documents = snapshot.documents.mapNotNull { it.toObject(clazz) }
-            val lastDoc = snapshot.documents.lastOrNull()
-
-            Result.success(Pair(documents, lastDoc))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    // ============================================
-    // COUNTING
-    // ============================================
-
-    /**
-     * Count documents in collection (requires aggregation query)
-     */
-    suspend fun countDocuments(
-        collection: String,
-        whereField: String? = null,
-        whereValue: Any? = null
-    ): Result<Long> {
-        return try {
-            var query: Query = firestore.collection(collection)
-
-            if (whereField != null && whereValue != null) {
-                query = query.whereEqualTo(whereField, whereValue)
-            }
-
-            val snapshot = query.get().await()
-            Result.success(snapshot.size().toLong())
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 }

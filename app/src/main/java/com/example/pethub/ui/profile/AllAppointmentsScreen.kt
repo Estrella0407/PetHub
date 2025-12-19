@@ -193,7 +193,7 @@ private fun AppointmentListItem(
                     Icon(
                         imageVector = Icons.Default.DateRange,
                         contentDescription = null,
-                        tint = CreamDark,
+                        tint = LightBrown,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -230,27 +230,19 @@ private fun AppointmentListItem(
                 )
             }
 
+            val backgroundStatusColor = getStatusColor(appointment.status).copy(alpha = 0.2f)
+
             // Status Badge
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = when (appointment.status.lowercase()) {
-                    "confirmed" -> Color(0xFF4CAF50).copy(alpha = 0.2f)
-                    "pending" -> Color(0xFFFF9800).copy(alpha = 0.2f)
-                    "cancelled" -> Color(0xFFF44336).copy(alpha = 0.2f)
-                    else -> Color.Gray.copy(alpha = 0.2f)
-                }
+                color = backgroundStatusColor
             ) {
                 Text(
                     text = appointment.status,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = when (appointment.status.lowercase()) {
-                        "confirmed" -> Color(0xFF4CAF50)
-                        "pending" -> Color(0xFFFF9800)
-                        "cancelled" -> Color(0xFFF44336)
-                        else -> Color.Gray
-                    }
+                    color = getStatusColor(appointment.status)
                 )
             }
         }

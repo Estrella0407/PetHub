@@ -26,3 +26,13 @@ fun getTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = LightBrown,
     unfocusedLabelColor = LightBrown
 )
+
+@Composable
+fun getStatusColor(status: String): Color {
+    return when (status.lowercase()) {
+        "confirmed" -> Color(0xFF4CAF50)
+        "pending" -> Color(0xFFFF9800)
+        "cancelled" -> Color(0xFFF44336)
+        else -> Color.Gray
+    }
+}

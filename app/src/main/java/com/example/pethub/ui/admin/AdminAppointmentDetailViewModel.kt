@@ -1,6 +1,5 @@
 package com.example.pethub.ui.admin
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Appointment
@@ -18,7 +17,7 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class AppointmentDetailViewModel @Inject constructor(
+class AdminAppointmentDetailViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {

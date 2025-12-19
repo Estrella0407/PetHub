@@ -60,7 +60,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun AppointmentDetail(
+fun AdminAppointmentDetail(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToStocks: () -> Unit,
@@ -68,7 +68,7 @@ fun AppointmentDetail(
     onNavigateToScanner: () -> Unit,
     appointmentId: String,
     onAppointmentCanceled: () -> Unit,
-    viewModel: AppointmentDetailViewModel = hiltViewModel()
+    viewModel: AdminAppointmentDetailViewModel = hiltViewModel()
 ){
     val uiState by viewModel.uiState.collectAsState()
 
@@ -118,7 +118,7 @@ fun AppointmentDetailHero(
     onNavigateToServices: () -> Unit,
     onNavigateToScanner: () -> Unit,
     appointmentId: String,
-    viewModel: AppointmentDetailViewModel = hiltViewModel()
+    viewModel: AdminAppointmentDetailViewModel = hiltViewModel()
 ){
     val uiState by viewModel.uiState.collectAsState()
 
@@ -340,10 +340,10 @@ fun RescheduleAppointmentOverlay(
 ) {
     val context = LocalContext.current
     val calendar = remember { Calendar.getInstance() }
-    
+
     var selectedDate by remember { mutableStateOf("") }
     var selectedTime by remember { mutableStateOf("") }
-    
+
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->

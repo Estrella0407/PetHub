@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -43,7 +46,7 @@ fun HomeScreen(
     onNavigateToService: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
-    onServiceClick: (String) -> Unit,
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit, // MODIFIED: Expects both
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userName by viewModel.userName.collectAsState()
@@ -156,7 +159,7 @@ fun HomeContent(
     branches: List<Branch>,
     allPets: List<Pet>,
     onPetSelected: (Pet) -> Unit,
-    onServiceClick: (String) -> Unit,
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit, // MODIFIED
 ) {
     LazyColumn(
         modifier = modifier
@@ -196,12 +199,12 @@ fun HomeContent(
 
         // Shop Details Section Header
         if (branches.isNotEmpty()) {
-             item {
-                 // Shop Details / Branches
-                 ShopDetailsSection(
-                     branches = branches,
-                     modifier = Modifier.fillMaxWidth()
-                 )
+            item {
+                // Shop Details / Branches
+                ShopDetailsSection(
+                    branches = branches,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
@@ -269,7 +272,7 @@ fun RecommendedServiceSection(
     services: List<ServiceItem>,
     allPets: List<Pet>,
     onPetSelected: (Pet) -> Unit,
-    onServiceClick: (String) -> Unit
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit // MODIFIED
 ) {
     var showPetSelection by remember { mutableStateOf(false) }
 
@@ -322,7 +325,7 @@ fun RecommendedServiceSection(
                 services.forEach { service ->
                     RecommendedServiceCard(
                         service = service,
-                        onClick = { onServiceClick(service.id) },
+                        onClick = { onServiceClick(service.serviceName, service.id) }, // MODIFIED
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -368,7 +371,6 @@ fun RecommendedServiceCard(
                     contentDescription = null,
                     modifier = Modifier.size(32.dp)
                 )
-
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -499,6 +501,7 @@ fun ShopDetailsSection(
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
                 }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

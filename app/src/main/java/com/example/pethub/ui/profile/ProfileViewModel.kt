@@ -35,14 +35,17 @@ class ProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
-    val dataLoadingJob: Job? = null
+    private var dataLoadingJob: Job? = null
 
     init {
         loadCustomerData()
     }
 
     fun loadCustomerData() {
-        viewModelScope.launch {
+        // Cancel previous job if any
+        dataLoadingJob?.cancel()
+
+        dataLoadingJob = viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
                 // Combine the flows of raw data
@@ -52,19 +55,32 @@ class ProfileViewModel @Inject constructor(
                     orderRepository.getOrdersForCurrentUser(limit = 2),
                     petRepository.getPetsForCurrentUser()
                 ) { customer, appointments, orders, pets ->
-                    // Return a data class or tuple holding the RAW data
+                    // Return a data class holding the RAW data
                     ProfileRawData(customer, appointments, orders, pets)
                 }
                     .collect { rawData ->
-                        // ow inside 'collect' (which IS a suspend block), perform the async conversions
+                        // Inside 'collect' (which IS a suspend context), perform the async conversions
 
-                        val appointmentItems = rawData.appointments.mapNotNull {
-                            appointmentRepository.getAppointmentItem(it).getOrNull()
+                        // Convert appointments to AppointmentItems
+                        // Use mapNotNull to filter out any failed conversions
+                        val appointmentItems = rawData.appointments.mapNotNull { appointment ->
+                            try {
+                                // getAppointmentItem returns Result<AppointmentItem?>
+                                appointmentRepository.getAppointmentItem(appointment).getOrNull()
+                            } catch (e: Exception) {
+                                println("DEBUG: Failed to convert appointment ${appointment.appointmentId}: ${e.message}")
+                                null
+                            }
                         }
 
-                        // Now we can call the suspend function getOrderItem safely
-                        val orderItems = rawData.orders.map { order ->
-                            orderRepository.getOrderItem(order)
+                        // Convert orders to OrderItems
+                        val orderItems = rawData.orders.mapNotNull { order ->
+                            try {
+                                orderRepository.getOrderItem(order)
+                            } catch (e: Exception) {
+                                println("DEBUG: Failed to convert order ${order.orderId}: ${e.message}")
+                                null
+                            }
                         }
 
                         _uiState.value = ProfileUiState.Success(
@@ -75,6 +91,8 @@ class ProfileViewModel @Inject constructor(
                         )
                     }
             } catch (e: Exception) {
+                println("DEBUG: ProfileViewModel error: ${e.message}")
+                e.printStackTrace()
                 _uiState.value = ProfileUiState.Error("Failed to load data: ${e.message}")
             }
         }
@@ -129,7 +147,6 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-
     fun logout() {
         dataLoadingJob?.cancel()
 
@@ -141,6 +158,11 @@ class ProfileViewModel @Inject constructor(
 
             authRepository.signOut()
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        dataLoadingJob?.cancel()
     }
 }
 
