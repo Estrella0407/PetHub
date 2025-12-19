@@ -12,8 +12,7 @@ data class Service(
     val type: String = "",
     val description: String = "",
     val price: Double = 0.0,
-    @PropertyName("category")
-    val serviceName: String = "", // category
+    val serviceName: String = "", // Maps to Firestore "serviceName" field
     val imageUrl: String = "", // Kept for UI
 )
 
