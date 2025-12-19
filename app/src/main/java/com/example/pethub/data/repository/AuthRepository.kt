@@ -81,6 +81,24 @@ class AuthRepository @Inject constructor(
         return Result.success(AuthResult(user, isAdmin))
     }
 
+    suspend fun signInWithGoogle(): Result<GoogleSignInResult> {
+        val user = firebaseService.getCurrentUser()
+            ?: return Result.failure(Exception("No user logged in via Google"))
+
+        // Check if a customer document exists for this user
+        val customerExists = firestoreHelper.documentExists(COLLECTION_CUSTOMER, user.uid)
+            .getOrDefault(false)
+
+        return if (customerExists) {
+            // If customer exists, check if they are an admin
+            val isAdmin = isAdmin()
+            Result.success(GoogleSignInResult.ExistingUser(AuthResult(user, isAdmin)))
+        } else {
+            // New user needs to complete profile
+            Result.success(GoogleSignInResult.NewUser(user))
+        }
+    }
+
 
     suspend fun register(email: String, username:String, password: String, phone:String, address: String): Result<String> {//, username: String): Result<String> {
         // Create Firebase Auth user
@@ -141,9 +159,54 @@ class AuthRepository @Inject constructor(
         val branchExists = firestoreHelper.documentExists(COLLECTION_BRANCH, userId)
         return branchExists.getOrDefault(false)
     }
+
+    suspend fun createCustomerProfile(username: String, phone: String, address: String): Result<Unit> {
+        val user = firebaseService.getCurrentUser() ?: return Result.failure(Exception("No authenticated user"))
+
+        val customerData = Customer(
+            custId = user.uid,
+            custName = username,
+            custEmail = user.email ?: "",
+            custPassword = "", // No password for Google users
+            custAddress = address,
+            custPhone = phone,
+            createdAt = firestoreHelper.getServerTimestamp(),
+            updatedAt = firestoreHelper.getServerTimestamp()
+        )
+
+        val createResult = firestoreHelper.createDocumentWithId(
+            COLLECTION_CUSTOMER,
+            user.uid,
+            customerData
+        )
+
+        return if (createResult.isSuccess) {
+            firebaseService.updateFCMToken()
+            Result.success(Unit)
+        } else {
+            Result.failure(createResult.exceptionOrNull()!!)
+        }
+    }
+
+    suspend fun getUserRole(): String {
+        val userId = firebaseService.getCurrentUserId() ?: return "guest"
+
+        // 1. Check if Admin (reuse your existing isAdmin logic)
+        if (isAdmin()) return "admin"
+
+        // 2. If not admin, assume customer (since they are authenticated)
+        return "customer"
+    }
+
 }
 
 data class AuthResult(
     val user: com.google.firebase.auth.FirebaseUser,
     val isAdmin: Boolean
 )
+
+sealed class GoogleSignInResult {
+    data class ExistingUser(val authResult: AuthResult) : GoogleSignInResult()
+    data class NewUser(val user: com.google.firebase.auth.FirebaseUser) : GoogleSignInResult()
+}
+

@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.animation.graphics)
     implementation(libs.androidx.compose.foundation.layout)
-    //implementation(libs.play.services.cast.tv)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -113,6 +112,9 @@ dependencies {
     implementation("androidx.camera:camera-view:1.3.0")
 
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+    implementation("com.google.android.gms:play-services-auth:21.0.1")
+
 
 }
 

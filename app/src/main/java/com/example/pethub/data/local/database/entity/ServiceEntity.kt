@@ -11,4 +11,5 @@ data class ServiceEntity(
     val description: String,
     val type: String,
     val price: Double,
+    val imageUrl: String?
 )

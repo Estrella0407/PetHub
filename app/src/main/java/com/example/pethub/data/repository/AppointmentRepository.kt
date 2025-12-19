@@ -36,8 +36,8 @@ class AppointmentRepository @Inject constructor(
 
     suspend fun createAppointment(appointment: Appointment) {
         // Get the pet's details
-        val userId = authRepository.getCurrentUserId()?:""
-        val petResult = petRepository.getPetById(userId, appointment.petId)
+        val custId = authRepository.getCurrentUserId()?:""
+        val petResult = petRepository.getPetById(custId, appointment.petId)
         val pet = petResult.getOrNull()
 
         // Create the final appointment object with the breed included
@@ -52,11 +52,36 @@ class AppointmentRepository @Inject constructor(
         confirmBooking()
     }
 
+    suspend fun removeAppointment(appointment: Appointment){
+        firestoreHelper.deleteDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointment.appointmentId
+        )
+    }
+
+    suspend fun rescheduleAppointment(appointmentId: String, newDateTime: Timestamp): Result<Unit> {
+        return firestoreHelper.updateDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointmentId,
+            updates = mapOf("dateTime" to newDateTime)
+        )
+    }
+
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
             Appointment::class.java
+        )
+    }
+
+    suspend fun getAllAppointmentsByBranch(branchId: String?): Result<List<Appointment>> {
+        val id = branchId ?: return Result.failure(Exception("Branch ID is required"))
+        return firestoreHelper.queryDocuments(
+            collection = COLLECTION_APPOINTMENT,
+            field = "branchId",
+            value = id,
+            clazz = Appointment::class.java
         )
     }
 
@@ -74,46 +99,55 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentItem (
         appointmentDocument: Appointment,
     ):Result<AppointmentItem?> {
-        val id = appointmentDocument.appointmentId
+        val appointmentId = appointmentDocument.appointmentId.trim()
+        val serviceId = appointmentDocument.serviceId.trim()
+        val branchId = appointmentDocument.branchId.trim()
+        val petId = appointmentDocument.petId.trim()
+
         val serviceResult = firestoreHelper.getDocumentField(
             collection = COLLECTION_SERVICE,
-            documentId = appointmentDocument.serviceId,
+            documentId = serviceId,
             fieldName = "type",
             String::class.java
         )
         val serviceName = serviceResult.getOrElse {
             return Result.failure(Exception("Service name not found"))
         }
+
         val unformatDateTime: Timestamp? = appointmentDocument.dateTime
         val date = unformatDateTime?.toDate()
         val formatter = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
         val dateTime = date?.let { formatter.format(it) } ?: "dateTime failed"
+
         val locationResult = firestoreHelper.getDocumentField(
             collection = COLLECTION_BRANCH,
-            documentId = appointmentDocument.branchId,
+            documentId = branchId,
             fieldName = "branchName",
             String::class.java
         )
-
         val locationName: String = locationResult.getOrNull() ?: "Locaton failed"
+
         val status = appointmentDocument.status
+
         val getPetResult = firestoreHelper.getDocument(
             collection = COLLECTION_PET,
-            documentId = appointmentDocument.petId,
+            documentId = petId,
             clazz = Pet::class.java
         )
         val pet = getPetResult.getOrNull()
             ?: return Result.failure(Exception("Pet not found"))
+
         val getOwnerResult = firestoreHelper.getDocument(
             collection = COLLECTION_CUSTOMER,
-            documentId = pet.custId,
+            documentId = pet.custId.trim(),
             clazz = Customer::class.java
         )
         val owner = getOwnerResult.getOrNull()
             ?: return Result.failure(Exception("Owner not found"))
+
         return Result.success(
             AppointmentItem(
-                id = id,
+                id = appointmentId,
                 dateTime = dateTime,
                 locationName = locationName,
                 owner = owner,
@@ -143,7 +177,7 @@ class AppointmentRepository @Inject constructor(
     }
 
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
 
         return firestoreHelper.listenToCollection(
             collection = COLLECTION_APPOINTMENT,
@@ -151,7 +185,7 @@ class AppointmentRepository @Inject constructor(
         ) { query ->
             // Chain multiple query conditions
             query
-                .whereEqualTo("custId", userId) // Filter by the current user's ID
+                .whereEqualTo("custId", custId) // Filter by the current user's ID
                 .whereGreaterThanOrEqualTo("dateTime",
                     Timestamp.now()) // Filter for appointments from now onwards
                 .orderBy("dateTime") // Order by the soonest appointment first
@@ -159,13 +193,26 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-        fun confirmBooking() {
+    fun getAllAppointmentsForCurrentUser(): Flow<List<Appointment>> {
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+
+        return firestoreHelper.listenToCollection(
+            collection = COLLECTION_APPOINTMENT,
+            clazz = Appointment::class.java
+        ) { query ->
+            query
+                .whereEqualTo("custId", custId)
+                .orderBy("dateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        }
+    }
+
+    fun confirmBooking() {
             CoroutineScope(ioDispatcher).launch {
                 // After successfully saving, send a notification
-                val userId = authRepository.getCurrentUserId()
-                if (userId != null) {
+                val custId = authRepository.getCurrentUserId()
+                if (custId != null) {
                     notificationRepository.sendNotification(
-                        userId = userId,
+                        custId = custId,
                         title = "Appointment Confirmed!",
                         message = "Your appointment has been successfully booked.",
                         type = "appointment"

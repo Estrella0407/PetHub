@@ -17,7 +17,7 @@ import javax.inject.Inject
  * ViewModel for Admin Dashboard
  */
 @HiltViewModel
-class AdminDashboardViewModel @Inject constructor(
+class AdminHomeViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {
@@ -38,7 +38,7 @@ class AdminDashboardViewModel @Inject constructor(
        viewModelScope.launch {
            _uiState.value = AdminDashboardUiState.Loading
 
-           val result = appointmentRepository.getAllAppointments()
+           val result = appointmentRepository.getAllAppointmentsByBranch(branchId = authRepository.getCurrentUserId())
 
            result
                .onSuccess { appointments ->

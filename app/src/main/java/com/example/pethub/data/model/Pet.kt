@@ -1,6 +1,6 @@
 package com.example.pethub.data.model
 
-import com.google.firebase.firestore.DocumentId
+import com.google.firebase.Timestamp
 import java.util.Date
 
 data class Pet(
@@ -13,8 +13,7 @@ data class Pet(
     val sex: String = "",
     val remarks: String? = null,
     val custId: String = "",
-    // Keeping existing fields that might be useful or ensuring compatibility if needed
     val imageUrl: String? = null,
-    val createdAt: Any? = null,
-    val updatedAt: Any? = null
+    val createdAt: Timestamp? = null,
+    val updatedAt: Timestamp? = null
 )

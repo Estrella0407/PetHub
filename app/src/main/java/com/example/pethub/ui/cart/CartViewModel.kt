@@ -1,8 +1,8 @@
 package com.example.pethub.ui.cart
 
+import com.example.pethub.data.repository.ShopRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pethub.data.repository.ShopRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,18 +15,18 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CartViewModel @Inject constructor(
-    private val repository: ShopRepository
+    private val shopRepository: ShopRepository
 ) : ViewModel() {
 
     // 1. Get Real Cart Items from Firebase
-    val cartItems = repository.getCartItems()
+    val cartItems = shopRepository.getCartItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 2. Calculate Total Amount Automatically
     val totalAmount = cartItems.map { items ->
         items.sumOf { it.product.price * it.quantity }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-    val branchList: StateFlow<List<String>> = repository.getBranches()
+    val branchList: StateFlow<List<String>> = shopRepository.getBranches()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -58,9 +58,9 @@ class CartViewModel @Inject constructor(
 
     fun updateQuantity(productId: String, newQuantity: Int) {
         viewModelScope.launch {
-            val currentItem = cartItems.value.find { it.productId == productId }
+            val currentItem = cartItems.value.find { it.product.id == productId }
             if (currentItem != null) {
-                repository.updateCartItem(currentItem.copy(quantity = newQuantity))
+                shopRepository.updateCartItem(currentItem.copy(quantity = newQuantity))
             }
         }
     }
@@ -74,6 +74,11 @@ class CartViewModel @Inject constructor(
         val total = totalAmount.value
 
         // Validation
+        if (branch == "Select a Branch" || branch.isEmpty()) {
+            onError("Please select a branch.")
+            return
+        }
+
         if (date.isEmpty() || time.isEmpty()) {
             onError("Please select pickup date and time.")
             return
@@ -85,7 +90,7 @@ class CartViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val result = repository.placeOrder(branch, date, time, items, total)
+            val result = shopRepository.placeOrder(branch, date, time, items, total)
             if (result.isSuccess) {
                 // Clear selections after success
                 _selectedDate.value = ""

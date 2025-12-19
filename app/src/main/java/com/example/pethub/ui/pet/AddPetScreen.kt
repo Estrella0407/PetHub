@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.data.model.Customer
@@ -43,7 +44,7 @@ fun AddPetScreen(
     var remarks by rememberSaveable { mutableStateOf("") }
     var dob by rememberSaveable { mutableStateOf("") }
     var sex by rememberSaveable { mutableStateOf("Select") }
-    var weight by rememberSaveable { mutableStateOf("Select") }
+    var weight by rememberSaveable { mutableStateOf("") }
 
     AddPetContent(
         petName = petName,
@@ -238,11 +239,11 @@ fun PhysicalAttributesSection(
             onOptionSelected = onSexChange,
             modifier = Modifier.weight(1f)
         )
-        PetDropdownField(
+        PetTextField(
             value = weight,
-            options = listOf("1-5kg", "6-10kg", "10-20kg", ">20kg"),
-            label = "Weight",
-            onOptionSelected = onWeightChange,
+            onValueChange = onWeightChange,
+            label = "Weight (kg)",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), // Number pad
             modifier = Modifier.weight(1f)
         )
     }
@@ -281,6 +282,7 @@ fun PetTextField(
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
     imeAction: ImeAction = ImeAction.Next,
+    keyboardOptions: KeyboardOptions? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     interactionSource: androidx.compose.foundation.interaction.MutableInteractionSource? = null
 ) {
@@ -293,7 +295,7 @@ fun PetTextField(
         modifier = modifier,
         singleLine = true,
         readOnly = readOnly,
-        keyboardOptions = KeyboardOptions(imeAction = if (readOnly) ImeAction.None else imeAction),
+        keyboardOptions = keyboardOptions ?: KeyboardOptions(imeAction = if (readOnly) ImeAction.None else imeAction),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Next) },
             onDone = { focusManager.clearFocus() }
@@ -326,7 +328,9 @@ fun PetDropdownField(
             label = label,
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
         )
         ExposedDropdownMenu(
             expanded = expanded,

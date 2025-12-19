@@ -17,13 +17,13 @@ class NotificationRepository @Inject constructor(
 ) {
 
     fun getUserNotifications(): Flow<List<Notification>> {
-        val userId = firebaseService.getCurrentUserId() ?: return flowOf(emptyList())
+        val custId = firebaseService.getCurrentUserId() ?: return flowOf(emptyList())
         
         return firestoreHelper.listenToCollection(
             COLLECTION_NOTIFICATION,
             Notification::class.java
         ) { query ->
-            query.whereEqualTo("userId", userId)
+            query.whereEqualTo("custId", custId)
                 .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
         }
     }
@@ -40,13 +40,13 @@ class NotificationRepository @Inject constructor(
      * Creates a new notification for a specific user.
      * Use this to trigger notifications manually from the app (e.g. after Booking).
      */
-    suspend fun sendNotification(userId: String, title: String, message: String, type: String = "info"): Result<Unit> {
+    suspend fun sendNotification(custId: String, title: String, message: String, type: String = "info"): Result<Unit> {
         // Generate a unique ID for the notification
         val notificationId = UUID.randomUUID().toString()
         
         val notification = Notification(
             id = notificationId,
-            userId = userId,
+            custId = custId,
             title = title,
             message = message,
             timestamp = System.currentTimeMillis(),

@@ -3,14 +3,15 @@ package com.example.pethub.data.repository
 import android.util.Log
 import com.example.pethub.data.model.CartItem
 import com.example.pethub.data.model.Product
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class ShopRepository @Inject constructor() {
@@ -19,11 +20,10 @@ class ShopRepository @Inject constructor() {
     private val auth = FirebaseAuth.getInstance()
     private val TAG = "ShopRepository"
 
-    // --- 1. Get All Products (Manual Mapping for Robustness) ---
+    // --- 1. Get All Products (No changes needed here) ---
     fun getProducts(): Flow<List<Product>> = callbackFlow {
         Log.d(TAG, "Connecting to the Firebase 'product' collection...")
 
-        // Ensure collection name matches Firebase exactly ("product")
         val listener = db.collection("product")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -33,32 +33,18 @@ class ShopRepository @Inject constructor() {
                 }
 
                 if (snapshot != null) {
-                    Log.d(TAG, "Found ${snapshot.size()} documents. Starting manual parsing...")
-
                     val products = snapshot.documents.mapNotNull { doc ->
                         try {
-                            // --- Manual Field Extraction ---
-                            // 1. ID
                             val id = doc.getString("productId") ?: ""
-
-                            // 2. Name
                             val name = doc.getString("productName") ?: "Unknown Product"
-
-                            // 3. Price (Handles both Number and String types in Firebase)
                             val priceObj = doc.get("productPrice")
                             val price = when (priceObj) {
                                 is Number -> priceObj.toDouble()
                                 is String -> priceObj.toDoubleOrNull()
                                 else -> 0.0
                             } ?: 0.0
-
-                            // 4. Description
                             val description = doc.getString("productDescription") ?: ""
-
-                            // 5. Category
                             val category = doc.getString("productCategory") ?: "Pet Food"
-
-                            // 6. Image URL (Checks "productImageUrl" first, then fallback to "imageUrl")
                             val img1 = doc.getString("productImageUrl")
                             val img2 = doc.getString("imageUrl")
                             val imageUrl = img1 ?: img2 ?: ""
@@ -73,34 +59,28 @@ class ShopRepository @Inject constructor() {
                             )
                         } catch (e: Exception) {
                             Log.e(TAG, "Error parsing document ${doc.id}", e)
-                            null // Skip invalid documents instead of crashing
+                            null
                         }
                     }
-
-                    if (products.isNotEmpty()) {
-                        Log.d(TAG, "Parsing successful! First item: ${products[0].name}, price: ${products[0].price}")
-                    } else {
-                        Log.w(TAG, "List is empty after parsing. Check Firebase field names.")
-                    }
-
                     trySend(products)
                 } else {
                     trySend(emptyList())
                 }
             }
-        awaitClose { listener.remove() }
+            awaitClose { listener.remove() }
     }
 
-    // --- 2. Get Cart Items (Real-time) ---
+    // --- 2. Get Cart Items (UPDATED PATH) ---
     fun getCartItems(): Flow<List<CartItem>> = callbackFlow {
-        val userId = auth.currentUser?.uid
-        if (userId == null) {
+        val custId = auth.currentUser?.uid
+        if (custId == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val listener = db.collection("users").document(userId).collection("cart")
+        // CHANGED: "users" -> "customer"
+        val listener = db.collection("customer").document(custId).collection("cart")
             .addSnapshotListener { snapshot, _ ->
                 val items = snapshot?.toObjects(CartItem::class.java) ?: emptyList()
                 trySend(items)
@@ -108,21 +88,22 @@ class ShopRepository @Inject constructor() {
         awaitClose { listener.remove() }
     }
 
-    // --- 3. Add to Cart (With Safety Checks) ---
+    // --- 3. Add to Cart (UPDATED PATH) ---
     suspend fun addToCart(product: Product) {
-        val userId = auth.currentUser?.uid
+        val custId = auth.currentUser?.uid
 
-        if (userId == null) {
+        if (custId == null) {
             Log.e(TAG, "Cannot add to cart: User not logged in")
             return
         }
 
         if (product.id.isEmpty()) {
-            Log.e(TAG, "Cannot add to cart: Product ID is empty. Check mapping.")
+            Log.e(TAG, "Cannot add to cart: Product ID is empty.")
             return
         }
 
-        val cartRef = db.collection("users").document(userId).collection("cart")
+        // CHANGED: "users" -> "customer"
+        val cartRef = db.collection("customer").document(custId).collection("cart")
         val docRef = cartRef.document(product.id)
 
         try {
@@ -133,7 +114,6 @@ class ShopRepository @Inject constructor() {
                 docRef.update("quantity", currentQuantity + 1).await()
             } else {
                 val newItem = CartItem(
-                    productId = product.id,
                     product = product,
                     quantity = 1
                 )
@@ -145,19 +125,21 @@ class ShopRepository @Inject constructor() {
         }
     }
 
-    // --- 4. Update Cart Quantity ---
+    // --- 4. Update Cart Quantity (UPDATED PATH) ---
     suspend fun updateCartItem(cartItem: CartItem) {
-        val userId = auth.currentUser?.uid ?: return
-        val cartRef = db.collection("users").document(userId).collection("cart")
+        val custId = auth.currentUser?.uid ?: return
+
+        // CHANGED: "users" -> "customer"
+        val cartRef = db.collection("customer").document(custId).collection("cart")
 
         if (cartItem.quantity > 0) {
-            cartRef.document(cartItem.productId).set(cartItem).await()
+            cartRef.document(cartItem.product.id).set(cartItem).await()
         } else {
-            cartRef.document(cartItem.productId).delete().await()
+            cartRef.document(cartItem.product.id).delete().await()
         }
     }
 
-    // --- 5. Place Order (Save to 'order' & 'productOrder', then Clear Cart) ---
+    // --- 5. Place Order (UPDATED PATH for Clearing Cart) ---
     suspend fun placeOrder(
         branchName: String,
         pickupDate: String,
@@ -165,45 +147,43 @@ class ShopRepository @Inject constructor() {
         cartItems: List<CartItem>,
         totalAmount: Double
     ): Result<Boolean> {
-        val userId = auth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
+        val custId = auth.currentUser?.uid ?: return Result.failure(Exception("User not logged in"))
 
         if (cartItems.isEmpty()) return Result.failure(Exception("Cart is empty"))
 
         return try {
             val batch = db.batch()
 
-            // A. Create Main Order
+            // A. Create Main Order (No changes needed here)
             val orderRef = db.collection("order").document()
             val orderId = orderRef.id
 
-            // Parse Date String to Timestamp
             val dateFormat = java.text.SimpleDateFormat("d/M/yyyy HH:mm", java.util.Locale.getDefault())
             val parsedDate = try {
                 dateFormat.parse("$pickupDate $pickupTime")
             } catch (e: Exception) {
                 null
             }
-            val pickupTimestamp = parsedDate?.let { com.google.firebase.Timestamp(it) } ?: com.google.firebase.Timestamp.now()
+            val pickupTimestamp = parsedDate?.let { Timestamp(it) } ?: Timestamp.now()
 
             val newOrder = hashMapOf(
                 "orderId" to orderId,
-                "userId" to userId, // Matches 'custId' in some legacy data, keep consistent with your needs
-                "custId" to userId, // Add both if unsure about legacy UI requirements
+                "custId" to custId,
                 "branchName" to branchName,
-                "pickupTime" to pickupTimestamp,
-                "orderDateTime" to com.google.firebase.Timestamp.now(),
+                "pickupDateTime" to pickupTimestamp,
+                "orderDateTime" to Timestamp.now(),
                 "totalPrice" to totalAmount,
                 "status" to "Pending"
             )
             batch.set(orderRef, newOrder)
 
-            // B. Create Product Orders
+            // B. Create Product Orders (No changes needed here)
             cartItems.forEach { item ->
                 val productOrderRef = db.collection("productOrder").document()
                 val productOrderData = hashMapOf(
                     "productOrderId" to productOrderRef.id,
                     "orderId" to orderId,
-                    "productId" to item.productId,
+                    "productId" to item.product.id,
                     "productName" to item.product.name,
                     "quantity" to item.quantity,
                     "priceAtPurchase" to item.product.price
@@ -211,8 +191,9 @@ class ShopRepository @Inject constructor() {
                 batch.set(productOrderRef, productOrderData)
             }
 
-            // C. Clear Cart
-            val cartCollection = db.collection("users").document(userId).collection("cart")
+            // C. Clear Cart (UPDATED PATH)
+            // CHANGED: "users" -> "customer"
+            val cartCollection = db.collection("customer").document(custId).collection("cart")
             val snapshot = cartCollection.get().await()
             for (doc in snapshot.documents) {
                 batch.delete(doc.reference)
@@ -228,7 +209,7 @@ class ShopRepository @Inject constructor() {
         }
     }
 
-    // --- 6. Get Branch List (For Cart Dropdown) ---
+    // --- 6. Get Branch List (No changes needed here) ---
     fun getBranches(): Flow<List<String>> = callbackFlow {
         val listener = db.collection("branch")
             .addSnapshotListener { snapshot, error ->
@@ -240,7 +221,6 @@ class ShopRepository @Inject constructor() {
 
                 if (snapshot != null) {
                     val branchNames = snapshot.documents.mapNotNull { doc ->
-                        // Checks "branchName" first, fallback to "name"
                         doc.getString("branchName") ?: doc.getString("name")
                     }
                     trySend(branchNames)

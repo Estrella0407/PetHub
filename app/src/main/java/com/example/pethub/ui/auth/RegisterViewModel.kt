@@ -1,8 +1,11 @@
 package com.example.pethub.ui.auth
 
+import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.repository.AuthRepository
+import com.example.pethub.utils.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -102,8 +105,14 @@ class RegisterViewModel @Inject constructor(
             _uiState.value = state.copy(errorMessage = "All fields are required")
             return
         }
+        
+        // Smart Dispatch: If user is already authenticated (e.g. via Google), use the Google flow
+        if (authRepository.isUserAuthenticated()) {
+            completeGoogleProfile()
+            return
+        }
 
-        // If valid
+        // If valid and not authenticated, proceed with full registration (Auth + Firestore)
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
 
@@ -124,6 +133,81 @@ class RegisterViewModel @Inject constructor(
         }
 
     }
+
+    fun completeGoogleProfile() {
+        val state = _uiState.value
+        // Validation
+        if (state.username.isBlank() || state.phone.isBlank() || state.address.isBlank()) {
+            _uiState.value = state.copy(errorMessage = "All fields are required")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+            
+            val result = authRepository.createCustomerProfile(
+                username = state.username, 
+                phone = state.phone, 
+                address = state.address
+            )
+
+            if(result.isSuccess) {
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    completed = true,
+                    successMessage = "Profile completed successfully!"
+                )
+            } else {
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = result.exceptionOrNull()?.message ?: "Profile completion failed"
+                )
+            }
+        }
+    }
+
+    fun checkGoogleUserStatus() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+
+            val result = authRepository.signInWithGoogle()
+
+            result.onSuccess { signInResult ->
+                when (signInResult) {
+                    is com.example.pethub.data.repository.GoogleSignInResult.ExistingUser -> {
+                        val authData = signInResult.authResult
+                        val role = if (authData.isAdmin) "admin" else "customer"
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isLoginSuccessful = true,
+                            loggedInUserRole = role
+                        )
+                    }
+                    is com.example.pethub.data.repository.GoogleSignInResult.NewUser -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isNewGoogleUser = true
+                        )
+                    }
+                }
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Google Sign-In failed"
+                )
+            }
+        }
+    }
+
+    fun onNewUserHandled() {
+        _uiState.value = _uiState.value.copy(isNewGoogleUser = false)
+    }
+
+    fun onLoginHandled() {
+        _uiState.value = _uiState.value.copy(isLoginSuccessful = false)
+    }
+
+
 }
 
 
@@ -132,12 +216,15 @@ data class RegisterUiState(
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
-    val address : String = "",
+    val address: String = "",
     val phone: String = "",
     val isPasswordVisible: Boolean = false,
     val isConfirmPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
+    val isLoginSuccessful: Boolean = false,
+    val isNewGoogleUser: Boolean = false,
+    val loggedInUserRole: String? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val completed: Boolean = false

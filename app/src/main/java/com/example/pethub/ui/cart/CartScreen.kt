@@ -144,8 +144,8 @@ fun CartScreen(
                 items(cartItems) { item ->
                     CartItemCard(
                         item = item,
-                        onIncrease = { viewModel.updateQuantity(item.productId, item.quantity + 1) },
-                        onDecrease = { viewModel.updateQuantity(item.productId, item.quantity - 1) }
+                        onIncrease = { viewModel.updateQuantity(item.product.id, item.quantity + 1) },
+                        onDecrease = { viewModel.updateQuantity(item.product.id, item.quantity - 1) }
                     )
                 }
             }
