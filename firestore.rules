@@ -58,13 +58,10 @@ service cloud.firestore {
       // Allow creation if the pet belongs to the user
       allow create: if isSignedIn() && isPetOwner(request.resource.data.petId);
 
-      // Allow list queries for admins only (needed for reports)
-      allow list: if isAdmin();
-
-      // For individual document reads (get), verify ownership
-      allow get: if isAdmin() ||
-                   (isSignedIn() && resource.data.branchId == request.auth.uid) ||
-                   isPetOwner(resource.data.petId);
+      // Allow read (list and get) for all signed-in users
+      // This is required for the recommendation engine (fetching similar pets' appointments)
+      // and for users to view their own appointments dependent on petId queries.
+      allow read: if isSignedIn();
 
       // Allow update/delete if admin or pet owner
       allow update, delete: if isAdmin() || isPetOwner(resource.data.petId);

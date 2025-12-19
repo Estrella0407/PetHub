@@ -97,7 +97,10 @@ fun ProfileScreen(
                 ProfileContent(
                     modifier = Modifier.padding(paddingValues),
                     uiState = state,
-                    onLogoutClick = onLogout,
+                    onLogoutClick = {
+                        viewModel.logout()
+                        onLogout()
+                    },
                     onAddPetClick = onAddPetClick,
                     onFaqClick = onFaqClick,
                     onPetClick = { petId ->
