@@ -269,7 +269,10 @@ fun NavGraph(
             )
         }
 
-        composable("orderDetail/{orderId}") {
+        composable(
+            route = "orderDetail/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) {
             OrderDetailScreen(
                 onNavigateBack = { navController.popBackStack() }
             )

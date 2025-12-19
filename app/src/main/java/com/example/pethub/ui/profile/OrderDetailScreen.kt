@@ -93,7 +93,11 @@ private fun OrderSummaryCard(order: Order) {
     val statusColor = getStatusColor(order.status)
 
     val pickupDate = order.pickupDateTime
-    val formattedPickupDate = SimpleDateFormat("EEE, dd MMM yyyy 'at' hh:mm a", Locale.getDefault()).format(pickupDate)
+    val formattedPickupDate = if (pickupDate != null) {
+        SimpleDateFormat("EEE, dd MMM yyyy 'at' hh:mm a", Locale.getDefault()).format(pickupDate.toDate())
+    } else {
+        "Not scheduled"
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),

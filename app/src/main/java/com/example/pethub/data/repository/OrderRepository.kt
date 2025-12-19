@@ -66,7 +66,7 @@ class OrderRepository @Inject constructor(
 
     suspend fun getProductOrdersForOrder(orderId: String): Result<List<ProductOrder>> {
         val result = firestoreHelper.queryDocuments(
-            collection = "product_order",
+            collection = "productOrder",
             field = "orderId",
             value = orderId,        clazz = ProductOrder::class.java
         )
