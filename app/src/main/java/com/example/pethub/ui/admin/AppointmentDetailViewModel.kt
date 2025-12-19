@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.update
+import com.google.firebase.Timestamp
+import java.util.Date
 import javax.inject.Inject
 
 
@@ -87,6 +89,22 @@ class AppointmentDetailViewModel @Inject constructor(
         }
     }
 
+    fun updateShowRescheduleOverlay(bool: Boolean) {
+        _uiState.update {
+            it.copy(showRescheduleOverlay = bool)
+        }
+    }
+
+    fun rescheduleAppointment(appointmentId: String, newDate: Date) {
+        viewModelScope.launch {
+            val timestamp = Timestamp(newDate)
+            appointmentRepository.rescheduleAppointment(appointmentId, timestamp)
+                .onSuccess {
+                    loadAppointment(appointmentId)
+                }
+        }
+    }
+
 }
 
 data class AppointmentDetailUiState(
@@ -94,5 +112,6 @@ data class AppointmentDetailUiState(
     val appointment: Appointment? = null,
     val appointmentItem: AppointmentItem? = null,
     val errorMessage: String = "",
-    val showCancelOverlay: Boolean = false
+    val showCancelOverlay: Boolean = false,
+    val showRescheduleOverlay: Boolean = false
 )

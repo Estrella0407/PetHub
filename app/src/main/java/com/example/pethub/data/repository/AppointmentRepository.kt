@@ -59,6 +59,14 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
+    suspend fun rescheduleAppointment(appointmentId: String, newDateTime: Timestamp): Result<Unit> {
+        return firestoreHelper.updateDocument(
+            collection = COLLECTION_APPOINTMENT,
+            documentId = appointmentId,
+            updates = mapOf("dateTime" to newDateTime)
+        )
+    }
+
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(

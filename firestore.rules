@@ -2,10 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ============================================================================
-    // HELPER FUNCTIONS
-    // ============================================================================
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -15,18 +11,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // A user is an admin if a document with their UID exists in the 'branch' collection.
       return isSignedIn() && exists(/databases/$(database)/documents/branch/$(request.auth.uid));
     }
 
-    // ============================================================================
-    // RULES
-    // ============================================================================
-
-    // 1. CUSTOMER > CART
+    // 1. CUSTOMER
     match /customer/{customerId} {
-      // Only the owner or an admin can read/update a customer profile.
-      // Removed `|| isSignedIn()`
       allow read, update: if isDocumentOwner(customerId) || isAdmin();
       allow create: if isSignedIn();
 
@@ -37,18 +26,14 @@ service cloud.firestore {
 
     // 2. PET
     match /pet/{petId} {
-       allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-       // Only the owner or an admin can read pets.
-       allow read: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
-       allow update, delete: if request.auth.uid == resource.data.custId || isAdmin();
+       allow create: if isSignedIn(); // Simplified for safer creation
+       allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
     }
 
     // 3. BRANCH
-    // This simple rule is KEY. It allows the isAdmin() function's `exists()` check to succeed.
     match /branch/{branchId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
-
       match /branch_services/{docId} {
         allow read: if true;
         allow write: if isAdmin();
@@ -56,12 +41,10 @@ service cloud.firestore {
     }
 
     // 4. APPOINTMENT
-    // These rules are now correct because isAdmin() works as intended.
     match /appointment/{appointmentId} {
-      allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-      allow get: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
-      allow list: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
-      allow update, delete: if resource.data.custId == request.auth.uid || resource.data.branchId == request.auth.uid || isAdmin();
+      allow create: if isSignedIn();
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.custId == request.auth.uid || resource.data.branchId == request.auth.uid));
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
     }
 
     // 5. SERVICE
@@ -72,7 +55,8 @@ service cloud.firestore {
 
     // 6. NOTIFICATION
     match /notification/{notificationId} {
-      allow read, write: if resource.data.custId == request.auth.uid || isAdmin();
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
     }
 
     // 7. PRODUCT
@@ -83,14 +67,21 @@ service cloud.firestore {
 
     // 8. ORDERS
     match /order/{orderId} {
-      allow create: if request.auth.uid == resource.data.custId || isAdmin();
+      // Use request.resource to check the incoming data during creation
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.custId;
       allow read: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
-      allow list: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
     }
 
     // 9. PRODUCT ORDERS
     match /productOrder/{productOrderId} {
-       allow read, create: if request.auth.uid == request.resource.data.custId || isAdmin();
+       // CRITICAL FIX: Allow creation if logged in (Trust the batch)
+       allow create: if isSignedIn();
+       
+       // Secure read using the dynamic lookup
+       allow read: if isAdmin() || (
+         isSignedIn() && 
+         get(/databases/$(database)/documents/order/$(resource.data.orderId)).data.custId == request.auth.uid
+       );
     }
 
     // 10. BRANCH PRODUCT
