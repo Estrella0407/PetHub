@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -24,19 +25,64 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.navigation.AdminBottomNavigationBar
+import com.example.pethub.ui.shop.CreamBg
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamFair
 
 @Composable
 fun AppointmentDetail(
+    onNavigateToHome: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onNavigateToStocks: () -> Unit,
+    onNavigateToServices: () -> Unit,
+    onNavigateToScanner: () -> Unit,
+    appointmentId: String,
+    onAppointmentCanceled: () -> Unit,
+    viewModel: AppointmentDetailViewModel = hiltViewModel()
+){
+    val uiState by viewModel.uiState.collectAsState()
+
+    Box (modifier = Modifier.fillMaxSize()) {
+        AppointmentDetailHero(
+            onNavigateToHome = onNavigateToHome,
+            onNavigateToLogin = onNavigateToLogin,
+            onNavigateToStocks = onNavigateToStocks,
+            onNavigateToServices = onNavigateToServices,
+            onNavigateToScanner = onNavigateToScanner,
+            appointmentId = appointmentId
+        )
+
+        if (uiState.showCancelOverlay){
+            CancelAppointmentOverlay(
+                onNoClicked = { viewModel.updateShowCancelOverlay(false) },
+                onYesClicked = {
+                    uiState.appointment?.let {
+                        viewModel.removeAppointment(it)
+                    }
+                    viewModel.updateShowCancelOverlay(false)
+                    onAppointmentCanceled()
+                },
+                closeOverlay = {viewModel.updateShowCancelOverlay(false)}
+            )
+        }
+    }
+}
+
+@Composable
+fun AppointmentDetailHero(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToStocks: () -> Unit,
@@ -125,7 +171,7 @@ fun AppointmentDetail(
                         .width(2.dp)
                         .fillMaxHeight()
                         .background(Color.Black)
-                        .padding(horizontal = 2.dp)
+                        .padding(horizontal = 8.dp)
                     )
                     Column(
                         verticalArrangement = Arrangement.SpaceBetween,
@@ -167,7 +213,7 @@ fun AppointmentDetail(
                         shape = RoundedCornerShape(6.dp)
                     )
                     .align(Alignment.CenterHorizontally)
-                    .clickable{}
+                    .clickable {}
                     .padding(16.dp)
                     .width(180.dp)
             )
@@ -183,7 +229,7 @@ fun AppointmentDetail(
                         shape = RoundedCornerShape(6.dp)
                     )
                     .align(Alignment.CenterHorizontally)
-                    .clickable{}
+                    .clickable { viewModel.updateShowCancelOverlay(true) }
                     .padding(16.dp)
                     .width(180.dp)
             )
@@ -191,3 +237,69 @@ fun AppointmentDetail(
     }
 }
 
+@Composable
+fun CancelAppointmentOverlay (
+    onNoClicked: () -> Unit,
+    onYesClicked: () -> Unit,
+    closeOverlay:() -> Unit
+){
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { closeOverlay() }
+    ){
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .background(CreamBg, RoundedCornerShape(8.dp))
+                .padding(20.dp)
+                .clickable(enabled = false) {}
+                .width(280.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ){
+            Text(
+                text = "Confirm Cancel?",
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp
+            )
+            Spacer (modifier = Modifier.height(24.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+
+            ){
+                Text(
+                    text = "No",
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .background(
+                            color = Color.Red,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .clickable { onNoClicked() }
+                        .padding(horizontal = 24.dp)
+                        .padding(vertical = 16.dp),
+                    color = Color.White
+                )
+
+                Text(
+                    text = "Yes",
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .background(
+                            color = Color.Green,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .clickable { onYesClicked() }
+                        .padding(horizontal = 24.dp)
+                        .padding(vertical = 16.dp),
+                    color = Color.White
+                )
+            }
+        }
+    }
+}

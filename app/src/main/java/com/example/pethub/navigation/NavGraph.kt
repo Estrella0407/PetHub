@@ -21,7 +21,6 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.data.remote.FirebaseService
 import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.ui.admin.AdminHomeScreen
-import com.example.pethub.ui.admin.AdminDashboardScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
@@ -344,6 +343,18 @@ fun NavGraph(
                 onFaqClick = {navController.navigate("faq")},
                 onNavigateToPetProfile = { petId ->
                     navController.navigate("petProfile/$petId")
+                },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
+                },
+                onNavigateToAllAppointments = {
+                    navController.navigate("all_appointments")
+                },
+                onNavigateToAllOrders = {
+                    navController.navigate("all_orders")
                 }
             )
         }

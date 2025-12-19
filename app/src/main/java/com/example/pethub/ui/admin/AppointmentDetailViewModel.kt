@@ -1,5 +1,6 @@
 package com.example.pethub.ui.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Appointment
@@ -10,8 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 
 @HiltViewModel
@@ -87,7 +88,6 @@ class AppointmentDetailViewModel @Inject constructor(
     }
 
 }
-
 
 data class AppointmentDetailUiState(
     val isLoading: Boolean = false,
