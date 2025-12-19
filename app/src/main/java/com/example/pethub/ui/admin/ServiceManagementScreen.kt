@@ -1,33 +1,11 @@
 package com.example.pethub.ui.admin
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -36,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.R
-import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.AdminBottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,8 +22,8 @@ fun ServiceManagementScreen(
     onNavigateToAdminHome: () -> Unit,
     onNavigateToAdminStocks: () -> Unit,
     onNavigateToAdminScanner: () -> Unit,
+    viewModel: ServiceManagementViewModel = hiltViewModel(),
     onNavigateToLogin: () -> Unit,
-    viewModel: ServiceManagementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -88,9 +65,10 @@ fun ServiceManagementScreen(
 
             when (val state = uiState) {
                 is ServiceManagementUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
+                is ServiceManagementUiState.Error -> {
+                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
                 }
                 is ServiceManagementUiState.Success -> {
                     LazyColumn(
@@ -98,18 +76,13 @@ fun ServiceManagementScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(state.services) { service ->
-                            ServiceRow(
+                            ServiceManagementRow(
                                 service = service,
-                                onCheckedChange = { isEnabled ->
-                                    viewModel.updateServiceAvailability(service.serviceId, isEnabled)
+                                onToggle = { isAvailable ->
+                                    viewModel.updateServiceAvailability(service.serviceId, isAvailable)
                                 }
                             )
                         }
-                    }
-                }
-                is ServiceManagementUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -118,17 +91,17 @@ fun ServiceManagementScreen(
 }
 
 @Composable
-fun ServiceRow(
+fun ServiceManagementRow(
     service: ServiceManagementItem,
-    onCheckedChange: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit
 ) {
-    val iconRes = when (service.name) {
-        "Grooming" -> R.drawable.grooming_nobg
-        "Boarding" -> R.drawable.boarding_nobg
-        "Walking" -> R.drawable.walking_nobg
-        "DayCare" -> R.drawable.daycare_nobg
-        "Training" -> R.drawable.training_nobg
-        else -> R.drawable.pethub_rvbg // A default icon
+    val iconRes = when (service.serviceId) {
+        "grooming" -> R.drawable.grooming_nobg
+        "boarding" -> R.drawable.boarding_nobg
+        "walking" -> R.drawable.walking_nobg
+        "daycare" -> R.drawable.daycare_nobg
+        "training" -> R.drawable.training_nobg
+        else -> R.drawable.pethub_rvbg
     }
 
     Column {
@@ -143,16 +116,16 @@ fun ServiceRow(
                 Image(
                     painter = painterResource(id = iconRes),
                     contentDescription = service.name,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(text = service.name, fontSize = 18.sp)
+                Text(text = service.name, fontSize = 18.sp, fontWeight = FontWeight.Medium)
             }
             Switch(
                 checked = service.isEnabled,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = onToggle
             )
         }
-        Divider()
+        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
