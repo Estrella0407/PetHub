@@ -32,9 +32,12 @@ service cloud.firestore {
     }
 
     // 2. PET
-    match /pet/{petId} {
-       allow create: if isSignedIn();
-       allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
+    match /pet/{petId} {      // Allow a user to read or write THEIR OWN pet document
+      allow get, write: if request.auth.uid == resource.data.custId;
+
+      // Allow ANY authenticated user to perform queries on the pet collection
+      // This is necessary for the recommendation engine to find similar pets.
+      allow list: if request.auth != null;
     }
 
     // 3. BRANCH
@@ -116,10 +119,8 @@ service cloud.firestore {
 
     // 11. BRANCH SERVICE
     match /branchService/{docId} {
-      // Explicitly allow both 'get' (single doc) and 'list' (query) operations
-      // for any user who is signed in.
-      allow get, list: if isSignedIn();
-
+      // Any signed-in user (customers choosing a branch, admins managing) can read.
+      allow read: if isSignedIn();
       // Only admins can create, update, or delete these links.
       allow write: if isAdmin();
     }

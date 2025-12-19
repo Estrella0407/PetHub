@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Pet
 import com.example.pethub.data.repository.AuthRepository
 import com.example.pethub.data.repository.PetRepository
+import com.example.pethub.data.repository.AppointmentRepository
+import com.example.pethub.data.model.Service
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,7 @@ import javax.inject.Inject
 class PetProfileViewModel @Inject constructor(
     private val petRepository: PetRepository,
     private val authRepository: AuthRepository,
+    private val appointmentRepository: AppointmentRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -32,39 +35,39 @@ class PetProfileViewModel @Inject constructor(
     }
 
     private fun loadPetDetails() {
-        // Move the entire try-catch block inside the launch
         viewModelScope.launch {
             _uiState.value = PetProfileUiState.Loading
             try {
-                // Get current User ID
                 val userId = authRepository.getCurrentUserId()
-
-                if (userId != null) {
-                    // Pass userId to the repository
-                    val result = petRepository.getPetById(userId, petId)
-
-                    if (result.isSuccess) {
-                        val pet = result.getOrNull()
-                        _uiState.value = if (pet != null) {
-                            PetProfileUiState.Success(pet)
-                        } else {
-                            PetProfileUiState.Error("Pet not found.")
-                        }
-                    } else {
-                        _uiState.value = PetProfileUiState.Error(
-                            result.exceptionOrNull()?.message ?: "Failed to load pet details."
-                        )
-                    }
-                } else {
+                if (userId == null) {
                     _uiState.value = PetProfileUiState.Error("User not logged in.")
+                    return@launch
                 }
 
+                val result = petRepository.getPetById(userId, petId)
+                val pet = result.getOrNull()
+
+                if (pet != null) {
+                    // If pet is found, set the success state first
+                    _uiState.value = PetProfileUiState.Success(pet = pet)
+
+                    // Then, fetch recommendations and update the state
+                    val recommendations = appointmentRepository.getRecommendedServicesForPet(
+                        petType = pet.type,
+                        petBreed = pet.breed
+                    )
+                    _uiState.update {
+                        (it as PetProfileUiState.Success).copy(recommendedServices = recommendations)
+                    }
+                } else {
+                    // If pet is not found, set the error state
+                    _uiState.value = PetProfileUiState.Error("Pet not found.")
+                }
             } catch (e: Exception) {
-                _uiState.value = PetProfileUiState.Error("An unexpected error occurred.")
+                _uiState.value = PetProfileUiState.Error(e.message ?: "An unexpected error occurred.")
             }
         }
     }
-
 
     fun onImageSelected(uri: Uri) {
         viewModelScope.launch {
@@ -72,41 +75,23 @@ class PetProfileViewModel @Inject constructor(
             if (currentState is PetProfileUiState.Success) {
                 val userId = authRepository.getCurrentUserId() ?: return@launch
 
+                _uiState.update { currentState.copy(isUploading = true) }
+
                 try {
-                    // Set state to uploading
-                    _uiState.update {
-                        currentState.copy(isUploading = true, uploadProgress = 0f)
-                    }
-
-                    // Upload to Cloudinary (via Repository)
-                    // Note: You might need to check if PetRepository has 'uploadPetImage' taking a progress callback
-                    // If not, standard upload is fine.
                     val result = petRepository.uploadPetImage(userId, petId, uri)
+                    val newImageUrl = result.getOrThrow()
 
-                    if (result.isSuccess) {
-                        val newImageUrl = result.getOrNull()!!
+                    val updates = mapOf("imageUrl" to newImageUrl)
+                    petRepository.updatePet(userId, petId, updates)
 
-                        // Update Firestore with new URL
-                        // Create a map of updates
-                        val updates = mapOf("imageUrl" to newImageUrl)
-                        petRepository.updatePet(userId, petId, updates)
-
-                        // Update UI State with new image and stop loading
-                        val updatedPet = currentState.pet.copy(imageUrl = newImageUrl)
-                        _uiState.update {
-                            currentState.copy(pet = updatedPet, isUploading = false)
-                        }
-                    } else {
-                        throw Exception(result.exceptionOrNull())
-                    }
-
-                } catch (e: Exception) {
-                    // Handle failure
+                    val updatedPet = currentState.pet.copy(imageUrl = newImageUrl)
                     _uiState.update {
-                        PetProfileUiState.Error("Upload failed: ${e.message}")
+                        currentState.copy(pet = updatedPet, isUploading = false)
                     }
-                    // Reload data to reset state
-                    loadPetDetails()
+                } catch (e: Exception) {
+                    // On failure, revert to the previous state without the loading indicator
+                    _uiState.value = currentState.copy(isUploading = false)
+                    // Optionally, you can set an error message in the state to show in a toast/snackbar
                 }
             }
         }
@@ -116,11 +101,11 @@ class PetProfileViewModel @Inject constructor(
 sealed class PetProfileUiState {
     data object Loading : PetProfileUiState()
 
-    // 👇 UPDATED: Added upload fields
     data class Success(
         val pet: Pet,
         val isUploading: Boolean = false,
-        val uploadProgress: Float = 0f
+        val uploadProgress: Float = 0f,
+        val recommendedServices: List<Service> = emptyList()
     ) : PetProfileUiState()
 
     data class Error(val message: String) : PetProfileUiState()

@@ -30,6 +30,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.pethub.utils.isServiceSuitableForPet
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -210,12 +211,9 @@ class AppointmentRepository @Inject constructor(
      */
     suspend fun getRecommendedServicesForPet(petType: String, petBreed: String): List<Service> =
         withContext(ioDispatcher) {
-            // Step 1: Find all pets that are the same type, and optionally the same breed.
             var similarPetsQuery: Query = firestoreHelper.getFirestoreInstance().collection("pet")
                 .whereEqualTo("type", petType)
 
-            // --- THIS IS THE FIX ---
-            // If a breed is provided, add it to the query.
             if (petBreed.isNotBlank()) {
                 similarPetsQuery = similarPetsQuery.whereEqualTo("breed", petBreed)
             }
@@ -224,17 +222,14 @@ class AppointmentRepository @Inject constructor(
             val similarPetIds = similarPetsResult.documents.map { it.id }
 
             if (similarPetIds.isEmpty()) {
-                // If no similar pets, return an empty list. The ViewModel will handle the fallback.
                 return@withContext emptyList()
             }
 
-            // Step 2: Find all appointments for these similar pets
             val appointmentsQuery = firestoreHelper.getFirestoreInstance().collection("appointment")
                 .whereIn("petId", similarPetIds)
                 .get()
                 .await()
 
-            // Step 3: Count the frequency of each serviceId from the appointments
             val serviceIdCounts = appointmentsQuery.documents
                 .mapNotNull { it.getString("serviceId") }
                 .groupingBy { it }
@@ -244,25 +239,25 @@ class AppointmentRepository @Inject constructor(
                 return@withContext emptyList()
             }
 
-            // Step 4: Get the top 3 most frequent service IDs
             val topServiceIds = serviceIdCounts.entries
                 .sortedByDescending { it.value }
-                .take(3)
+                .take(10) // Fetch more to allow for filtering
                 .map { it.key }
 
             if (topServiceIds.isEmpty()) {
                 return@withContext emptyList()
             }
 
-            // Step 5: Fetch the full service documents for the top IDs
             val services = firestoreHelper.getFirestoreInstance().collection("service")
                 .whereIn(FieldPath.documentId(), topServiceIds)
                 .get()
                 .await()
                 .toObjects(Service::class.java)
 
-            // Return the list of service objects
-            return@withContext services
+            // Filter the results using the service.type field, not service.serviceName
+            return@withContext services.filter { service ->
+                isServiceSuitableForPet(service.type, petType)
+            }.take(3)
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
