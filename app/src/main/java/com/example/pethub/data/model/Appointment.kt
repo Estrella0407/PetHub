@@ -13,7 +13,8 @@ data class Appointment(
     val serviceId: String = "",
     val custId: String = "",
     val createdAt: Any? = null,
-    val updatedAt: Any? = null
+    val updatedAt: Any? = null,
+    val specialInstructions: String = ""
 )
 
 /**
