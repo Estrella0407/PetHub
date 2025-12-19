@@ -5,7 +5,6 @@ import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.model.Customer
 import com.example.pethub.data.model.Pet
-import com.example.pethub.data.model.Service
 import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_APPOINTMENT
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
@@ -15,22 +14,15 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVI
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.jvm.optionals.getOrNull
 import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.Query
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
-import com.example.pethub.utils.isServiceSuitableForPet
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -43,35 +35,33 @@ class AppointmentRepository @Inject constructor(
 ) {
 
     /**
-     * Fetches a single appointment by its ID and transforms it into a detailed AppointmentItem.
-     * This is the primary function to be used by ViewModels to get all details for a single appointment.
+     * Creates a new appointment document in Firestore, ensuring the document's ID
+     * is also saved as the 'appointmentId' field within the document.
      */
-    suspend fun getAppointmentById(appointmentId: String): Result<AppointmentItem?> {
-        // Step 1: Get the raw Appointment document from Firestore.
-        val appointmentResult = getAppointmentDetail(appointmentId)
-
-        return appointmentResult.fold(
-            onSuccess = { appointment ->
-                if (appointment != null) {
-                    // Step 2: If successful, get the rich AppointmentItem.
-                    getAppointmentItem(appointment)
-                } else {
-                    Result.success(null) // Appointment not found, return null successfully.
-                }
-            },
-            onFailure = { exception ->
-                // If fetching the appointment failed, propagate the failure.
-                Result.failure(exception)
-            }
-        )
-    }
-
     suspend fun createAppointment(appointment: Appointment) {
-        // The 'appointment' object already has all the required IDs.
-        // Simply save it to Firestore.
-        firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointment)
-        // Trigger notification
-        confirmBooking()
+        // 1. Get a reference to a new, empty document in the appointments collection.
+        // This gives us the unique, auto-generated ID *before* we save any data.
+        val newAppointmentRef = firestoreHelper.getFirestoreInstance()
+            .collection(COLLECTION_APPOINTMENT).document()
+
+        // 2. Create a new Appointment object from the one passed by the ViewModel,
+        // but this time, we copy the auto-generated ID into the 'appointmentId' field.
+        val appointmentWithId = appointment.copy(appointmentId = newAppointmentRef.id)
+
+        // 3. Set the data of the new document reference with our complete object.
+        // Instead of .add(), we use .set() on the specific document reference.
+        newAppointmentRef.set(appointmentWithId).await()
+
+        // 4. Trigger the notification after the save is successful.
+        val custId = authRepository.getCurrentUserId()
+        if (custId != null) {
+            notificationRepository.sendNotification(
+                custId = custId,
+                title = "Appointment Confirmed!",
+                message = "Your appointment has been successfully booked.",
+                type = "appointment"
+            )
+        }
     }
 
     suspend fun removeAppointment(appointment: Appointment){
@@ -110,6 +100,7 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentDetail(
         appointmentId: String
     ): Result<Appointment?> {
+
         return firestoreHelper.getDocument(
             collection = COLLECTION_APPOINTMENT,
             documentId = appointmentId,
@@ -307,17 +298,4 @@ class AppointmentRepository @Inject constructor(
             }
         }
     }
-
-    private suspend fun confirmBooking() {
-        val custId = authRepository.getCurrentUserId()
-        if (custId != null) {
-            notificationRepository.sendNotification(
-                custId = custId,
-                title = "Appointment Confirmed!",
-                message = "Your appointment has been successfully booked.",
-                type = "appointment"
-            )
-        }
-    }
-
 }

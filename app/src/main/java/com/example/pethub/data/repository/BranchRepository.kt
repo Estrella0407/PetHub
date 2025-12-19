@@ -1,5 +1,6 @@
 package com.example.pethub.data.repository
 
+import androidx.compose.ui.geometry.isEmpty
 import com.example.pethub.data.local.database.dao.BranchDao
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.remote.FirestoreHelper
@@ -20,9 +21,19 @@ class BranchRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    fun listenToBranches(): Flow<List<Branch>> = firestoreHelper.listenToCollection(COLLECTION_BRANCH, Branch::class.java)
+    fun listenToBranches(): Flow<List<Branch>> {
+        return firestoreHelper.listenToCollection(
+            COLLECTION_BRANCH,
+            Branch::class.java
+        )
+    }
 
-    suspend fun getAllBranches(): Result<List<Branch>> = firestoreHelper.getAllDocuments(COLLECTION_BRANCH, Branch::class.java)
+    suspend fun getAllBranches(): Result<List<Branch>> {
+        return firestoreHelper.getAllDocuments(
+            COLLECTION_BRANCH,
+            Branch::class.java
+        )
+    }
 
     suspend fun getBranchById(branchId: String): Result<Branch?> {
         return firestoreHelper.getDocument(
@@ -56,20 +67,22 @@ class BranchRepository @Inject constructor(
                 }
 
             if (branchIds.isEmpty()) {
+                // No branches offer this service, return an empty list.
                 return@withContext Result.success(emptyList())
             }
 
-            // ⚠️ Firestore whereIn limit = 10
-            val branches = firestore.collection(COLLECTION_BRANCH)
-                .whereIn(FieldPath.documentId(), branchIds.take(10))
+            // Now that we have the IDs, fetch the full branch documents.
+            val branches = firestoreHelper.getFirestoreInstance()
+                .collection(COLLECTION_BRANCH)
+                .whereIn(FieldPath.documentId(), branchIds)
                 .get()
                 .await()
                 .toObjects(Branch::class.java)
 
             Result.success(branches)
+
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 }
-

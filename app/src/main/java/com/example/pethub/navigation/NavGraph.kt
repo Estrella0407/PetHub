@@ -24,6 +24,7 @@ import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.appointment.AppointmentScreen
+import com.example.pethub.ui.appointment.BookAppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -123,7 +124,7 @@ fun NavGraph(
 
         composable("notifications") {
             NotificationScreen(
-                onNavigateUp = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -189,7 +190,6 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-
 
         composable("profile") {
             ProfileScreen(

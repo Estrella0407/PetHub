@@ -1,6 +1,5 @@
 package com.example.pethub.ui.service
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,19 +15,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.pethub.R
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
 import com.example.pethub.data.model.Service
 import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
-import com.example.pethub.ui.theme.CreamLight
-import com.example.pethub.ui.theme.DarkBrown
+import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.PetHubTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,13 +44,15 @@ fun ServiceDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(uiState.service?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold) },
+                title = { Text(uiState.mainService?.type ?: "Service Details", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
         },
         containerColor = CreamBackground
@@ -62,12 +66,12 @@ fun ServiceDetailScreen(
                 onPetSelected = viewModel::onPetSelected,
                 onServiceTypeSelected = viewModel::onServiceTypeSelected,
                 onBranchSelected = viewModel::onBranchSelected,
-                onBookClick = {
-                    val s = uiState.selectedServiceType
-                    val p = uiState.selectedPet
-                    val b = uiState.selectedBranch
-                    if (s != null && p != null && b != null) {
-                        onProceedToBooking(s.serviceId, p.petId, b.branchId)
+                onBookAppointmentClick = {
+                    val selectedService = uiState.selectedServiceType
+                    val selectedPet = uiState.selectedPet
+                    val selectedBranch = uiState.selectedBranch
+                    if (selectedService != null && selectedPet != null && selectedBranch != null) {
+                        onProceedToBooking(selectedService.serviceId, selectedPet.petId, selectedBranch.branchId)
                     }
                 }
             )
@@ -82,96 +86,91 @@ fun ServiceDetailContent(
     onPetSelected: (Pet) -> Unit,
     onServiceTypeSelected: (Service) -> Unit,
     onBranchSelected: (Branch) -> Unit,
-    onBookClick: () -> Unit
+    onBookAppointmentClick: () -> Unit
 ) {
+    val iconRes = when (uiState.mainService?.serviceName) {
+        "Grooming" -> R.drawable.grooming_nobg
+        "Boarding" -> R.drawable.boarding_nobg
+        "Walking" -> R.drawable.walking_nobg
+        "Daycare" -> R.drawable.daycare_nobg
+        "Training" -> R.drawable.training_nobg
+        else -> R.drawable.pethub_rvbg // A default icon
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 1. Header with Icon and Dynamic Description
+        // --- Header Section ---
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val iconRes = when (uiState.service?.serviceName?.lowercase()) {
-                "grooming" -> R.drawable.grooming_nobg
-                "boarding" -> R.drawable.boarding_nobg
-                "walking" -> R.drawable.walking_nobg
-                "daycare" -> R.drawable.daycare_nobg
-                "training" -> R.drawable.training_nobg
-                else -> R.drawable.pethub_rvbg
-            }
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(100.dp)
+            AsyncImage(
+                model = uiState.mainService?.imageUrl,
+                contentDescription = uiState.mainService?.type,
+                placeholder = painterResource(id = R.drawable.grooming_nobg),
+                error = painterResource(id = R.drawable.grooming_nobg),
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = uiState.selectedServiceType?.description ?: uiState.service?.description ?: "Details about this service.",
+                text = uiState.mainService?.description ?: "Details about this service.",
                 fontSize = 14.sp,
-                color = Color.Gray,
-                modifier = Modifier.weight(1f)
+                color = Color.Gray
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // 2. Dropdowns styled like Appointment Screen
-        CustomDropdown(
-            label = "For Who?",
-            items = uiState.userPets,
-            selectedItem = uiState.selectedPet,
-            onItemSelected = onPetSelected,
-            itemToString = { it.petName },
-            placeholder = "Choose Pet"
-        )
+        // --- Form Section ---
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            CustomDropdown(
+                label = "For Who?",
+                items = uiState.pets,
+                selectedItem = uiState.selectedPet,
+                onItemSelected = onPetSelected,
+                itemToString = { it.petName },
+                placeholder = "Choose Pet"
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            CustomDropdown(
+                label = "Service Type",
+                items = uiState.relatedServices,
+                selectedItem = uiState.selectedServiceType,
+                onItemSelected = onServiceTypeSelected,
+                itemToString = { it.type },
+                placeholder = "Choose Service Type"
+            )
 
-        CustomDropdown(
-            label = "Service Type",
-            items = uiState.serviceTypes,
-            selectedItem = uiState.selectedServiceType,
-            onItemSelected = onServiceTypeSelected,
-            itemToString = { it.type },
-            placeholder = "Choose Service Type"
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        CustomDropdown(
-            label = "Branch",
-            items = uiState.availableBranches,
-            selectedItem = uiState.selectedBranch,
-            onItemSelected = onBranchSelected,
-            itemToString = { it.branchName },
-            placeholder = "Choose Branch"
-        )
-
-        if (uiState.selectedServiceType != null && uiState.availableBranches.isEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "No branches available for this service",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.align(Alignment.Start)
+            CustomDropdown(
+                label = "Branch",
+                items = uiState.availableBranches,
+                selectedItem = uiState.selectedBranch,
+                onItemSelected = onBranchSelected,
+                itemToString = { it.branchName },
+                placeholder = "Choose Branch"
             )
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 3. Book Button
+        // --- Book Button ---
         Button(
-            onClick = onBookClick,
+            onClick = onBookAppointmentClick,
             enabled = uiState.selectedPet != null && uiState.selectedServiceType != null && uiState.selectedBranch != null,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2DCC8))
+            colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
         ) {
-            Text("Book Appointment", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = DarkBrown)
+            Text("Book Appointment", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -190,26 +189,27 @@ fun <T> CustomDropdown(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = CreamLight)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(CreamDark)
+                .clickable { expanded = true }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = selectedItem?.let(itemToString) ?: placeholder,
                     modifier = Modifier.weight(1f),
-                    color = if (selectedItem == null) Color.Gray else Color.Black
+                    color = if (selectedItem == null) Color.Gray else LocalContentColor.current
                 )
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
             }
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth(0.8f).background(CreamLight)
+                modifier = Modifier.fillMaxWidth(0.8f)
             ) {
                 items.forEach { item ->
                     DropdownMenuItem(
