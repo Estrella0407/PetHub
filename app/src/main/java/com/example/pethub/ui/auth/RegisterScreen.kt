@@ -62,7 +62,6 @@ fun RegisterScreen(
                 else -> onLoginSuccess()
             }
             viewModel.onLoginHandled()
-            viewModel.saveRememberMe(context, uiState.rememberMe)
         }
 
         if (uiState.isNewGoogleUser) {

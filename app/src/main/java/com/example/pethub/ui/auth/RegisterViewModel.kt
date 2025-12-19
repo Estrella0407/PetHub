@@ -207,14 +207,7 @@ class RegisterViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoginSuccessful = false)
     }
 
-    fun onRememberMeChanged(value: Boolean) {
-        _uiState.value = _uiState.value.copy(rememberMe = value)
-    }
 
-    fun saveRememberMe(context: Context, remember: Boolean) {
-        val prefs = context.getSharedPreferences(Constants.NAME, Context.MODE_PRIVATE)
-        prefs.edit { putBoolean(Constants.REMEMBER_ME, remember) }
-    }
 }
 
 
@@ -234,6 +227,5 @@ data class RegisterUiState(
     val loggedInUserRole: String? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val completed: Boolean = false,
-    val rememberMe: Boolean = false
+    val completed: Boolean = false
 )

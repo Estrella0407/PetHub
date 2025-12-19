@@ -33,17 +33,7 @@ class StartupRouterViewModel @Inject constructor(
                 return@launch
             }
 
-            // 2. Check "Remember Me" preference (matching MainActivity logic)
-            val prefs = context.getSharedPreferences(Constants.NAME, Context.MODE_PRIVATE)
-            val remember = prefs.getBoolean(Constants.REMEMBER_ME, false)
-
-            if (!remember) {
-                authRepository.signOut()
-                _route.value = "login"
-                return@launch
-            }
-
-            // 3. User is logged in and "Remember Me" is true. Now check role.
+            // 2. Check Role
             val isAdmin = authRepository.isAdmin()
             if (isAdmin) {
                 _route.value = "admin_home"

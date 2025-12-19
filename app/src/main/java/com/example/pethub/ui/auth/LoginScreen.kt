@@ -75,7 +75,6 @@ fun LoginScreen(
             }
 
             viewModel.onLoginHandled()
-            viewModel.saveRememberMe(context, uiState.rememberMe)
         }
         
         if (uiState.isNewGoogleUser) {
@@ -152,16 +151,11 @@ fun LoginScreen(
         )
 
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         )
         {
-            AuthenticationSwitch(
-                isChecked = uiState.rememberMe,
-                onCheckedChange = {viewModel.onRememberMeChanged(it)},
-                placeholder = "Remember me?"
-            )
             TextButton(
                 onClick = { onNavigateToRegister()},
                 modifier = Modifier.fillMaxWidth()
@@ -371,16 +365,11 @@ fun LoginScreenContent(
 //                }
 //            )
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             )
             {
-                AuthenticationSwitch(
-                    isChecked = uiState.rememberMe,
-                    onCheckedChange = {  },
-                    placeholder = "Remember me?"
-                )
                 TextButton(
                     onClick = { },
                     modifier = Modifier.fillMaxWidth()
