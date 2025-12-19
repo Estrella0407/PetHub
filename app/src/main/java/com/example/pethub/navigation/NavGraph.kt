@@ -9,50 +9,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
-import com.example.pethub.ui.service.ServiceScreen
-import com.example.pethub.ui.admin.ServiceManagementScreen
-import com.example.pethub.data.remote.FirebaseService
-import com.example.pethub.data.repository.AppointmentRepository
+import com.example.pethub.ui.StockManagement.StockManagementScreen
 import com.example.pethub.ui.admin.AdminHomeScreen
-import com.example.pethub.ui.admin.AdminDashboardScreen
-import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
+import com.example.pethub.ui.admin.MonthlySalesReportScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
+import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
+import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
-import com.example.pethub.ui.notifications.NotificationScreen
-import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
+import com.example.pethub.ui.profile.AllAppointmentsScreen
+import com.example.pethub.ui.profile.AllOrdersScreen
 import com.example.pethub.ui.profile.ProfileScreen
+import com.example.pethub.ui.service.ServiceDetailScreen
+import com.example.pethub.ui.service.ServiceScreen
+import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    firebaseService: FirebaseService
+    startDestination: String
 ) {
-    val startDestination = if (firebaseService.isUserAuthenticated()) {
-        "profile"
-    } else {
-        "login"
-    }
+
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable("login") {
             LoginScreen(
                 onLoginSuccess = {
-                    // Pop login from backstack so back button exits app
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
                     }
@@ -67,16 +64,13 @@ fun NavGraph(
         }
 
         navigation(startDestination = "register", route = "auth_flow") {
-
             composable("register") { backStackEntry ->
-                // Get the ViewModel scoped to the "auth_flow" graph
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry("auth_flow")
                 }
                 val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
-
                 RegisterScreen(
-                    viewModel = sharedVm, // Pass the shared VM
+                    viewModel = sharedVm,
                     onRegisterSuccessOld = {
                         navController.navigate("home") {
                             popUpTo("login") { inclusive = true }
@@ -87,13 +81,11 @@ fun NavGraph(
                     onNavigateToLogin = { navController.popBackStack() }
                 )
             }
-
             composable("completeProfile") { backStackEntry ->
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry("auth_flow")
                 }
                 val sharedVm: RegisterViewModel = hiltViewModel(parentEntry)
-
                 CompleteProfileScreen(
                     onProfileCompleted = { navController.navigate("home") },
                     viewModel = sharedVm
@@ -111,7 +103,7 @@ fun NavGraph(
                 }
             )
         }
-        
+
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
@@ -127,77 +119,33 @@ fun NavGraph(
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
-                    navController.navigate("appointment/$serviceId")
+                    navController.navigate("serviceDetail/$serviceId")
                 }
             )
         }
-        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("profile") { PlaceholderScreen("Profile coming soon") }
-        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
-        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
-        composable("cart") { PlaceholderScreen("Cart coming soon") }
-        composable("appointment/{serviceId}") { PlaceholderScreen("Appointment screen coming soon") }
 
-        // Admin screens
-        composable("admin_home") {
-            AdminDashboardScreen(
-                onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToStocks = { navController.navigate("admin_stocks") },
-                onNavigateToServices = { navController.navigate("admin_services") },
-                onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onNavigateToAppointmentDetails = {appointmentId->
-                    navController.navigate("appointmentDetail/${appointmentId}")
-                },
-                onViewAllClick = {navController.navigate("admin_view_all_appointments")}
+        composable("cart") {
+            CartScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateHome = { navController.navigate("home") }
             )
         }
-        composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
-        composable("admin_scanner") {
-            AdminScannerScreen { qr ->
-                navController.navigate("petProfile/${qr}")
-            }
-        }
-        composable(
-            route = "appointmentDetail/{appointmentId}",
-            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
-        ){backStackEntry ->
 
-            val appointmentId =
-                backStackEntry.arguments?.getString("appointmentId")!!
-
-            AppointmentDetail(
-                onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToHome = {navController.popBackStack()},
-                onNavigateToStocks = { navController.navigate("admin_stocks") },
-                onNavigateToServices = { navController.navigate("admin_services") },
-                onNavigateToScanner = { navController.navigate("admin_scanner") },
-                appointmentId = appointmentId
-            )
-        }
-        composable("admin_view_all_appointments"){
-            AdminViewAllAppointmentsScreen(
-                onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToHome = {navController.popBackStack()},
-                onNavigateToStocks = { navController.navigate("admin_stocks") },
-                onNavigateToServices = { navController.navigate("admin_services") },
-                onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onViewAppointmentClick = {appointmentId->
-                    navController.navigate("appointmentDetail/${appointmentId}")
+        composable("serviceDetail/{serviceId}") {
+            ServiceDetailScreen(
+                onBackClick = { navController.popBackStack() },
+                onProceedToBooking = { serviceId, petId, branchId ->
+                    navController.navigate("appointments/$serviceId/$petId/$branchId")
                 }
             )
         }
-        composable("admin_services") {
-            ServiceManagementScreen(
-                onNavigateToAdminHome = { navController.navigate("admin_home") },
-                onNavigateToAdminStocks = { navController.navigate("admin_stocks") },
-                onNavigateToAdminScanner = { navController.navigate("admin_scanner") }
-            )
-        }
 
+        composable("appointments/{serviceId}/{petId}/{branchId}") {
+            PlaceholderScreen("Appointment screen coming soon")
+        }
 
         composable("profile") {
             ProfileScreen(
-                //firebaseService = firebaseService,
                 onLogout = {
                     navController.navigate("login") {
                         popUpTo("home") { inclusive = true }
@@ -210,16 +158,43 @@ fun NavGraph(
                 onFaqClick = {navController.navigate("faq")},
                 onNavigateToPetProfile = { petId ->
                     navController.navigate("petProfile/$petId")
+                },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
+                },
+                onNavigateToAllAppointments = {
+                    navController.navigate("all_appointments")
+                },
+                onNavigateToAllOrders = {
+                    navController.navigate("all_orders")
+                }
+            )
+        }
+
+        composable("all_appointments") {
+            AllAppointmentsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                }
+            )
+        }
+
+        composable("all_orders") {
+            AllOrdersScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
                 }
             )
         }
 
         composable("addPet") {
             AddPetScreen(
-                onPetAdded = {
-                    // Go back to profile after adding pet
-                    navController.popBackStack()
-                },
+                onPetAdded = { navController.popBackStack() },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -232,9 +207,91 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        // Admin screens
+        composable("admin_home") {
+            AdminHomeScreen(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                onNavigateToAppointmentDetails = { appointmentId ->
+                    navController.navigate("appointmentDetail/${appointmentId}")
+                },
+                onViewAllClick = { navController.navigate("admin_view_all_appointments") },
+                onNavigateToMonthlySalesReport = { navController.navigate("monthly_sales_report") },
+                onNavigateToServiceUsageReport = { navController.navigate("service_usage_report") }
+            )
+        }
+
+        composable("admin_stocks") {
+            StockManagementScreen(
+                onNavigateToAdminHome = { navController.navigate("admin_home") },
+                onNavigateToAdminServices = { navController.navigate("admin_services") },
+                onNavigateToAdminScanner = { navController.navigate("admin_scanner") },
+                onLogoutClick = {
+                    navController.navigate("login") {
+                        popUpTo("admin_home") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "appointmentDetail/{appointmentId}",
+            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val appointmentId = backStackEntry.arguments?.getString("appointmentId")!!
+            AppointmentDetail(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = { navController.popBackStack() },
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                appointmentId = appointmentId
+            )
+        }
+
+        composable("admin_view_all_appointments") {
+            AdminViewAllAppointmentsScreen(
+                onNavigateToLogin = { navController.navigate("login") },
+                onNavigateToHome = { navController.popBackStack() },
+                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                onNavigateToServices = { navController.navigate("admin_services") },
+                onNavigateToScanner = { navController.navigate("admin_scanner") },
+                onViewAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/${appointmentId}")
+                }
+            )
+        }
+
+        composable("admin_services") {
+            ServiceManagementScreen(
+                onNavigateToAdminHome = { navController.navigate("admin_home") },
+                onNavigateToAdminStocks = { navController.navigate("admin_stocks") },
+                onNavigateToAdminScanner = { navController.navigate("admin_scanner") },
+            )
+        }
+
+        composable("admin_scanner") {
+            AdminScannerScreen { qr ->
+                navController.navigate("petProfile/${qr}")
+            }
+        }
+
+        composable("monthly_sales_report") {
+            MonthlySalesReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("service_usage_report") {
+            ServiceUsageReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
     }
 }
-
 
 @Composable
 private fun PlaceholderScreen(message: String) {
@@ -249,12 +306,3 @@ private fun PlaceholderScreen(message: String) {
         )
     }
 }
-
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
