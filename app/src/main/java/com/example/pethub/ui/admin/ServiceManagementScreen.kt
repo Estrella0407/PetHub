@@ -65,7 +65,9 @@ fun ServiceManagementScreen(
 
             when (val state = uiState) {
                 is ServiceManagementUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
                 is ServiceManagementUiState.Error -> {
                     Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
@@ -75,11 +77,12 @@ fun ServiceManagementScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(state.services) { service ->
+                        items(state.services, key = { it.serviceId }) { service ->
                             ServiceManagementRow(
                                 service = service,
                                 onToggle = { isAvailable ->
-                                    viewModel.updateServiceAvailability(service.serviceId, isAvailable)
+                                    // PASSING BOTH serviceId and serviceName to match your Firestore screenshot
+                                    viewModel.updateServiceAvailability(service.serviceId, service.name, isAvailable)
                                 }
                             )
                         }
@@ -95,7 +98,7 @@ fun ServiceManagementRow(
     service: ServiceManagementItem,
     onToggle: (Boolean) -> Unit
 ) {
-    val iconRes = when (service.serviceId) {
+    val iconRes = when (service.serviceId.lowercase()) {
         "grooming" -> R.drawable.grooming_nobg
         "boarding" -> R.drawable.boarding_nobg
         "walking" -> R.drawable.walking_nobg
@@ -123,7 +126,7 @@ fun ServiceManagementRow(
             }
             Switch(
                 checked = service.isEnabled,
-                onCheckedChange = onToggle
+                onCheckedChange = { onToggle(it) }
             )
         }
         HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)

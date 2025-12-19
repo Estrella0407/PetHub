@@ -30,6 +30,7 @@ import com.example.pethub.ui.appointnment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
+import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen

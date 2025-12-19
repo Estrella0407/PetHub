@@ -86,12 +86,18 @@ class ServiceManagementViewModel @Inject constructor(
 
     /**
      * Updates the availability for a specific service in Firebase.
+     * Passes both serviceId and serviceName to match the database structure.
      */
-    fun updateServiceAvailability(serviceId: String, isAvailable: Boolean) {
+    fun updateServiceAvailability(serviceId: String, serviceName: String, isAvailable: Boolean) {
         viewModelScope.launch {
             val currentBranchId = branchIdFlow.first()
             if (currentBranchId != null) {
-                serviceRepository.setBranchServiceAvailability(currentBranchId, serviceId, isAvailable)
+                serviceRepository.setBranchServiceAvailability(
+                    branchId = currentBranchId,
+                    serviceId = serviceId,
+                    serviceName = serviceName,
+                    isAvailable = isAvailable
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.pethub.ui.service
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +22,6 @@ data class ServiceDetailUiState(
     val mainService: Service? = null,
     val pets: List<Pet> = emptyList(),
     val relatedServices: List<Service> = emptyList(),
-    // Renamed for clarity to reflect its filtered nature
     val availableBranches: List<Branch> = emptyList(),
     val selectedPet: Pet? = null,
     val selectedServiceType: Service? = null,
@@ -41,7 +41,8 @@ class ServiceDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ServiceDetailUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val serviceId: String = savedStateHandle.get<String>("serviceId")!!
+    private val serviceId: String = savedStateHandle.get<String>("serviceId") ?: ""
+    private val TAG = "ServiceDetailViewModel"
 
     init {
         loadInitialData()
@@ -51,59 +52,65 @@ class ServiceDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // Fetch the main service to get its category, image, etc.
-                val mainService = serviceRepository.getServiceById(serviceId).getOrNull()
+                // 1. Get user's pets
+                val petsList = petRepository.getPetsForCurrentUser().first()
+                
+                // 2. Determine category name from serviceId (e.g. "grooming" -> "Grooming")
+                val categoryName = serviceId.replaceFirstChar { it.uppercase() }
+                Log.d(TAG, "Loading category: $categoryName")
 
-                // Fetch pets and related services
-                val petsList = petRepository.getPetsForCurrentUser().first() // Use first() to get the current list from the Flow
-                val relatedServicesResult = serviceRepository.getServicesByCategory(mainService?.serviceName ?: "")
+                // 3. Fetch all services matching this category from 'service' collection
+                val relatedResult = serviceRepository.getServicesByCategory(categoryName)
+                val related = relatedResult.getOrElse { emptyList() }
+                Log.d(TAG, "Found ${related.size} related services for category: $categoryName")
 
-                _uiState.update {
-                    val relatedServices = relatedServicesResult.getOrElse { emptyList() }
-                    it.copy(
-                        isLoading = false,
-                        mainService = mainService,
-                        pets = petsList,
-                        relatedServices = relatedServices,
-                        // Pre-select the service type based on the initial serviceId
-                        selectedServiceType = relatedServices.find { s -> s.serviceId == serviceId }
-                    )
+                // If nothing found by capitalized, try lowercase
+                val finalRelated = if (related.isEmpty()) {
+                    serviceRepository.getServicesByCategory(serviceId).getOrElse { emptyList() }
+                } else {
+                    related
                 }
 
-                // After setting the initial state, fetch the branches for the pre-selected service
-                _uiState.value.selectedServiceType?.let { fetchAvailableBranches(it.serviceId) }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    relatedServices = finalRelated,
+                    pets = petsList,
+                    // Auto-select the first one or set mainService
+                    selectedServiceType = finalRelated.firstOrNull(),
+                    mainService = Service(serviceId = serviceId, serviceName = categoryName)
+                ) }
+
+                // 4. Initial fetch for branches using the serviceId (lowercase)
+                fetchAvailableBranches(serviceId)
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Failed to load data: ${e.message}") }
+                Log.e(TAG, "Error loading initial data", e)
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
 
-    // This function is called every time a new service type is selected
-    private fun fetchAvailableBranches(serviceId: String) {
+    private fun fetchAvailableBranches(categoryServiceId: String) {
         viewModelScope.launch {
-            val branchesResult = branchRepository.getBranchesOfferingService(serviceId)
-            _uiState.update {
-                it.copy(
-                    availableBranches = branchesResult.getOrElse { emptyList() },
-                    // Reset branch selection when the service type changes
-                    selectedBranch = null
-                )
-            }
+            Log.d(TAG, "Fetching branches for: $categoryServiceId")
+            val branchesResult = branchRepository.getAvailableBranchesForService(categoryServiceId)
+            val branches = branchesResult.getOrElse { emptyList() }
+            Log.d(TAG, "Found ${branches.size} available branches")
+            
+            _uiState.update { it.copy(
+                availableBranches = branches,
+                selectedBranch = null
+            ) }
         }
     }
 
-    fun onPetSelected(pet: Pet) {
-        _uiState.update { it.copy(selectedPet = pet) }
-    }
+    fun onPetSelected(pet: Pet) = _uiState.update { it.copy(selectedPet = pet) }
 
     fun onServiceTypeSelected(service: Service) {
         _uiState.update { it.copy(selectedServiceType = service) }
-        // When a new service type is selected, re-fetch the branches that offer it.
-        fetchAvailableBranches(service.serviceId)
+        // Location depends on the category, so we keep using serviceId
+        fetchAvailableBranches(serviceId)
     }
 
-    fun onBranchSelected(branch: Branch) {
-        _uiState.update { it.copy(selectedBranch = branch) }
-    }
+    fun onBranchSelected(branch: Branch) = _uiState.update { it.copy(selectedBranch = branch) }
 }

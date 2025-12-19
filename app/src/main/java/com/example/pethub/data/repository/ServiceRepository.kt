@@ -9,9 +9,11 @@ import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVICE
 import com.example.pethub.di.IoDispatcher
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,7 +28,7 @@ class ServiceRepository @Inject constructor(
 ) {
 
     companion object {
-        const val SUBCOLLECTION_BRANCH_SERVICES = "branchService"
+        const val SUBCOLLECTION_BRANCH_SERVICES = "branch_services"
     }
 
     // =========================================================================
@@ -57,18 +59,36 @@ class ServiceRepository @Inject constructor(
         )
     }
 
-    suspend fun setBranchServiceAvailability(branchId: String, serviceId: String, isAvailable: Boolean): Result<Unit> {
-        val branchService = BranchService(
-            branchId = branchId,
-            serviceId = serviceId,
-            availability = isAvailable
-        )
-        return firestoreHelper.setDocument(
-            collection = "$COLLECTION_BRANCH/$branchId/$SUBCOLLECTION_BRANCH_SERVICES",
-            documentId = serviceId,
-            data = branchService,
-            merge = true
-        )
+    /**
+     * Updated to include serviceName in the saved document.
+     * serviceId is used as the document ID.
+     */
+    suspend fun setBranchServiceAvailability(
+        branchId: String, 
+        serviceId: String, 
+        serviceName: String, 
+        isAvailable: Boolean
+    ): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            val branchService = mapOf(
+                "branchId" to branchId,
+                "serviceId" to serviceId,
+                "serviceName" to serviceName, // Added serviceName field
+                "availability" to isAvailable
+            )
+            
+            firestoreHelper.getFirestoreInstance()
+                .collection(COLLECTION_BRANCH)
+                .document(branchId)
+                .collection(SUBCOLLECTION_BRANCH_SERVICES)
+                .document(serviceId)
+                .set(branchService, SetOptions.merge())
+                .await()
+                
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     // =========================================================================
