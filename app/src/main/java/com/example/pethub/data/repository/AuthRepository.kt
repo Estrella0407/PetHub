@@ -162,7 +162,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun createCustomerProfile(username: String, phone: String, address: String): Result<Unit> {
         val user = firebaseService.getCurrentUser() ?: return Result.failure(Exception("No authenticated user"))
-        
+
         val customerData = Customer(
             custId = user.uid,
             custName = username,
@@ -187,6 +187,17 @@ class AuthRepository @Inject constructor(
             Result.failure(createResult.exceptionOrNull()!!)
         }
     }
+
+    suspend fun getUserRole(): String {
+        val userId = firebaseService.getCurrentUserId() ?: return "guest"
+
+        // 1. Check if Admin (reuse your existing isAdmin logic)
+        if (isAdmin()) return "admin"
+
+        // 2. If not admin, assume customer (since they are authenticated)
+        return "customer"
+    }
+
 }
 
 data class AuthResult(

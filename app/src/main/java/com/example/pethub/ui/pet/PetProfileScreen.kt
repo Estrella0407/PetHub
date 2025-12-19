@@ -1,7 +1,13 @@
 package com.example.pethub.ui.pet
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,12 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -48,6 +56,16 @@ fun PetProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // 👇 NEW: Photo Picker Launcher
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.onImageSelected(uri)
+            }
+        }
+    )
+
     Scaffold(
         containerColor = CreamBackground,
         topBar = {
@@ -68,7 +86,13 @@ fun PetProfileScreen(
             is PetProfileUiState.Success -> {
                 PetProfileContent(
                     modifier = Modifier.padding(padding),
-                    pet = state.pet
+                    state = state, // Pass the whole state to access upload progress
+                    onImageClick = {
+                        // Launch photo picker
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
                 )
             }
         }
@@ -76,7 +100,12 @@ fun PetProfileScreen(
 }
 
 @Composable
-fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
+fun PetProfileContent(
+    modifier: Modifier = Modifier,
+    state: PetProfileUiState.Success,
+    onImageClick: () -> Unit // Callback for image click
+) {
+    val pet = state.pet
     val age = calculateAge(pet.dateOfBirth?.time)
     val formattedDob = pet.dateOfBirth?.let {
         val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
@@ -90,14 +119,42 @@ fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
     ) {
         // --- Pet Image and Name ---
         item {
-            AsyncImage(
-                model = pet.imageUrl,
-                contentDescription = pet.petName,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            Box(contentAlignment = Alignment.Center) {
+                AsyncImage(
+                    model = pet.imageUrl,
+                    contentDescription = pet.petName,
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, CreamDark, CircleShape)
+                        .clickable(onClick = onImageClick),
+                    contentScale = ContentScale.Crop,
+                    fallback = rememberVectorPainter(Icons.Default.Pets) // Fallback icon
+                )
+
+                // Show Progress Indicator if uploading
+                if (state.isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(120.dp),
+                        color = CreamDark,
+                        strokeWidth = 4.dp
+                    )
+                }
+
+                // Edit Icon overlay
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit Image",
+                    tint = CreamDark,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-4).dp, y = (-4).dp)
+                        .size(24.dp)
+                        .background(Color.White, CircleShape)
+                        .padding(4.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = pet.petName,
@@ -127,7 +184,7 @@ fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    EditablePetInfoField(label = "Date of Birth", value = formattedDob) // Use the formatted string
+                    EditablePetInfoField(label = "Date of Birth", value = formattedDob)
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         EditablePetInfoField(label = "Breed", value = pet.breed, modifier = Modifier.weight(1f))
                         EditablePetInfoField(label = "Weight (kg)", value = pet.weight.toString(), modifier = Modifier.weight(1f))
@@ -169,17 +226,8 @@ fun PetProfileContent(modifier: Modifier = Modifier, pet: Pet) {
     }
 }
 
-// 3. REMOVE ALL THE DUMMY FUNCTIONS FROM THE BOTTOM OF YOUR FILE
+
 /*
-fun Locale.Companion.getDefault() {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun SimpleDateFormat(x0: String, x1: Unit) {
-    TODO("Not yet implemented")
-}
-
 annotation class getDefault
 */
 

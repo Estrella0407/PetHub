@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.animation.graphics)
     implementation(libs.androidx.compose.foundation.layout)
-    //implementation(libs.play.services.cast.tv)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -99,6 +98,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.coil.compose)
     implementation(libs.androidx.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.play.services.auth)

@@ -15,25 +15,21 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // This is a placeholder. For this to work, you must set a custom claim 'admin=true' on the user's auth token.
-      // See Firebase docs for "Custom Claims".
-      return isSignedIn() && request.auth.token.admin == true;
+      // A user is an admin if a document with their UID exists in the 'branch' collection.
+      return isSignedIn() && exists(/databases/$(database)/documents/branch/$(request.auth.uid));
     }
 
     // ============================================================================
     // RULES
     // ============================================================================
 
-    // 1. CUSTOMER
+    // 1. CUSTOMER > CART
     match /customer/{customerId} {
-      allow read: if isDocumentOwner(customerId) || isAdmin();
-
-      // Allow a user to update their own document.
-      allow update: if isDocumentOwner(customerId) || isAdmin();
-      // Allow any signed-in user to create their own customer document upon sign-up.
+      // Only the owner or an admin can read/update a customer profile.
+      // Removed `|| isSignedIn()`
+      allow read, update: if isDocumentOwner(customerId) || isAdmin();
       allow create: if isSignedIn();
 
-      // Cart subcollection rule is correct, as it correctly uses the parent `customerId`.
       match /cart/{cartItemId} {
          allow read, write: if isDocumentOwner(customerId);
       }
@@ -42,14 +38,16 @@ service cloud.firestore {
     // 2. PET
     match /pet/{petId} {
        allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-       allow read: if request.auth.uid == resource.data.custId || isAdmin();
+       // Only the owner or an admin can read pets.
+       allow read: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
        allow update, delete: if request.auth.uid == resource.data.custId || isAdmin();
     }
 
     // 3. BRANCH
+    // This simple rule is KEY. It allows the isAdmin() function's `exists()` check to succeed.
     match /branch/{branchId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin(); // Typically only admins should write to branches
+      allow write: if isAdmin();
 
       match /branch_services/{docId} {
         allow read: if true;
@@ -58,19 +56,12 @@ service cloud.firestore {
     }
 
     // 4. APPOINTMENT
+    // These rules are now correct because isAdmin() works as intended.
     match /appointment/{appointmentId} {
-      // Allow creation if you are the customer OR an admin
       allow create: if request.resource.data.custId == request.auth.uid || isAdmin();
-      
-      // Allow read if you are the customer OR THE BRANCH ASSIGNED TO IT OR an admin
-      allow read: if resource.data.custId == request.auth.uid || 
-                     resource.data.branchId == request.auth.uid || 
-                     isAdmin();
-                     
-      // Allow update/delete if you are the customer OR THE BRANCH OR an admin
-      allow update, delete: if resource.data.custId == request.auth.uid || 
-                               resource.data.branchId == request.auth.uid || 
-                               isAdmin();
+      allow get: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
+      allow list: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
+      allow update, delete: if resource.data.custId == request.auth.uid || resource.data.branchId == request.auth.uid || isAdmin();
     }
 
     // 5. SERVICE
@@ -92,12 +83,20 @@ service cloud.firestore {
 
     // 8. ORDERS
     match /order/{orderId} {
-      allow read, create: if request.auth.uid == resource.data.custId || isAdmin();
+      allow create: if request.auth.uid == resource.data.custId || isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
+      allow list: if isAdmin() || (request.auth != null && resource.data.custId == request.auth.uid);
     }
 
     // 9. PRODUCT ORDERS
     match /productOrder/{productOrderId} {
        allow read, create: if request.auth.uid == request.resource.data.custId || isAdmin();
+    }
+
+    // 10. BRANCH PRODUCT
+    match /branchProduct/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

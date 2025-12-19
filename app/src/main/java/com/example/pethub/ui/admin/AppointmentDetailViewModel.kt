@@ -1,6 +1,5 @@
 package com.example.pethub.ui.admin
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.data.model.Appointment
@@ -8,10 +7,10 @@ import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlinx.coroutines.flow.update
 
 

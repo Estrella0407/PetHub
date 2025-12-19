@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,6 +28,7 @@ import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AppointmentDetail
 import com.example.pethub.ui.appointnment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
+import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
@@ -39,37 +40,23 @@ import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
+import com.example.pethub.ui.profile.AllAppointmentsScreen
+import com.example.pethub.ui.profile.AllOrdersScreen
 import com.example.pethub.ui.auth.StartupRouterScreen
 import com.example.pethub.ui.profile.ProfileScreen
+import com.example.pethub.ui.service.ServiceDetailScreen
+import com.example.pethub.ui.service.ServiceScreen
+import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.service.ServiceScreen
 import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    firebaseService: FirebaseService
+    startDestination: String
 ) {
-    NavHost(navController = navController, startDestination = "startup_router") {
 
-        composable("startup_router") {
-            StartupRouterScreen(
-                onNavigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo("startup_router") { inclusive = true }
-                    }
-                },
-                onNavigateToHome = {
-                    navController.navigate("home") {
-                        popUpTo("startup_router") { inclusive = true }
-                    }
-                },
-                onNavigateToAdminHome = {
-                    navController.navigate("admin_home") {
-                        popUpTo("startup_router") { inclusive = true }
-                    }
-                }
-            )
-        }
+    NavHost(navController = navController, startDestination = startDestination) {
 
         composable("login") {
             LoginScreen(
@@ -159,13 +146,11 @@ fun NavGraph(
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onServiceClick = { serviceId ->
-                    navController.navigate("appointment/$serviceId")
+                    navController.navigate("serviceDetail/$serviceId")
                 }
             )
         }
-        composable("bookings") { PlaceholderScreen("Bookings coming soon") }
-        composable("service/{serviceId}") { PlaceholderScreen("Service details coming soon") }
-        composable("booking/{bookingId}") { PlaceholderScreen("Booking details coming soon") }
+
         composable("cart") {
             CartScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -176,32 +161,104 @@ fun NavGraph(
                 }
             )
         }
+
+    composable("serviceDetail/{serviceId}") {
+        ServiceDetailScreen(
+            onBackClick = { navController.popBackStack() },
+            onProceedToBooking = { serviceId, petId, branchId ->
+                navController.navigate("appointments/$serviceId/$petId/$branchId")
+            }
+        )
+    }
+
+        composable("appointments/{serviceId}/{petId}/{branchId}") {
+            PlaceholderScreen("Appointment screen coming soon")
+        }
+
+        composable("profile") {
+            ProfileScreen(
+                //firebaseService = firebaseService,
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToService = { navController.navigate("services") },
+                onNavigateToShop = { navController.navigate("shop") },
+                onAddPetClick = {navController.navigate("addPet")},
+                onFaqClick = {navController.navigate("faq")},
+                onNavigateToPetProfile = { petId ->
+                    navController.navigate("petProfile/$petId")
+                },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
+                },
+                onNavigateToAllAppointments = {
+                    navController.navigate("all_appointments")
+                },
+                onNavigateToAllOrders = {
+                    navController.navigate("all_orders")
+                }
+            )
+        }
+
+        composable("all_appointments") {
+            AllAppointmentsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                }
+            )
+        }
+
+        composable("all_orders") {
+            AllOrdersScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
+                }
+            )
+        }
+
+        composable("addPet") {
+            AddPetScreen(
+                onPetAdded = {
+                    // Go back to profile after adding pet
+                    navController.popBackStack()
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         composable(
-            route = "appointment/{serviceId}",
-            arguments = listOf(navArgument("serviceId") { type = NavType.StringType })
+            route = "petProfile/{petId}",
+            arguments = listOf(navArgument("petId") { type = NavType.StringType })
         ) {
-            AppointmentScreen(
+            PetProfileScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
         // Admin screens
         composable("admin_home") {
-            AdminDashboardScreen(
+            AdminHomeScreen(
                 onNavigateToLogin = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
                     }
-                },
-                onNavigateToStocks = { navController.navigate("admin_stocks") },
+                },                onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
                 onNavigateToAppointmentDetails = {appointmentId->
                     navController.navigate("appointmentDetail/${appointmentId}")
                 },
                 onViewAllClick = {navController.navigate("admin_view_all_appointments")},
-                onNavigateToMonthlySalesReport = { navController.navigate("monthly_sales_report") },
-                onNavigateToServiceUsageReport = { navController.navigate("service_usage_report") }
+                onNavigateToMonthlySalesReport = {navController.navigate("monthly_sales_report")},
+                onNavigateToServiceUsageReport = {navController.navigate("service_usage_report")}
             )
         }
         composable("admin_stocks") { PlaceholderScreen("Stocks coming soon") }
@@ -271,12 +328,13 @@ fun NavGraph(
             )
         }
 
+
         composable("profile") {
             ProfileScreen(
                 //firebaseService = firebaseService,
                 onLogout = {
                     navController.navigate("login") {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo("home") { inclusive = true }
                     }
                 },
                 onNavigateToHome = { navController.navigate("home") },
@@ -308,8 +366,6 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-
-        composable("faq") { PlaceholderScreen("FAQ coming soon") }
     }
 }
 
