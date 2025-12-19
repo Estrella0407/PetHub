@@ -23,12 +23,14 @@ import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
+import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
+import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.AllAppointmentsScreen
@@ -111,10 +113,17 @@ fun NavGraph(
                 onNavigateToService = { navController.navigate("services") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
+                onNavigateToNotification = { navController.navigate("notifications") },
                 onServiceClick = { serviceName, serviceId -> // Pass both
                     // Pass both serviceName and serviceId to the route
                     navController.navigate("serviceDetail/$serviceName?serviceId=$serviceId")
                 }
+            )
+        }
+
+        composable("notifications") {
+            NotificationScreen(
+                onNavigateUp = { navController.popBackStack() }
             )
         }
 
@@ -167,9 +176,20 @@ fun NavGraph(
             )
         }
 
-        composable("appointments/{serviceId}/{petId}/{branchId}") {
-            PlaceholderScreen("Appointment screen coming soon")
+        composable(
+            route = "appointments/{serviceId}/{petId}/{branchId}",
+            arguments = listOf(
+                navArgument("serviceId") { type = NavType.StringType },
+                navArgument("petId") { type = NavType.StringType },
+                navArgument("branchId") { type = NavType.StringType }
+            )
+        ) {
+            // Call the correct AppointmentScreen, the ViewModel will handle the arguments
+            AppointmentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
+
 
         composable("profile") {
             ProfileScreen(

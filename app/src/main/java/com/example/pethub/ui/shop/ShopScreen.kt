@@ -29,14 +29,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.pethub.data.model.Product
 import com.example.pethub.navigation.BottomNavigationBar
+import com.example.pethub.ui.theme.*
 import java.util.Locale
-
-// --- Custom Colors ---
-val CreamBg = Color(0xFFFBF9F1)
-val SidebarTextNormal = Color(0xFF5D534A)
-val SidebarTextSelected = Color(0xFF2C2622)
-val DividerColor = Color(0xFF8D6E63)
-val CartButtonColor = Color(0xFFFDF1C6)
 
 // --- CONSTANTS ---
 val CategoryItemHeight = 80.dp
@@ -63,29 +57,18 @@ fun ShopScreen(
     Scaffold(
         containerColor = CreamBg,
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Shop",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = SidebarTextSelected
-                )
-                Column(horizontalAlignment = Alignment.End) {
+            // MODIFIED: Using a standard, simple TopAppBar.
+            TopAppBar(
+                title = {
                     Text(
-                        text = "PetHub",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = SidebarTextSelected
+                        "Shop",
+                        fontWeight = FontWeight.Bold
                     )
-                    Box(modifier = Modifier.size(6.dp).background(SidebarTextSelected, CircleShape))
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
         },
         bottomBar = {
             BottomNavigationBar(
@@ -131,47 +114,57 @@ fun ShopScreen(
             }
         }
     ) { paddingValues ->
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // --- SIDEBAR MENU ---
-            SidebarMenu(
-                categories = categories,
-                selectedCategory = selectedCategory,
-                onCategorySelect = { selectedCategory = it }
+            // "Menu" title is now a proper header for the sidebar.
+            Text(
+                text = "Menu",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = SidebarTextNormal,
+                modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 10.dp)
             )
-
-            // --- FILTER PRODUCTS ---
-            // This filters the list downloaded from Firebase based on local selection
-            // val filteredProducts = products.filter { it.category == selectedCategory }
-            val filteredProducts = products.filter { product ->
-                product.category.trim().equals(selectedCategory.trim(), ignoreCase = true)
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Row(
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (filteredProducts.isEmpty()) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text("No items found", color = SidebarTextNormal)
+                // --- SIDEBAR MENU ---
+                SidebarMenu(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelect = { selectedCategory = it }
+                )
+
+                // --- FILTER PRODUCTS ---
+                val filteredProducts = products.filter { product ->
+                    product.category.trim().equals(selectedCategory.trim(), ignoreCase = true)
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (filteredProducts.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                Text("No items found", color = SidebarTextNormal)
+                            }
+                        }
+                    } else {
+                        items(filteredProducts) { product ->
+                            ProductItem(
+                                product = product,
+                                onAddClick = { viewModel.addToCart(product) }
+                            )
                         }
                     }
-                } else {
-                    items(filteredProducts) { product ->
-                        ProductItem(
-                            product = product,
-                            onAddClick = { viewModel.addToCart(product) }
-                        )
-                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
-                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }
@@ -186,7 +179,7 @@ fun SidebarMenu(
     val selectedIndex = categories.indexOf(selectedCategory).coerceAtLeast(0)
     val dotSize = 24.dp
     val lineWidth = 4.dp
-    val initialTopOffset = 40.dp
+    val initialTopOffset = 0.dp // Adjusted since "Menu" is outside
 
     val targetYOffset by animateDpAsState(
         targetValue = initialTopOffset + (selectedIndex * CategoryItemHeight) + (CategoryItemHeight / 2) - (dotSize / 2),
@@ -198,16 +191,9 @@ fun SidebarMenu(
         modifier = Modifier.width(120.dp).fillMaxHeight()
     ) {
         Column(
-            modifier = Modifier.weight(1f).padding(top = 10.dp)
+            modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = "Menu",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = SidebarTextNormal,
-                modifier = Modifier.padding(start = 16.dp, bottom = 20.dp)
-            )
-
+            // MODIFIED: Removed "Menu" text from here
             categories.forEach { category ->
                 Box(
                     modifier = Modifier
@@ -229,7 +215,7 @@ fun SidebarMenu(
         }
 
         Box(
-            modifier = Modifier.width(dotSize).fillMaxHeight().padding(top = 10.dp)
+            modifier = Modifier.width(dotSize).fillMaxHeight()
         ) {
             Box(
                 modifier = Modifier
@@ -292,7 +278,7 @@ fun ProductItem(
                 color = SidebarTextSelected
             )
             Text(
-                text = product.description, // Ensure your Product model has this field, or use product.category
+                text = product.description,
                 style = MaterialTheme.typography.bodySmall,
                 color = SidebarTextNormal,
                 maxLines = 2
@@ -301,7 +287,6 @@ fun ProductItem(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -310,6 +295,9 @@ fun ProductItem(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF4E342E)
                 )
+
+                // This spacer pushes the IconButton to the far right.
+                Spacer(Modifier.weight(1f))
 
                 IconButton(
                     onClick = onAddClick,

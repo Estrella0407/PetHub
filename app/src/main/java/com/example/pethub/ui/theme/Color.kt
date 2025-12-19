@@ -15,6 +15,13 @@ val VibrantBrown = Color(0xFFAC7F5E) // Button
 val DarkBrown = Color(0xFF322B1B) // Title, Header
 val NeutralBrown = Color(0xFF5B3A29)
 
+// Shop Screen
+val CreamBg = Color(0xFFFBF9F1)
+val SidebarTextNormal = Color(0xFF5D534A)
+val SidebarTextSelected = Color(0xFF2C2622)
+val DividerColor = Color(0xFF8D6E63)
+val CartButtonColor = Color(0xFFFDF1C6)
+
 @Composable
 fun getTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = CreamFair,
@@ -30,7 +37,7 @@ fun getTextFieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 fun getStatusColor(status: String): Color {
     return when (status.lowercase()) {
-        "confirmed" -> Color(0xFF4CAF50)
+        "confirmed", "completed" -> Color(0xFF4CAF50)
         "pending" -> Color(0xFFFF9800)
         "cancelled" -> Color(0xFFF44336)
         else -> Color.Gray
