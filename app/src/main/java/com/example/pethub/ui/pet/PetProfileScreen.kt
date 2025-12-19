@@ -42,6 +42,7 @@ import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamDark
 import com.example.pethub.ui.theme.CreamLight
 import com.example.pethub.ui.theme.DarkBrown
+import com.example.pethub.ui.theme.MutedBrown
 import com.example.pethub.ui.theme.VibrantBrown
 import com.example.pethub.util.calculateAge
 // 1. ADD THE CORRECT JAVA IMPORTS
@@ -72,7 +73,7 @@ fun PetProfileScreen(
         containerColor = CreamBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = CreamDark) },
+                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = MutedBrown) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -247,7 +248,7 @@ fun EditablePetInfoField(
                     value = value,
                     onValueChange = { /* TODO: Update ViewModel state */ },
                     modifier = Modifier.weight(1f),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = CreamDark),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = Color.Black),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
             }

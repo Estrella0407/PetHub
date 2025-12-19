@@ -26,7 +26,6 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AdminAppointmentDetail
-import com.example.pethub.ui.admin.AppointmentDetail
 import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen

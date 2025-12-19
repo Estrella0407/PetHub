@@ -52,8 +52,6 @@ fun ProfileScreen(
     onNavigateToService: () -> Unit,
     onNavigateToShop: () -> Unit,
     onAddPetClick: () -> Unit,
-    onAppointmentClick: (appointmentId: String) -> Unit,
-    onOrderClick: (orderId: String) -> Unit,
     onFaqClick: () -> Unit,
     onNavigateToPetProfile: (String) -> Unit,
     onAppointmentClick: (String) -> Unit,
@@ -68,8 +66,21 @@ fun ProfileScreen(
         containerColor = CreamBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                title = { Text("Profile", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                    modifier = Modifier.padding(8.dp)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                currentRoute = "profile",
+                onNavigate = { route ->
+                    when (route) {
+                        "home" -> onNavigateToHome()
+                        "services" -> onNavigateToService()
+                        "shop" -> onNavigateToShop()
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -233,7 +244,12 @@ fun ProfileContent(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = VibrantBrown)
             ) {
-                Text("Log Out", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp, color = DarkBrown)
+                Text(
+                    text ="Log Out",
+                    modifier = Modifier
+                        .padding(vertical = 8.dp),
+                    fontSize = 16.sp, color = Color.White,
+                    fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -289,7 +305,7 @@ fun PetInfoCard(
 
 // No changes needed for ProfileHeader
 @Composable
-fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
+fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit, onEditProfileClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically

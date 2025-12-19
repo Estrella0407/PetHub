@@ -88,6 +88,7 @@ fun CartScreen(
                         text = "Cart",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                         color = Color(0xFF2C2C2C)
                     )
                 },

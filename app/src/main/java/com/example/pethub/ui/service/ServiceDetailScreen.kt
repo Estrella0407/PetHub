@@ -29,6 +29,7 @@ import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamLight
 import com.example.pethub.ui.theme.DarkBrown
+import com.example.pethub.ui.theme.MutedBrown
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +43,7 @@ fun ServiceDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(uiState.service?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold) },
+                title = { Text(uiState.service?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkBrown) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -112,7 +113,7 @@ fun ServiceDetailContent(
             Text(
                 text = uiState.selectedServiceType?.description ?: uiState.service?.description ?: "Details about this service.",
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MutedBrown,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -155,7 +156,7 @@ fun ServiceDetailContent(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "No branches available for this service",
-                color = Color.Gray,
+                color = DarkBrown,
                 fontSize = 14.sp,
                 modifier = Modifier.align(Alignment.Start)
             )
@@ -188,7 +189,7 @@ fun <T> CustomDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = DarkBrown)
         Spacer(modifier = Modifier.height(8.dp))
         Card(
             modifier = Modifier.fillMaxWidth().clickable { expanded = true },
