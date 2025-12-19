@@ -17,13 +17,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import com.example.pethub.ui.StockManagement.StockManagementScreen
+import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
-import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
-import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.appointment.BookAppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
@@ -115,9 +114,9 @@ fun NavGraph(
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
                 onNavigateToNotification = { navController.navigate("notifications") },
-                onServiceClick = { serviceName, serviceId -> // Pass both
-                    // Pass both serviceName and serviceId to the route
-                    navController.navigate("serviceDetail/$serviceName?serviceId=$serviceId")
+                onServiceClick = { serviceName, serviceId -> // Receives both
+                    // ALWAYS use the serviceId. We can pass the name as an optional parameter.
+                    navController.navigate("serviceDetail/$serviceId?serviceName=$serviceName")
                 }
             )
         }
@@ -142,8 +141,8 @@ fun NavGraph(
                 onNavigateToHome = { navController.navigate("home") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onServiceClick = { serviceName ->
-                    navController.navigate("serviceDetail/$serviceName")
+                onServiceClick = { serviceId ->
+                    navController.navigate("serviceDetail/$serviceId")
                 }
             )
         }
@@ -160,12 +159,12 @@ fun NavGraph(
         }
 
         composable(
-            route = "serviceDetail/{serviceName}?serviceId={serviceId}",
+            route = "serviceDetail/{serviceId}?serviceName={serviceName}",
             arguments = listOf(
-                navArgument("serviceName") { type = NavType.StringType },
-                navArgument("serviceId") {
+                navArgument("serviceId") { type = NavType.StringType }, // ID is now mandatory
+                navArgument("serviceName") { // Name is now optional
                     type = NavType.StringType
-                    nullable = true // Make serviceId optional
+                    nullable = true
                 }
             )
         ) {
@@ -186,8 +185,9 @@ fun NavGraph(
             )
         ) {
             // Call the correct AppointmentScreen, the ViewModel will handle the arguments
-            AppointmentScreen(
-                onNavigateBack = { navController.popBackStack() }
+            BookAppointmentScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onBookingSuccess = { navController.navigate("home") }
             )
         }
 
@@ -364,6 +364,57 @@ fun NavGraph(
 
         composable("service_usage_report") {
             ServiceUsageReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+
+        composable("profile") {
+            ProfileScreen(
+                //firebaseService = firebaseService,
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToService = { navController.navigate("services") },
+                onNavigateToShop = { navController.navigate("shop") },
+                onAddPetClick = {navController.navigate("addPet")},
+                onFaqClick = {navController.navigate("faq")},
+                onNavigateToPetProfile = { petId ->
+                    navController.navigate("petProfile/$petId")
+                },
+                onAppointmentClick = { appointmentId ->
+                    navController.navigate("appointmentDetail/$appointmentId")
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("orderDetail/$orderId")
+                },
+                onNavigateToAllAppointments = {
+                    navController.navigate("all_appointments")
+                },
+                onNavigateToAllOrders = {
+                    navController.navigate("all_orders")
+                }
+            )
+        }
+
+        composable("addPet") {
+            AddPetScreen(
+                onPetAdded = {
+                    // Go back to profile after adding pet
+                    navController.popBackStack()
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "petProfile/{petId}",
+            arguments = listOf(navArgument("petId") { type = NavType.StringType })
+        ) {
+            PetProfileScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

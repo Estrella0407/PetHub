@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,11 +44,25 @@ fun BookAppointmentScreen(
     onBookingSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Add a state to control the dialog's visibility
+    var showDialog by remember { mutableStateOf(false) }
 
+    // Show the dialog when booking is successful
     LaunchedEffect(uiState.bookingSuccess) {
         if (uiState.bookingSuccess) {
-            onBookingSuccess()
+            showDialog = true
         }
+    }
+
+    // Conditionally display the AppointmentConfirmedDialog
+    if (showDialog) {
+        AppointmentConfirmedDialog(
+            onConfirm = {
+                // When the dialog's OK button is clicked:
+                showDialog = false // Dismiss the dialog
+                onBookingSuccess() // Navigate as intended
+            }
+        )
     }
 
     Scaffold(
@@ -121,7 +137,6 @@ fun AppointmentContent(
             )
         }
 
-        // FIX: Add the missing item blocks for Calendar, Time Slots, and Button
         item {
             CalendarSection(
                 currentDisplayMonth = uiState.currentDisplayMonth,

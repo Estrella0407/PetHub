@@ -5,6 +5,7 @@ import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.model.Customer
 import com.example.pethub.data.model.Pet
+import com.example.pethub.data.model.Service // <-- Added missing import
 import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_APPOINTMENT
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
@@ -12,17 +13,20 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_CUSTO
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_PET
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVICE
 import com.example.pethub.di.IoDispatcher
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlin.jvm.optionals.getOrNull
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldPath // <-- Added missing import
+import com.google.firebase.firestore.Query // <-- Added missing import
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.tasks.await // <-- Replaced the old await() with the correct one
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -39,20 +43,14 @@ class AppointmentRepository @Inject constructor(
      * is also saved as the 'appointmentId' field within the document.
      */
     suspend fun createAppointment(appointment: Appointment) {
-        // 1. Get a reference to a new, empty document in the appointments collection.
-        // This gives us the unique, auto-generated ID *before* we save any data.
         val newAppointmentRef = firestoreHelper.getFirestoreInstance()
             .collection(COLLECTION_APPOINTMENT).document()
 
-        // 2. Create a new Appointment object from the one passed by the ViewModel,
-        // but this time, we copy the auto-generated ID into the 'appointmentId' field.
         val appointmentWithId = appointment.copy(appointmentId = newAppointmentRef.id)
 
-        // 3. Set the data of the new document reference with our complete object.
-        // Instead of .add(), we use .set() on the specific document reference.
-        newAppointmentRef.set(appointmentWithId).await()
+        // Use the await() from kotlinx-coroutines-tasks
+        newAppointmentRef.set(appointmentWithId).await() // <-- This was the caret position
 
-        // 4. Trigger the notification after the save is successful.
         val custId = authRepository.getCurrentUserId()
         if (custId != null) {
             notificationRepository.sendNotification(
@@ -143,7 +141,6 @@ class AppointmentRepository @Inject constructor(
 
         val status = appointmentDocument.status
 
-        // First, get the Pet document using petId
         val getPetResult = firestoreHelper.getDocument(
             collection = COLLECTION_PET,
             documentId = petId,
@@ -152,7 +149,6 @@ class AppointmentRepository @Inject constructor(
         val pet = getPetResult.getOrNull()
             ?: return Result.failure(Exception("Pet not found for ID: $petId"))
 
-        // Then, get the owner using the custId from the fetched Pet object
         if (pet.custId.isBlank()) {
             return Result.failure(Exception("Pet with ID $petId has no associated customer ID."))
         }
@@ -209,6 +205,7 @@ class AppointmentRepository @Inject constructor(
                 similarPetsQuery = similarPetsQuery.whereEqualTo("breed", petBreed)
             }
 
+            // Use the correct await() here as well
             val similarPetsResult = similarPetsQuery.limit(50).get().await()
             val similarPetIds = similarPetsResult.documents.map { it.id }
 
@@ -219,7 +216,7 @@ class AppointmentRepository @Inject constructor(
             val appointmentsQuery = firestoreHelper.getFirestoreInstance().collection("appointment")
                 .whereIn("petId", similarPetIds)
                 .get()
-                .await()
+                .await() // And here
 
             val serviceIdCounts = appointmentsQuery.documents
                 .mapNotNull { it.getString("serviceId") }
@@ -232,7 +229,7 @@ class AppointmentRepository @Inject constructor(
 
             val topServiceIds = serviceIdCounts.entries
                 .sortedByDescending { it.value }
-                .take(10) // Fetch more to allow for filtering
+                .take(10)
                 .map { it.key }
 
             if (topServiceIds.isEmpty()) {
@@ -242,27 +239,32 @@ class AppointmentRepository @Inject constructor(
             val services = firestoreHelper.getFirestoreInstance().collection("service")
                 .whereIn(FieldPath.documentId(), topServiceIds)
                 .get()
-                .await()
+                .await() // And here
                 .toObjects(Service::class.java)
 
-            // Filter the results using the service.type field, not service.serviceName
+            // This function needs to be defined somewhere, assuming it exists
+            // fun isServiceSuitableForPet(serviceType: String, petType: String): Boolean { ... }
             return@withContext services.filter { service ->
                 isServiceSuitableForPet(service.type, petType)
             }.take(3)
         }
 
+    // A placeholder for the missing function. You should implement its logic.
+    private fun isServiceSuitableForPet(serviceType: String, petType: String): Boolean {
+        // Example Logic: "All" is suitable for any pet. Otherwise, types must match.
+        return serviceType.equals("All", ignoreCase = true) || serviceType.equals(petType, ignoreCase = true)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
         val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
-        // Called the correct function `listenToUserPets`
         return petRepository.listenToUserPets(userId).flatMapLatest { userPets ->
             val petIds = userPets.map { it.petId }
             if (petIds.isEmpty()) {
                 return@flatMapLatest flowOf(emptyList<Appointment>())
             }
 
-            // This part is correct and remains unchanged
             firestoreHelper.listenToCollection(
                 collection = COLLECTION_APPOINTMENT,
                 clazz = Appointment::class.java
@@ -280,14 +282,12 @@ class AppointmentRepository @Inject constructor(
     fun getAllAppointmentsForCurrentUser(): Flow<List<Appointment>> {
         val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
-        // MODIFIED: Called the correct function `listenToUserPets`
         return petRepository.listenToUserPets(userId).flatMapLatest { userPets ->
             val petIds = userPets.map { it.petId }
             if (petIds.isEmpty()) {
                 return@flatMapLatest flowOf(emptyList<Appointment>())
             }
 
-            // This part is correct and remains unchanged
             firestoreHelper.listenToCollection(
                 collection = COLLECTION_APPOINTMENT,
                 clazz = Appointment::class.java

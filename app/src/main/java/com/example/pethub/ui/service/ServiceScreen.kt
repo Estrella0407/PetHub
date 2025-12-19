@@ -32,6 +32,7 @@ import com.example.pethub.R
 import com.example.pethub.data.model.Service
 import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.utils.getServiceIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +78,7 @@ fun ServiceScreen(
             items(mainServices, key = { it.serviceId }) { service ->
                 ServiceCard(
                     service = service,
-                    onClick = { onServiceClick(service.serviceName) }
+                    onClick = { onServiceClick(service.serviceId) }
                 )
             }
         }

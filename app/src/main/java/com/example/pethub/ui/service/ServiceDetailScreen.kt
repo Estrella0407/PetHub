@@ -30,6 +30,7 @@ import com.example.pethub.data.model.Service
 import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.PetHubTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -170,7 +171,7 @@ fun ServiceDetailContent(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
         ) {
-            Text("Book Appointment", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Book Appointment", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = DarkBrown)
         }
     }
 }
