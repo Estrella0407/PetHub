@@ -33,46 +33,43 @@ class BranchRepository @Inject constructor(
     }
 
     /**
-     * Simpler logic: Fetch ALL branches, then check availability for each directly.
-     * This avoids PERMISSION_DENIED on collectionGroup queries.
-     * If a branch has no record in branch_services for this category, it's ENABLED by default.
+     * Fetches branches that have a specific service available.
+     * It queries the top-level 'branchService' collection first to find available branch IDs,
+     * then fetches the details for those specific branches.
      */
-    suspend fun getAvailableBranchesForService(categoryName: String): Result<List<Branch>> = withContext(ioDispatcher) {
+    suspend fun getAvailableBranchesForService(
+        serviceId: String
+    ): Result<List<Branch>> = withContext(ioDispatcher) {
         try {
-            val allBranches = getAllBranches().getOrThrow()
             val firestore = firestoreHelper.getFirestoreInstance()
-            val availableBranches = mutableListOf<Branch>()
 
-            for (branch in allBranches) {
-                try {
-                    // Check the specific sub-document for this branch and service
-                    val doc = firestore.collection("branch")
-                        .document(branch.branchId)
-                        .collection("branch_services")
-                        .document(categoryName.lowercase())
-                        .get()
-                        .await()
+            val availableBranchServices = firestore
+                .collection("branchService")
+                .whereEqualTo("serviceId", serviceId)
+                .whereEqualTo("availability", true)
+                .get()
+                .await()
 
-                    // If the document exists, check 'availability' field. 
-                    // If it doesn't exist, we assume it's available by default.
-                    val isAvailable = if (doc.exists()) {
-                        doc.getBoolean("availability") ?: true
-                    } else {
-                        true
-                    }
-
-                    if (isAvailable) {
-                        availableBranches.add(branch)
-                    }
-                } catch (e: Exception) {
-                    // Assuming available by default for safety.
-                    availableBranches.add(branch)
+            val branchIds =
+                availableBranchServices.documents.mapNotNull {
+                    it.getString("branchId")
                 }
+
+            if (branchIds.isEmpty()) {
+                return@withContext Result.success(emptyList())
             }
 
-            Result.success(availableBranches)
+            // ⚠️ Firestore whereIn limit = 10
+            val branches = firestore.collection(COLLECTION_BRANCH)
+                .whereIn(FieldPath.documentId(), branchIds.take(10))
+                .get()
+                .await()
+                .toObjects(Branch::class.java)
+
+            Result.success(branches)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 }
+

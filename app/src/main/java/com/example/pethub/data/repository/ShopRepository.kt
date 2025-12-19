@@ -79,7 +79,6 @@ class ShopRepository @Inject constructor() {
             return@callbackFlow
         }
 
-        // CHANGED: "users" -> "customer"
         val listener = db.collection("customer").document(custId).collection("cart")
             .addSnapshotListener { snapshot, _ ->
                 val items = snapshot?.toObjects(CartItem::class.java) ?: emptyList()

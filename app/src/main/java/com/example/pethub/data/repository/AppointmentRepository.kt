@@ -14,13 +14,16 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVI
 import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.jvm.optionals.getOrNull
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -34,20 +37,34 @@ class AppointmentRepository @Inject constructor(
     private val notificationRepository: NotificationRepository,
 ) {
 
-    suspend fun createAppointment(appointment: Appointment) {
-        // Get the pet's details
-        val custId = authRepository.getCurrentUserId()?:""
-        val petResult = petRepository.getPetById(custId, appointment.petId)
-        val pet = petResult.getOrNull()
+    /**
+     * Fetches a single appointment by its ID and transforms it into a detailed AppointmentItem.
+     * This is the primary function to be used by ViewModels to get all details for a single appointment.
+     */
+    suspend fun getAppointmentById(appointmentId: String): Result<AppointmentItem?> {
+        // Step 1: Get the raw Appointment document from Firestore.
+        val appointmentResult = getAppointmentDetail(appointmentId)
 
-        // Create the final appointment object with the breed included
-        val appointmentToSave = appointment.copy(
-            breed = pet?.breed ?: "" // Add the breed here
+        return appointmentResult.fold(
+            onSuccess = { appointment ->
+                if (appointment != null) {
+                    // Step 2: If successful, get the rich AppointmentItem.
+                    getAppointmentItem(appointment)
+                } else {
+                    Result.success(null) // Appointment not found, return null successfully.
+                }
+            },
+            onFailure = { exception ->
+                // If fetching the appointment failed, propagate the failure.
+                Result.failure(exception)
+            }
         )
+    }
 
-        // Save the new object to Firestore
-        firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
-
+    suspend fun createAppointment(appointment: Appointment) {
+        // The 'appointment' object already has all the required IDs.
+        // Simply save it to Firestore.
+        firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointment)
         // Trigger notification
         confirmBooking()
     }
@@ -88,7 +105,6 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentDetail(
         appointmentId: String
     ): Result<Appointment?> {
-
         return firestoreHelper.getDocument(
             collection = COLLECTION_APPOINTMENT,
             documentId = appointmentId,
@@ -99,68 +115,58 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentItem (
         appointmentDocument: Appointment,
     ):Result<AppointmentItem?> {
-        val appointmentId = appointmentDocument.appointmentId.ifBlank { "unknown_id" }.trim()
+        val appointmentId = appointmentDocument.appointmentId.trim()
         val serviceId = appointmentDocument.serviceId.trim()
         val branchId = appointmentDocument.branchId.trim()
         val petId = appointmentDocument.petId.trim()
 
-        // 1. Get Service Name (with fallback)
-        val serviceName = if (serviceId.isNotEmpty()) {
-            val serviceResult = firestoreHelper.getDocument(
-                collection = COLLECTION_SERVICE,
-                documentId = serviceId,
-                clazz = com.example.pethub.data.model.Service::class.java
-            )
-            val service = serviceResult.getOrNull()
-            // Check 'serviceName' instead of 'type' as per the Service model
-            service?.serviceName ?: service?.type ?: "Service"
-        } else {
-            "Service"
+        if (appointmentId.isBlank() || serviceId.isBlank() || branchId.isBlank() || petId.isBlank()) {
+            return Result.failure(Exception("Appointment contains invalid or missing IDs."))
         }
+
+        val serviceResult = firestoreHelper.getDocumentField(
+            collection = COLLECTION_SERVICE,
+            documentId = serviceId,
+            fieldName = "type",
+            String::class.java
+        )
+        val serviceName = serviceResult.getOrNull() ?: "Unknown Service"
 
         val unformatDateTime: Timestamp? = appointmentDocument.dateTime
         val date = unformatDateTime?.toDate()
         val formatter = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
         val dateTime = date?.let { formatter.format(it) } ?: "No Date"
 
-        // 2. Get Location Name (with fallback)
-        val locationName = if (branchId.isNotEmpty()) {
-            val locationResult = firestoreHelper.getDocumentField(
-                collection = COLLECTION_BRANCH,
-                documentId = branchId,
-                fieldName = "branchName",
-                String::class.java
-            )
-            locationResult.getOrNull() ?: "PetHub Branch"
-        } else {
-            "PetHub Branch"
-        }
+        val locationResult = firestoreHelper.getDocumentField(
+            collection = COLLECTION_BRANCH,
+            documentId = branchId,
+            fieldName = "branchName",
+            String::class.java
+        )
+        val locationName: String = locationResult.getOrNull() ?: "Unknown Location"
 
         val status = appointmentDocument.status
 
-        // 3. Get Pet (with fallback)
-        val pet = if (petId.isNotEmpty()) {
-            val getPetResult = firestoreHelper.getDocument(
-                collection = COLLECTION_PET,
-                documentId = petId,
-                clazz = Pet::class.java
-            )
-            getPetResult.getOrNull() ?: Pet(petName = "Unknown Pet")
-        } else {
-            Pet(petName = "Unknown Pet")
-        }
+        // First, get the Pet document using petId
+        val getPetResult = firestoreHelper.getDocument(
+            collection = COLLECTION_PET,
+            documentId = petId,
+            clazz = Pet::class.java
+        )
+        val pet = getPetResult.getOrNull()
+            ?: return Result.failure(Exception("Pet not found for ID: $petId"))
 
-        // 4. Get Owner (with fallback)
-        val owner = if (pet.custId.isNotEmpty()) {
-            val getOwnerResult = firestoreHelper.getDocument(
-                collection = COLLECTION_CUSTOMER,
-                documentId = pet.custId.trim(),
-                clazz = Customer::class.java
-            )
-            getOwnerResult.getOrNull() ?: Customer(custName = "Customer")
-        } else {
-            Customer(custName = "Customer")
+        // Then, get the owner using the custId from the fetched Pet object
+        if (pet.custId.isBlank()) {
+            return Result.failure(Exception("Pet with ID $petId has no associated customer ID."))
         }
+        val getOwnerResult = firestoreHelper.getDocument(
+            collection = COLLECTION_CUSTOMER,
+            documentId = pet.custId.trim(),
+            clazz = Customer::class.java
+        )
+        val owner = getOwnerResult.getOrNull()
+            ?: return Result.failure(Exception("Owner not found for ID: ${pet.custId}"))
 
         return Result.success(
             AppointmentItem(
@@ -193,48 +199,66 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
+        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
-        return firestoreHelper.listenToCollection(
-            collection = COLLECTION_APPOINTMENT,
-            clazz = Appointment::class.java
-        ) { query ->
-            // Chain multiple query conditions
-            query
-                .whereEqualTo("custId", custId) // Filter by the current user's ID
-                .whereGreaterThanOrEqualTo("dateTime",
-                    Timestamp.now()) // Filter for appointments from now onwards
-                .orderBy("dateTime") // Order by the soonest appointment first
-                .limit(limit.toLong()) // Apply the limit
+        // Called the correct function `listenToUserPets`
+        return petRepository.listenToUserPets(userId).flatMapLatest { userPets ->
+            val petIds = userPets.map { it.petId }
+            if (petIds.isEmpty()) {
+                return@flatMapLatest flowOf(emptyList<Appointment>())
+            }
+
+            // This part is correct and remains unchanged
+            firestoreHelper.listenToCollection(
+                collection = COLLECTION_APPOINTMENT,
+                clazz = Appointment::class.java
+            ) { query ->
+                query
+                    .whereIn("petId", petIds)
+                    .whereGreaterThanOrEqualTo("dateTime", Timestamp.now())
+                    .orderBy("dateTime")
+                    .limit(limit.toLong())
+            }
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun getAllAppointmentsForCurrentUser(): Flow<List<Appointment>> {
-        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
-        return firestoreHelper.listenToCollection(
-            collection = COLLECTION_APPOINTMENT,
-            clazz = Appointment::class.java
-        ) { query ->
-            query
-                .whereEqualTo("custId", custId)
-                .orderBy("dateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
+        // MODIFIED: Called the correct function `listenToUserPets`
+        return petRepository.listenToUserPets(userId).flatMapLatest { userPets ->
+            val petIds = userPets.map { it.petId }
+            if (petIds.isEmpty()) {
+                return@flatMapLatest flowOf(emptyList<Appointment>())
+            }
+
+            // This part is correct and remains unchanged
+            firestoreHelper.listenToCollection(
+                collection = COLLECTION_APPOINTMENT,
+                clazz = Appointment::class.java
+            ) { query ->
+                query
+                    .whereIn("petId", petIds)
+                    .orderBy("dateTime", Query.Direction.DESCENDING)
+            }
         }
     }
 
     fun confirmBooking() {
-            CoroutineScope(ioDispatcher).launch {
-                // After successfully saving, send a notification
-                val custId = authRepository.getCurrentUserId()
-                if (custId != null) {
-                    notificationRepository.sendNotification(
-                        custId = custId,
-                        title = "Appointment Confirmed!",
-                        message = "Your appointment has been successfully booked.",
-                        type = "appointment"
-                    )
-                }
+        CoroutineScope(ioDispatcher).launch {
+            // After successfully saving, send a notification
+            val custId = authRepository.getCurrentUserId()
+            if (custId != null) {
+                notificationRepository.sendNotification(
+                    custId = custId,
+                    title = "Appointment Confirmed!",
+                    message = "Your appointment has been successfully booked.",
+                    type = "appointment"
+                )
             }
         }
     }
+}

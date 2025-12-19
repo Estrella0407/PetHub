@@ -14,6 +14,13 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/branch/$(request.auth.uid));
     }
 
+    // Helper function to check if a pet belongs to the current user
+    function isPetOwner(petId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/pet/$(petId)) &&
+             get(/databases/$(database)/documents/pet/$(petId)).data.custId == request.auth.uid;
+    }
+
     // 1. CUSTOMER
     match /customer/{customerId} {
       allow read, update: if isDocumentOwner(customerId) || isAdmin();
@@ -26,25 +33,32 @@ service cloud.firestore {
 
     // 2. PET
     match /pet/{petId} {
-       allow create: if isSignedIn(); // Simplified for safer creation
+       allow create: if isSignedIn();
        allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
     }
 
     // 3. BRANCH
     match /branch/{branchId} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isSignedIn();
       allow write: if isAdmin();
-      match /branch_services/{docId} {
-        allow read: if true;
-        allow write: if isAdmin();
-      }
     }
 
     // 4. APPOINTMENT
     match /appointment/{appointmentId} {
-      allow create: if isSignedIn();
-      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.custId == request.auth.uid || resource.data.branchId == request.auth.uid));
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
+      // Allow creation if the pet belongs to the user
+      allow create: if isSignedIn() && isPetOwner(request.resource.data.petId);
+
+      // Allow list queries for signed-in users
+      // The actual filtering happens in the client based on petIds
+      allow list: if isSignedIn();
+
+      // For individual document reads (get), verify ownership
+      allow get: if isAdmin() ||
+                   (isSignedIn() && resource.data.branchId == request.auth.uid) ||
+                   isPetOwner(resource.data.petId);
+
+      // Allow update/delete if admin or pet owner
+      allow update, delete: if isAdmin() || isPetOwner(resource.data.petId);
     }
 
     // 5. SERVICE
@@ -67,26 +81,46 @@ service cloud.firestore {
 
     // 8. ORDERS
     match /order/{orderId} {
-      // Use request.resource to check the incoming data during creation
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.custId;
       allow read: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.custId == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
     // 9. PRODUCT ORDERS
     match /productOrder/{productOrderId} {
-       // CRITICAL FIX: Allow creation if logged in (Trust the batch)
        allow create: if isSignedIn();
-       
-       // Secure read using the dynamic lookup
        allow read: if isAdmin() || (
-         isSignedIn() && 
+         isSignedIn() &&
+         exists(/databases/$(database)/documents/order/$(resource.data.orderId)) &&
          get(/databases/$(database)/documents/order/$(resource.data.orderId)).data.custId == request.auth.uid
        );
+       allow update: if isAdmin();
+       allow delete: if isAdmin();
     }
 
     // 10. BRANCH PRODUCT
     match /branchProduct/{docId} {
       allow read: if isSignedIn();
+
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && request.resource.data.stock is int
+          && request.resource.data.stock <= resource.data.stock
+          && request.resource.data.branchId == resource.data.branchId
+          && request.resource.data.productId == resource.data.productId
+        );
+      allow create, delete: if isAdmin();
+    }
+
+    // 11. BRANCH SERVICE
+    match /branchService/{docId} {
+      // Explicitly allow both 'get' (single doc) and 'list' (query) operations
+      // for any user who is signed in.
+      allow get, list: if isSignedIn();
+
+      // Only admins can create, update, or delete these links.
       allow write: if isAdmin();
     }
   }

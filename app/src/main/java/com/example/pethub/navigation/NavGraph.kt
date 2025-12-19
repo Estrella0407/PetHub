@@ -25,6 +25,7 @@ import com.example.pethub.ui.admin.AdminHomeScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
+import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.AppointmentDetail
 import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
@@ -43,6 +44,8 @@ import com.example.pethub.ui.pet.AddPetScreen
 import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.AllAppointmentsScreen
 import com.example.pethub.ui.profile.AllOrdersScreen
+import com.example.pethub.ui.profile.AppointmentDetailScreen
+import com.example.pethub.ui.profile.OrderDetailScreen
 import com.example.pethub.ui.auth.StartupRouterScreen
 import com.example.pethub.ui.faq.BookingAppointmentScreenFAQ
 import com.example.pethub.ui.faq.CancellationRescheduleFAQScreen
@@ -132,8 +135,9 @@ fun NavGraph(
                 onNavigateToService = { navController.navigate("services") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onServiceClick = { serviceId ->
-                    navController.navigate("serviceDetail/$serviceId")
+                onServiceClick = { serviceName, serviceId -> // Pass both
+                    // Pass both serviceName and serviceId to the route
+                    navController.navigate("serviceDetail/$serviceName?serviceId=$serviceId")
                 }
             )
         }
@@ -152,8 +156,8 @@ fun NavGraph(
                 onNavigateToHome = { navController.navigate("home") },
                 onNavigateToShop = { navController.navigate("shop") },
                 onNavigateToProfile = { navController.navigate("profile") },
-                onServiceClick = { serviceId ->
-                    navController.navigate("serviceDetail/$serviceId")
+                onServiceClick = { serviceName ->
+                    navController.navigate("serviceDetail/$serviceName")
                 }
             )
         }
@@ -174,7 +178,16 @@ fun NavGraph(
             )
         }
 
-        composable("serviceDetail/{serviceId}") {
+        composable(
+            route = "serviceDetail/{serviceName}?serviceId={serviceId}",
+            arguments = listOf(
+                navArgument("serviceName") { type = NavType.StringType },
+                navArgument("serviceId") {
+                    type = NavType.StringType
+                    nullable = true // Make serviceId optional
+                }
+            )
+        ) {
             ServiceDetailScreen(
                 onBackClick = { navController.popBackStack() },
                 onProceedToBooking = { serviceId, petId, branchId ->
@@ -235,6 +248,24 @@ fun NavGraph(
             )
         }
 
+        composable(
+            route = "appointmentDetail/{appointmentId}",
+            arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val appointmentId = backStackEntry.arguments?.getString("appointmentId") ?: ""
+            AppointmentDetailScreen(
+                appointmentId = appointmentId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("orderDetail/{orderId}") {
+            OrderDetailScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+
         composable("all_orders") {
             AllOrdersScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -275,7 +306,7 @@ fun NavGraph(
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
                 onNavigateToAppointmentDetails = { appointmentId ->
-                    navController.navigate("appointmentDetail/${appointmentId}")
+                    navController.navigate("adminAppointmentDetail/${appointmentId}")
                 },
                 onViewAllClick = { navController.navigate("admin_view_all_appointments") },
                 onNavigateToMonthlySalesReport = { navController.navigate("monthly_sales_report") },
@@ -297,11 +328,11 @@ fun NavGraph(
         }
 
         composable(
-            route = "appointmentDetail/{appointmentId}",
+            route = "adminAppointmentDetail/{appointmentId}",
             arguments = listOf(navArgument("appointmentId") { type = NavType.StringType })
         ) { backStackEntry ->
             val appointmentId = backStackEntry.arguments?.getString("appointmentId")!!
-            AppointmentDetail(
+            AdminAppointmentDetail(
                 onNavigateToLogin = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
@@ -327,7 +358,7 @@ fun NavGraph(
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
                 onViewAppointmentClick = {appointmentId->
-                    navController.navigate("appointmentDetail/${appointmentId}")
+                    navController.navigate("adminAppointmentDetail/${appointmentId}")
                 }
             )
         }
@@ -403,17 +434,17 @@ fun NavGraph(
             })
         }
         composable("paymentsFaq") {
-            PaymentFAQScreen(onNavigateBack = { 
+            PaymentFAQScreen(onNavigateBack = {
                 navController.popBackStack()
             })
         }
         composable("policyFaq") {
-            PolicyFAQScreen(onNavigateBack = { 
+            PolicyFAQScreen(onNavigateBack = {
                 navController.popBackStack()
             })
         }
         composable("supportHelpFaq") {
-            SupportHelpFAQScreen(onNavigateBack = { 
+            SupportHelpFAQScreen(onNavigateBack = {
                 navController.popBackStack()
             })
         }

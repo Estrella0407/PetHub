@@ -168,12 +168,7 @@ private fun OrderListItem(
     order: OrderItem,
     onClick: () -> Unit
 ) {
-    val statusColor = when (order.status.lowercase()) {
-        "confirmed", "completed" -> Color(0xFF4CAF50)
-        "pending" -> Color(0xFFFF9800)
-        "cancelled" -> Color(0xFFF44336)
-        else -> Color.Gray
-    }
+    val statusColor = getStatusColor(order.status)
 
     val statusBgColor = statusColor.copy(alpha = 0.2f)
 
@@ -210,7 +205,7 @@ private fun OrderListItem(
                     Icon(
                         imageVector = Icons.Default.ShoppingCart,
                         contentDescription = null,
-                        tint = CreamDark,
+                        tint = LightBrown,
                         modifier = Modifier.size(24.dp)
                     )
                 }

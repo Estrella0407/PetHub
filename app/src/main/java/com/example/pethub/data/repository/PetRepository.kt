@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,6 +28,23 @@ class PetRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
+    /**
+     * Performs a one-time fetch of the current user's pets.
+     */
+    suspend fun getCurrentUserPets(): Result<List<Pet>> = withContext(ioDispatcher) {
+        val userId = authRepository.getCurrentUserId()
+        if (userId == null) {
+            return@withContext Result.success(emptyList())
+        }
+        // Use the existing one-time query function
+        return@withContext firestoreHelper.queryDocuments(
+            COLLECTION_PET,
+            "custId",
+            userId,
+            Pet::class.java
+        )
+    }
+
     fun getPetsForCurrentUser(): Flow<List<Pet>> {
         // Get the current user's ID from the AuthRepository
         // If there's no user logged in, return a flow with an empty list
@@ -34,20 +52,6 @@ class PetRepository @Inject constructor(
 
         // Call the function that listens to pets in the top-level collection
         return listenToUserPets(userId)
-    }
-
-    /** --------------------------------------------------
-     * Get all pets for customer (One-time)
-     * -------------------------------------------------- */
-
-    suspend fun getCustomerPets(userId: String): Result<List<Pet>> {
-        // Query top-level collection where custId matches
-        return firestoreHelper.queryDocuments(
-            COLLECTION_PET,
-            "custId",
-            userId,
-            Pet::class.java
-        )
     }
 
     /** --------------------------------------------------
