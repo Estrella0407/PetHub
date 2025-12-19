@@ -39,8 +39,9 @@ import com.example.pethub.ui.pet.PetProfileViewModel
 import com.example.pethub.ui.status.ErrorScreen
 import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
-import com.example.pethub.ui.theme.CreamDark
+import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.MutedBrown
 import com.example.pethub.ui.theme.VibrantBrown
@@ -73,7 +74,7 @@ fun PetProfileScreen(
         containerColor = CreamBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = MutedBrown) },
+                title = { Text("Pet Profile", fontWeight = FontWeight.Bold, color = DarkBrown) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -129,7 +130,7 @@ fun PetProfileContent(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .border(2.dp, CreamDark, CircleShape)
+                        .border(2.dp, DarkBrown, CircleShape)
                         .clickable(onClick = onImageClick),
                     contentScale = ContentScale.Crop,
                     fallback = rememberVectorPainter(Icons.Default.Pets) // Fallback icon
@@ -139,7 +140,7 @@ fun PetProfileContent(
                 if (state.isUploading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(120.dp),
-                        color = CreamDark,
+                        color = DarkBrown,
                         strokeWidth = 4.dp
                     )
                 }
@@ -148,7 +149,7 @@ fun PetProfileContent(
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit Image",
-                    tint = CreamDark,
+                    tint = DarkBrown,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp)
@@ -163,7 +164,7 @@ fun PetProfileContent(
                 text = pet.petName,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = VibrantBrown
+                color = DarkBrown
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -214,6 +215,57 @@ fun PetProfileContent(
             }
         }
 
+        // --- Recommended Services ---
+        if (state.recommendedServices.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Recommended Services",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkBrown
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Horizontal list of services
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    state.recommendedServices.forEach { service ->
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(100.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = CreamLight)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .fillMaxSize(),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = service.serviceName,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkBrown,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "RM${service.price}",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                    // Handle odd number of items if needed, but row with weights handles it okay for small counts.
+                    // For many items, a LazyRow within item would be better, but we only fetch top 3.
+                }
+            }
+        }
+
         // --- Save Button ---
         item {
             Spacer(modifier = Modifier.height(24.dp))
@@ -221,7 +273,7 @@ fun PetProfileContent(
                 onClick = { /* TODO: Save changes */ },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VibrantBrown)
+                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown)
             ) {
                 Text("Save", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
             }
@@ -248,7 +300,7 @@ fun EditablePetInfoField(
                     value = value,
                     onValueChange = { /* TODO: Update ViewModel state */ },
                     modifier = Modifier.weight(1f),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = Color.Black),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = DarkBrown),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
             }

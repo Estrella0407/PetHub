@@ -1,11 +1,19 @@
 package com.example.pethub.data.model
 
+import com.google.firebase.firestore.IgnoreExtraProperties
+import com.google.firebase.firestore.PropertyName
+
+/**
+ * Data class for service items in UI
+ */
+@IgnoreExtraProperties
 data class Service(
     val serviceId: String = "",
-    val type: String = "", // category
+    val type: String = "",
     val description: String = "",
     val price: Double = 0.0,
-    val serviceName: String = "",
+    @PropertyName("category")
+    val serviceName: String = "", // category
     val imageUrl: String = "", // Kept for UI
 )
 
@@ -27,7 +35,7 @@ data class ServiceItem(
 fun Service.toServiceItem(): ServiceItem {
     return ServiceItem(
         id = serviceId,
-        type = type,
+        type = if (type.isNotEmpty()) type else serviceName,
         serviceName = serviceName,
         description = description,
         price = price,

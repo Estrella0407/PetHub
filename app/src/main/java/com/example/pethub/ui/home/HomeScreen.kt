@@ -387,7 +387,7 @@ fun RecommendedServiceCard(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
-                maxLines = 2, // <-- FIX 2: Allow up to two lines
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }

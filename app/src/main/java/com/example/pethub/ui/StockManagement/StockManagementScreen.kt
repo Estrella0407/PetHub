@@ -76,10 +76,8 @@ fun StockManagementScreen(
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Stock Management",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = DarkBrown,
-                style = TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(24.dp))
 

@@ -12,13 +12,15 @@ import com.example.pethub.data.repository.BranchRepository
 import com.example.pethub.data.repository.CustomerRepository
 import com.example.pethub.data.repository.PetRepository
 import com.example.pethub.data.repository.ServiceRepository
+import com.example.pethub.utils.isServiceSuitableForPet
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -60,6 +62,17 @@ class HomeViewModel @Inject constructor(
             val userId = authRepository.getCurrentUserId()
             if (userId != null) {
                 loadCustomerData()
+                // Fetch initial pets and recommendations before setting the Success state
+                val initialPets = petRepository.getCurrentUserPets().getOrNull() ?: emptyList()
+                _pets.value = initialPets
+                if (initialPets.isNotEmpty()) {
+                    val firstPet = initialPets.first()
+                    _selectedPet.value = firstPet
+                    loadRecommendedServicesForPet(firstPet)
+                } else {
+                    loadGenericServices()
+                }
+                // Start the listener for subsequent updates
                 listenForUserPets(userId)
             } else {
                 _userName.value = "Guest"
@@ -80,11 +93,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // This listener is now only for updates after the initial load
     private fun listenForUserPets(userId: String) {
         viewModelScope.launch {
             petRepository.listenToUserPets(userId).collect { petsList ->
                 _pets.value = petsList
-                if (petsList.isNotEmpty() && _selectedPet.value == null) {
+                // If the selected pet was deleted, select the new first pet
+                if (petsList.isNotEmpty() && !_pets.value.contains(_selectedPet.value)) {
                     selectPet(petsList.first())
                 } else if (petsList.isEmpty()) {
                     _selectedPet.value = null
@@ -97,9 +112,8 @@ class HomeViewModel @Inject constructor(
     private fun loadGenericServices() {
         recommendationJob?.cancel()
         recommendationJob = viewModelScope.launch {
-            serviceRepository.listenToServices().collect { services ->
-                _recommendedServices.value = services.map { it.toServiceItem() }
-            }
+            val allServices = serviceRepository.listenToServices().first()
+            _recommendedServices.value = allServices.map { it.toServiceItem() }
         }
     }
 
@@ -107,13 +121,15 @@ class HomeViewModel @Inject constructor(
         recommendationJob?.cancel()
         recommendationJob = viewModelScope.launch {
             try {
-                // MODIFIED: Pass pet.breed instead of pet.weight
-                val services = appointmentRepository.getRecommendedServicesForPet(
-                    petType = pet.type,
-                    petBreed = pet.breed
-                )
-                _recommendedServices.value = services.map { it.toServiceItem() }
+                // Fetch all services once.
+                val allServices = serviceRepository.listenToServices().first()
+                // Filter the list using your utility function.
+                val suitableServices = allServices.filter { service ->
+                    isServiceSuitableForPet(service.type, pet.type)
+                }
+                _recommendedServices.value = suitableServices.map { it.toServiceItem() }
             } catch (e: Exception) {
+                // If there's an error, fallback to showing everything.
                 loadGenericServices()
             }
         }
@@ -126,8 +142,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun selectPet(pet: Pet) {
-        // Always update the selected pet and trigger new recommendations
-        // if the pet ID is different from the currently selected one.
         if (_selectedPet.value?.petId != pet.petId) {
             _selectedPet.value = pet
             loadRecommendedServicesForPet(pet)
@@ -144,3 +158,4 @@ sealed class HomeUiState {
     object Success : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
+

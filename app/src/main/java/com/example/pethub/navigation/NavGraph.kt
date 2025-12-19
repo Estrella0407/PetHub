@@ -351,17 +351,15 @@ fun NavGraph(
         ) { backStackEntry ->
             val appointmentId = backStackEntry.arguments?.getString("appointmentId")!!
             AdminAppointmentDetail(
-                onNavigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-                onNavigateToHome = {navController.popBackStack()},
+                appointmentId = appointmentId,
+                onAppointmentCanceled = { navController.popBackStack() },
+                onNavigateToHome = { navController.navigate("admin_home") },
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                appointmentId = appointmentId,
-                onAppointmentCanceled = {navController.navigate("admin_home")}
+                onNavigateToLogin = {
+                    navController.navigate("login")
+                }
             )
         }
         composable("admin_view_all_appointments"){
