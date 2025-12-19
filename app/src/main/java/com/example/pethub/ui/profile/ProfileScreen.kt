@@ -56,7 +56,8 @@ fun ProfileScreen(
     onFaqClick: () -> Unit,
     onNavigateToPetProfile: (petId: String) -> Unit,
     onNavigateToAllAppointments: () -> Unit,
-    onNavigateToAllOrders: () -> Unit
+    onNavigateToAllOrders: () -> Unit,
+    onEditProfileClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -98,7 +99,8 @@ fun ProfileScreen(
                     onAppointmentClick = onAppointmentClick,
                     onOrderClick = onOrderClick,
                     onNavigateToAllAppointments = onNavigateToAllAppointments,
-                    onNavigateToAllOrders = onNavigateToAllOrders
+                    onNavigateToAllOrders = onNavigateToAllOrders,
+                    onEditProfileClick = onEditProfileClick
                 )
             }
         }
@@ -116,7 +118,8 @@ fun ProfileContent(
     onAppointmentClick: (appointmentId: String) -> Unit,
     onOrderClick: (orderId: String) -> Unit,
     onNavigateToAllAppointments: () -> Unit,
-    onNavigateToAllOrders: () -> Unit
+    onNavigateToAllOrders: () -> Unit,
+    onEditProfileClick: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -125,7 +128,7 @@ fun ProfileContent(
     ) {
         // --- Header Section ---
         item {
-            ProfileHeader(uiState = uiState, onFaqClick = onFaqClick)
+            ProfileHeader(uiState = uiState, onFaqClick = onFaqClick, onEditProfileClick = onEditProfileClick)
         }
 
         // --- Appointments Section
@@ -243,7 +246,7 @@ fun ProfileContent(
                 onClick = onLogoutClick,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
+                colors = ButtonDefaults.buttonColors(containerColor = VibrantBrown)
             ) {
                 Text("Log Out", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
             }
@@ -253,7 +256,7 @@ fun ProfileContent(
 
 // No changes needed for ProfileHeader
 @Composable
-fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
+fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit, onEditProfileClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -275,7 +278,7 @@ fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             IconButton(onClick = onFaqClick) { Icon(Icons.Default.HelpOutline, contentDescription = "Help") }
-            IconButton(onClick = { /* TODO: Navigate to Edit Profile */ }) { Icon(Icons.Default.Edit, contentDescription = "Edit Profile") }
+            IconButton(onClick = onEditProfileClick) { Icon(Icons.Default.Edit, contentDescription = "Edit Profile") }
         }
     }
 }
@@ -495,6 +498,7 @@ fun ProfileScreenPreview() {
         onAppointmentClick = {},
         onOrderClick = {},
         onNavigateToAllAppointments = {},
-        onNavigateToAllOrders = {}
+        onNavigateToAllOrders = {},
+        onEditProfileClick = {}
     )
 }

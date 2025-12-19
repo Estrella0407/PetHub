@@ -53,6 +53,7 @@ import com.example.pethub.ui.faq.PolicyFAQScreen
 import com.example.pethub.ui.faq.SupportHelpFAQScreen
 import com.example.pethub.ui.faq.PolicyFAQScreen
 import com.example.pethub.ui.profile.ProfileScreen
+import com.example.pethub.ui.profile.EditProfileScreen
 import com.example.pethub.ui.service.ServiceDetailScreen
 import com.example.pethub.ui.service.ServiceScreen
 import com.example.pethub.ui.shop.ShopScreen
@@ -211,7 +212,16 @@ fun NavGraph(
                 },
                 onNavigateToAllOrders = {
                     navController.navigate("all_orders")
+                },
+                onEditProfileClick = {
+                    navController.navigate("editProfile")
                 }
+            )
+        }
+
+        composable("editProfile") {
+            EditProfileScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

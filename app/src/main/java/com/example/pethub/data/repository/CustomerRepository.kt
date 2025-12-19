@@ -48,4 +48,18 @@ class CustomerRepository @Inject constructor(
             mapOf("profileImageUrl" to imageUrl)
         )
     }
+
+    suspend fun updateCustomerDetails(name: String, phone: String, address: String): Result<Unit> {
+        val userId = firebaseService.getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
+        return firestoreHelper.updateDocument(
+            COLLECTION_CUSTOMER,
+            userId,
+            mapOf(
+                "custName" to name,
+                "custPhone" to phone,
+                "custAddress" to address,
+                "updatedAt" to firestoreHelper.getServerTimestamp()
+            )
+        )
+    }
 }
