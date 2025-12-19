@@ -146,22 +146,21 @@ class BookAppointmentViewModel @Inject constructor(
     ): List<TimeSlot> {
         if (branch == null) return emptyList()
 
+        // --- The first part of your logic remains the same ---
+
         // 1. Determine the day of the week from the selected date.
-        val dayOfWeek = date.dayOfWeek // e.g., MONDAY, SATURDAY
+        val dayOfWeek = date.dayOfWeek
 
         // 2. Define the start and end hours based on the day of the week.
         val startHour = 10
         val endHour = if (dayOfWeek in java.time.DayOfWeek.SATURDAY..java.time.DayOfWeek.SUNDAY) {
-            18
+            17 // Last slot is 5 PM for 6 PM close
         } else {
-            // It's a weekday, so operating hours end at 8 PM (last slot is 7 PM).
-            20 // Represents the 8pm
+            19 // Last slot is 7 PM for 8 PM close
         }
 
         // 3. Generate the list of all possible slots for that day within operating hours.
         val allSlots = (startHour..endHour).map { hour -> LocalTime.of(hour, 0) }
-
-        // --- The rest of your logic remains the same ---
 
         // 4. Find which slots are already booked for that specific day and branch.
         val bookedSlotsForDay = appointments.filter {
@@ -172,11 +171,23 @@ class BookAppointmentViewModel @Inject constructor(
             it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalTime()
         }.toSet()
 
-        // 5. Create the final list of TimeSlot objects, marking booked ones as unavailable.
+        // 5. Check if the selected date is today.
+        val isToday = date == LocalDate.now()
+        val currentTime = LocalTime.now()
+
+        // 6. Create the final list of TimeSlot objects with the new validation.
         return allSlots.map { slot ->
-            TimeSlot(time = slot, isAvailable = !bookedSlotsForDay.contains(slot))
+            // A slot is considered already booked if it's in the bookedSlotsForDay set.
+            val isAlreadyBooked = bookedSlotsForDay.contains(slot)
+
+            // A slot is in the past if the selected date is today AND the slot time is before the current time.
+            val isInThePast = isToday && slot.isBefore(currentTime)
+
+            // The slot is available only if it's NOT already booked AND it's NOT in the past.
+            TimeSlot(time = slot, isAvailable = !isAlreadyBooked && !isInThePast)
         }
     }
+
 
 
     private fun updateAvailableTimeSlots(

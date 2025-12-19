@@ -189,7 +189,7 @@ fun CalendarSection(
     val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     Column {
-        // --- Month Selector (This part is already correct) ---
+        // --- Month Selector (This part is correct) ---
         Box(
             modifier = Modifier
                 .background(DarkBrown, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
@@ -224,7 +224,6 @@ fun CalendarSection(
         }
 
         // --- Calendar Grid ---
-        // Days of the week header
         Row(modifier = Modifier.fillMaxWidth()) {
             daysOfWeek.forEach { day ->
                 Text(
@@ -237,21 +236,20 @@ fun CalendarSection(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Dates grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier.height(250.dp) // Give the grid a fixed height
+            modifier = Modifier.height(250.dp)
         ) {
-            // Add empty spacers for days before the 1st of the month
             items(firstDayOfMonth) {
                 Spacer(modifier = Modifier.size(40.dp))
             }
 
-            // Add the actual date cells
             items(daysInMonth) { day ->
                 val date = currentDisplayMonth.atDay(day + 1)
                 val isSelected = date == selectedDate
-                val isToday = date == LocalDate.now()
+
+                // --- FIX: Add validation for past dates ---
+                val isPastDate = date.isBefore(LocalDate.now())
 
                 Box(
                     modifier = Modifier
@@ -259,23 +257,33 @@ fun CalendarSection(
                         .clip(RoundedCornerShape(8.dp))
                         .background(
                             when {
-                                isSelected -> DarkBrown // Selected color
-                                isToday -> CreamDark.copy(alpha = 0.5f) // Today color
+                                isSelected -> DarkBrown
+                                // No special background for today if it's in the past
+                                date == LocalDate.now() && !isPastDate -> CreamDark.copy(alpha = 0.5f)
                                 else -> Color.Transparent
                             }
                         )
-                        .clickable { onDateSelected(date) },
+                        // Only make the box clickable if the date is not in the past
+                        .clickable(enabled = !isPastDate) {
+                            onDateSelected(date)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "${day + 1}",
-                        color = if (isSelected) Color.White else DarkBrown
+                        // Change text color for selected dates OR disabled (past) dates
+                        color = when {
+                            isSelected -> Color.White
+                            isPastDate -> Color.Gray.copy(alpha = 0.6f) // Faded color for past dates
+                            else -> DarkBrown
+                        }
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 fun TimeSlotsSection(
     selectedDate: LocalDate,
