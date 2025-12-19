@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Notifications
@@ -46,7 +46,8 @@ fun HomeScreen(
     onNavigateToService: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToShop: () -> Unit,
-    onServiceClick: (serviceName: String, serviceId: String) -> Unit, // MODIFIED: Expects both
+    onNavigateToNotification: () -> Unit,
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userName by viewModel.userName.collectAsState()
@@ -58,8 +59,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             HomeTopBar(
-                onNotificationClick = {/*navigate to notification*/ },
-                onChangeAccTypeClick = { /* Change account type */ }
+                onNotificationClick = onNavigateToNotification
             )
         },
         bottomBar = {
@@ -111,7 +111,6 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
-    onChangeAccTypeClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
     TopAppBar(
@@ -121,19 +120,6 @@ fun HomeTopBar(
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
-                    tint = MutedBrown,
-                    modifier = Modifier
-                        .background(
-                            color = CreamDark,
-                            shape = CircleShape
-                        )
-                        .padding(8.dp)
-                )
-            }
-            IconButton(onClick = onChangeAccTypeClick) {
-                Icon(
-                    imageVector = Icons.Default.ManageAccounts,
-                    contentDescription = "Change Account",
                     tint = MutedBrown,
                     modifier = Modifier
                         .background(
@@ -159,7 +145,7 @@ fun HomeContent(
     branches: List<Branch>,
     allPets: List<Pet>,
     onPetSelected: (Pet) -> Unit,
-    onServiceClick: (serviceName: String, serviceId: String) -> Unit, // MODIFIED
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier
@@ -272,7 +258,7 @@ fun RecommendedServiceSection(
     services: List<ServiceItem>,
     allPets: List<Pet>,
     onPetSelected: (Pet) -> Unit,
-    onServiceClick: (serviceName: String, serviceId: String) -> Unit // MODIFIED
+    onServiceClick: (serviceName: String, serviceId: String) -> Unit
 ) {
     var showPetSelection by remember { mutableStateOf(false) }
 
@@ -288,13 +274,6 @@ fun RecommendedServiceSection(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Hello, $userName👋!",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = DarkBrown
-            )
-
             // If showPetSelection is true, display the dropdown
             PetSelectionDropdown(
                 pets = allPets,
@@ -307,13 +286,41 @@ fun RecommendedServiceSection(
                 expanded = showPetSelection // Pass the state
             )
 
+            // "Hello" text and "Change Pet" button are now in the same row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Hello, $userName👋!",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkBrown
+                )
+                TextButton(onClick = { showPetSelection = true }) {
+                    Text(
+                        text = "Change Pet",
+                        color = MutedBrown
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MutedBrown,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(4.dp))
 
-            SectionHeader(
-                title = "Check out these services for $petName:",
-                actionText = "Change Pet",
-                onActionClick = { showPetSelection = true } // Open the dropdown
+            // This text is now on its own line
+            Text(
+                text = "Check out these services for $petName:",
+                style = MaterialTheme.typography.titleMedium,
+                color = NeutralBrown
             )
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -325,7 +332,7 @@ fun RecommendedServiceSection(
                 services.forEach { service ->
                     RecommendedServiceCard(
                         service = service,
-                        onClick = { onServiceClick(service.serviceName, service.id) }, // MODIFIED
+                        onClick = { onServiceClick(service.serviceName, service.id) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -345,7 +352,7 @@ fun RecommendedServiceCard(
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(0.85f)
+            .height(120.dp) // <-- FIX 1: Set a fixed height
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
@@ -380,43 +387,8 @@ fun RecommendedServiceCard(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 2, // <-- FIX 2: Allow up to two lines
                 overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-/**
- * Section header
- */
-@Composable
-fun SectionHeader(
-    title: String,
-    actionText: String,
-    onActionClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = NeutralBrown
-        )
-
-        TextButton(onClick = onActionClick) {
-            Text(
-                text = actionText,
-                color = MutedBrown
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = null,
-                tint = MutedBrown,
-                modifier = Modifier.size(18.dp)
             )
         }
     }

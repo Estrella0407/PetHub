@@ -1,6 +1,6 @@
 package com.example.pethub.ui.profile
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,8 +39,9 @@ import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.*
 import com.example.pethub.util.calculateAge
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
+import androidx.compose.material3.*
+import com.example.pethub.ui.status.LoadingScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +55,9 @@ fun ProfileScreen(
     onAppointmentClick: (appointmentId: String) -> Unit,
     onOrderClick: (orderId: String) -> Unit,
     onFaqClick: () -> Unit,
-    onNavigateToPetProfile: (petId: String) -> Unit,
+    onNavigateToPetProfile: (String) -> Unit,
+    onAppointmentClick: (String) -> Unit,
+    onOrderClick: (String) -> Unit,
     onNavigateToAllAppointments: () -> Unit,
     onNavigateToAllOrders: () -> Unit,
     onEditProfileClick: () -> Unit
@@ -63,33 +66,27 @@ fun ProfileScreen(
 
     Scaffold(
         containerColor = CreamBackground,
-        bottomBar = {
-            BottomNavigationBar(
-                currentRoute = "profile",
-                onNavigate = { route ->
-                    when (route) {
-                        "home" -> onNavigateToHome()
-                        "services" -> onNavigateToService()
-                        "shop" -> onNavigateToShop()
-                    }
-                }
+        topBar = {
+            TopAppBar(
+                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         when (val state = uiState) {
-            is ProfileUiState.Loading -> LoadingScreen()
-            is ProfileUiState.Error -> ErrorScreen(
-                message = state.message,
-                onRetry = { viewModel.loadCustomerData() }
-            )
+            is ProfileUiState.Loading -> {
+                LoadingScreen()
+            }
+            is ProfileUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(state.message, color = MaterialTheme.colorScheme.error)
+                }
+            }
             is ProfileUiState.Success -> {
                 ProfileContent(
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier.padding(paddingValues),
                     uiState = state,
-                    onLogoutClick = {
-                        viewModel.logout()
-                        onLogout()
-                    },
+                    onLogoutClick = onLogout,
                     onAddPetClick = onAddPetClick,
                     onFaqClick = onFaqClick,
                     // PASS the navigation function down
@@ -144,11 +141,7 @@ fun ProfileContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp) // Space between cards
                 ) {
-                    // Use .forEach to iterate through the list
                     uiState.appointments.forEach { appointmentItem ->
-
-                        // Extract the strings from the object
-                        // Ensure your Appointment model has these fields
                         val title = appointmentItem.serviceName ?: "Service"
                         val dateStr = appointmentItem.dateTime ?: "No Date"
 
@@ -156,15 +149,13 @@ fun ProfileContent(
                             title = title,
                             date = dateStr,
                             modifier = Modifier
-                                .fillMaxWidth() // Make cards take full width
-                                .padding(bottom = 8.dp) // Add space between cards
+                                .weight(1f) // Make cards share width
                                 .clickable {
                                     onAppointmentClick(appointmentItem.id)
                                 }
                         )
                     }
-
-                    if (uiState.appointments.size == 1) {
+                    if (uiState.appointments.size < 2) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
@@ -208,9 +199,7 @@ fun ProfileContent(
                                 .clickable { onOrderClick(orderItem.id) }
                         )
                     }
-
-                    // Spacer for alignment if only 1 item
-                    if (uiState.orders.size == 1) {
+                    if (uiState.orders.size < 2) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
@@ -221,18 +210,14 @@ fun ProfileContent(
         item {
             SectionHeader(title = "My Pets", onAddClick = onAddPetClick)
             Spacer(modifier = Modifier.height(8.dp))
-            // CHECK for pets and display them
             if (uiState.pets.isEmpty()) {
                 Text("No pets added yet.", modifier = Modifier.padding(16.dp))
             } else {
-                // This will create a card for each pet
                 uiState.pets.forEach { pet ->
                     PetInfoCard(
-                        pet = pet, // Pass the whole pet object
-                        modifier = Modifier.clickable {
-                            // CALL the navigation function when a pet is clicked
-                            onPetClick(pet.petId)
-                        }
+                        pet = pet,
+                        // Pass the onPetClick lambda to the card
+                        onEditClick = { onPetClick(pet.petId) }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -248,16 +233,65 @@ fun ProfileContent(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = VibrantBrown)
             ) {
-                Text("Log Out", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
+                Text("Log Out", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp, color = DarkBrown)
             }
         }
     }
 }
 
+// THIS IS THE NEW COMPOSABLE
+@Composable
+fun PetInfoCard(
+    pet: Pet,
+    onEditClick: () -> Unit, // Changed parameter name for clarity
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CreamLight)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = pet.imageUrl,
+                contentDescription = pet.petName,
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                fallback = rememberVectorPainter(Icons.Default.Person)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(pet.petName, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkBrown)
+                Text("${pet.type} | ${pet.breed}", fontSize = 14.sp, color = Color.Gray)
+            }
+            // --- THIS IS THE FIX ---
+            // The clickable action is now only on this TextButton
+            TextButton(onClick = onEditClick) {
+                Text("Edit Pet")
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit Pet",
+                    modifier = Modifier.size(16.dp),
+                    tint = MutedBrown
+                )
+            }
+        }
+    }
+}
+
+
 // No changes needed for ProfileHeader
 @Composable
-fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit, onEditProfileClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(),
+fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -346,14 +380,13 @@ fun AppointmentCard(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = CreamDark,
+                color = DarkBrown,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. Date with Icon
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
@@ -366,19 +399,18 @@ fun AppointmentCard(
                     text = date,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
-                    maxLines = 2, // Allow date/time to wrap if needed
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // "View Detail" indicator
             Text(
-                text = "View All",
+                text = "View Detail",
                 style = MaterialTheme.typography.labelSmall,
                 textDecoration = TextDecoration.Underline,
-                color = CreamDark,
+                color = MutedBrown,
                 modifier = Modifier.align(Alignment.End)
             )
         }
@@ -391,14 +423,9 @@ fun OrderCard(
     date: String,
     price: String,
     status: String,
-    modifier: Modifier = Modifier) {
-
-    val statusColor = when (status) {
-        "Pending" -> Color.Black
-        "Confirmed" -> Color.Green
-        "Cancelled" -> Color.Red
-        else -> Color.Black
-    }
+    modifier: Modifier = Modifier
+) {
+    val statusColor = getStatusColor(status = status)
 
     Card(
         modifier = modifier,
@@ -426,59 +453,17 @@ fun OrderCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = status,
-                color = statusColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-        }
-    }
-}
-
-@Composable
-fun PetInfoCard(
-    pet: Pet,
-    modifier: Modifier = Modifier
-) {
-    val age = calculateAge(pet.dateOfBirth?.time)
-
-    Card(
-        modifier = modifier.fillMaxWidth(), // Apply the clickable modifier here
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CreamLight)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = pet.imageUrl,
-                contentDescription = pet.petName,
+            // Status Chip
+            Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop,
-                fallback = rememberVectorPainter(Icons.Default.Person)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = pet.petName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(text = "Breed: ${pet.breed}", fontSize = 14.sp, color = Color.Gray)
-                Text(text = "Age: ${age?.toString() ?: "N/A"}", fontSize = 14.sp, color = Color.Gray)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Image(
-                    painter = painterResource(id = R.drawable.qr),
-                    contentDescription = "QR Code",
-                    modifier = Modifier.size(40.dp)
-                )
+                    .background(statusColor, shape = RoundedCornerShape(50))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
                 Text(
-                    text = "Edit",
-                    textDecoration = TextDecoration.Underline,
+                    text = status,
+                    color = DarkBrown.copy(alpha = 0.8f),
                     fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.clickable { /* TODO */ }
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.navigation.AdminBottomNavigationBar
-import com.example.pethub.ui.shop.CreamBg
+import com.example.pethub.ui.theme.CreamBg
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamFair
 import android.app.DatePickerDialog

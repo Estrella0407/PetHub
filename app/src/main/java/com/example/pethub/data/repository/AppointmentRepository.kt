@@ -5,6 +5,7 @@ import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.model.Customer
 import com.example.pethub.data.model.Pet
+import com.example.pethub.data.model.Service
 import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_APPOINTMENT
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_BRANCH
@@ -23,7 +24,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.jvm.optionals.getOrNull
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -199,6 +203,68 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
+    /**
+     * Gets top recommended services based on the pet's type and breed.
+     * It finds appointments for similar pets, counts the frequency of each service,
+     * and returns the most popular ones.
+     */
+    suspend fun getRecommendedServicesForPet(petType: String, petBreed: String): List<Service> =
+        withContext(ioDispatcher) {
+            // Step 1: Find all pets that are the same type, and optionally the same breed.
+            var similarPetsQuery: Query = firestoreHelper.getFirestoreInstance().collection("pet")
+                .whereEqualTo("type", petType)
+
+            // --- THIS IS THE FIX ---
+            // If a breed is provided, add it to the query.
+            if (petBreed.isNotBlank()) {
+                similarPetsQuery = similarPetsQuery.whereEqualTo("breed", petBreed)
+            }
+
+            val similarPetsResult = similarPetsQuery.limit(50).get().await()
+            val similarPetIds = similarPetsResult.documents.map { it.id }
+
+            if (similarPetIds.isEmpty()) {
+                // If no similar pets, return an empty list. The ViewModel will handle the fallback.
+                return@withContext emptyList()
+            }
+
+            // Step 2: Find all appointments for these similar pets
+            val appointmentsQuery = firestoreHelper.getFirestoreInstance().collection("appointment")
+                .whereIn("petId", similarPetIds)
+                .get()
+                .await()
+
+            // Step 3: Count the frequency of each serviceId from the appointments
+            val serviceIdCounts = appointmentsQuery.documents
+                .mapNotNull { it.getString("serviceId") }
+                .groupingBy { it }
+                .eachCount()
+
+            if (serviceIdCounts.isEmpty()) {
+                return@withContext emptyList()
+            }
+
+            // Step 4: Get the top 3 most frequent service IDs
+            val topServiceIds = serviceIdCounts.entries
+                .sortedByDescending { it.value }
+                .take(3)
+                .map { it.key }
+
+            if (topServiceIds.isEmpty()) {
+                return@withContext emptyList()
+            }
+
+            // Step 5: Fetch the full service documents for the top IDs
+            val services = firestoreHelper.getFirestoreInstance().collection("service")
+                .whereIn(FieldPath.documentId(), topServiceIds)
+                .get()
+                .await()
+                .toObjects(Service::class.java)
+
+            // Return the list of service objects
+            return@withContext services
+        }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
         val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
@@ -247,18 +313,16 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-    fun confirmBooking() {
-        CoroutineScope(ioDispatcher).launch {
-            // After successfully saving, send a notification
-            val custId = authRepository.getCurrentUserId()
-            if (custId != null) {
-                notificationRepository.sendNotification(
-                    custId = custId,
-                    title = "Appointment Confirmed!",
-                    message = "Your appointment has been successfully booked.",
-                    type = "appointment"
-                )
-            }
+    private suspend fun confirmBooking() {
+        val custId = authRepository.getCurrentUserId()
+        if (custId != null) {
+            notificationRepository.sendNotification(
+                custId = custId,
+                title = "Appointment Confirmed!",
+                message = "Your appointment has been successfully booked.",
+                type = "appointment"
+            )
         }
     }
+
 }

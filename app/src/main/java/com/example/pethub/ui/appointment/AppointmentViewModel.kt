@@ -4,21 +4,27 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pethub.R
+import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.BranchService
+import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.BranchRepository
 import com.example.pethub.data.repository.ServiceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // UI State for the entire Appointment Screen
@@ -27,47 +33,43 @@ data class AppointmentUiState(
     val serviceImageRes: Int = 0,
     val availableBranches: List<Branch> = emptyList(),
     val isLoading: Boolean = true,
+    val bookingSuccess: Boolean = false,
     val error: String? = null
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AppointmentViewModel @Inject constructor(
-    private val serviceRepository: ServiceRepository,
-    private val branchRepository: BranchRepository,
-    savedStateHandle: SavedStateHandle
+    private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {
 
-    private val serviceId: String = savedStateHandle.get<String>("serviceId") ?: ""
+    private val _uiState = MutableStateFlow<AppointmentUiState>(AppointmentUiState())
+    val uiState = _uiState.asStateFlow()
 
-    val uiState: StateFlow<AppointmentUiState> = branchRepository.listenToBranches().flatMapLatest { branches ->
-        if (branches.isEmpty()) {
-            flowOf(createInitialState(serviceId).copy(isLoading = false))
-        } else {
-            val availabilityFlows: List<Flow<Pair<Branch, Boolean>>> = branches.map { branch ->
-                if (branch.branchId.isEmpty()) {
-                    flowOf(branch to false)
-                } else {
-                    serviceRepository.listenToBranchServiceAvailability(branch.branchId, serviceId)
-                        .map { branchService: BranchService? -> branch to (branchService?.availability ?: false) }
+    fun bookAppointment(appointment: Appointment) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            try {
+                appointmentRepository.createAppointment(appointment)
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        bookingSuccess = true
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "Booking failed"
+                    )
                 }
             }
-            combine(availabilityFlows) { availabilityPairs ->
-                val availableBranches = availabilityPairs.filter { it.second }.map { it.first }
-                createInitialState(serviceId).copy(
-                    availableBranches = availableBranches,
-                    isLoading = false
-                )
-            }
         }
-    }.catch { e ->
-        // If any error occurs in the flow, emit an error state
-        emit(AppointmentUiState(isLoading = false, error = e.message))
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = AppointmentUiState(isLoading = true) // Start in a loading state
-    )
+    }
+
 
     private fun createInitialState(serviceId: String): AppointmentUiState {
         return when (serviceId) {
