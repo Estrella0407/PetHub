@@ -261,7 +261,7 @@ fun ProductItem(
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.size(120.dp),
+            modifier = Modifier.size(80.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
