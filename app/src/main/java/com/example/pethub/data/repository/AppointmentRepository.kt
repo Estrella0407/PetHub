@@ -12,17 +12,16 @@ import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_CUSTO
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_PET
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_SERVICE
 import com.example.pethub.di.IoDispatcher
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.ktx.toObject
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlin.jvm.optionals.getOrNull
-import com.google.firebase.Timestamp
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -34,22 +33,34 @@ class AppointmentRepository @Inject constructor(
     private val notificationRepository: NotificationRepository,
 ) {
 
+    /**
+     * Creates a new appointment document in Firestore, ensuring the document's ID
+     * is also saved as the 'appointmentId' field within the document.
+     */
     suspend fun createAppointment(appointment: Appointment) {
-        // Get the pet's details
-        val custId = authRepository.getCurrentUserId()?:""
-        val petResult = petRepository.getPetById(custId, appointment.petId)
-        val pet = petResult.getOrNull()
+        // 1. Get a reference to a new, empty document in the appointments collection.
+        // This gives us the unique, auto-generated ID *before* we save any data.
+        val newAppointmentRef = firestoreHelper.getFirestoreInstance()
+            .collection(COLLECTION_APPOINTMENT).document()
 
-        // Create the final appointment object with the breed included
-        val appointmentToSave = appointment.copy(
-            breed = pet?.breed ?: "" // Add the breed here
-        )
+        // 2. Create a new Appointment object from the one passed by the ViewModel,
+        // but this time, we copy the auto-generated ID into the 'appointmentId' field.
+        val appointmentWithId = appointment.copy(appointmentId = newAppointmentRef.id)
 
-        // Save the new object to Firestore
-        firestoreHelper.createDocument(COLLECTION_APPOINTMENT, appointmentToSave)
+        // 3. Set the data of the new document reference with our complete object.
+        // Instead of .add(), we use .set() on the specific document reference.
+        newAppointmentRef.set(appointmentWithId).await()
 
-        // Trigger notification
-        confirmBooking()
+        // 4. Trigger the notification after the save is successful.
+        val custId = authRepository.getCurrentUserId()
+        if (custId != null) {
+            notificationRepository.sendNotification(
+                custId = custId,
+                title = "Appointment Confirmed!",
+                message = "Your appointment has been successfully booked.",
+                type = "appointment"
+            )
+        }
     }
 
     suspend fun removeAppointment(appointment: Appointment){
@@ -67,7 +78,7 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
-
+    // This function is now simplified because the appointmentId is a field.
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
             COLLECTION_APPOINTMENT,
@@ -85,20 +96,22 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
+    // This function also becomes simpler.
     suspend fun getAppointmentDetail(
         appointmentId: String
     ): Result<Appointment?> {
-
-        return firestoreHelper.getDocument(
-            collection = COLLECTION_APPOINTMENT,
-            documentId = appointmentId,
-            clazz = Appointment::class.java
-        )
+        val snapshot = firestoreHelper.getFirestoreInstance()
+            .collection(COLLECTION_APPOINTMENT)
+            .document(appointmentId)
+            .get()
+            .await()
+        return Result.success(snapshot.toObject<Appointment>())
     }
 
     suspend fun getAppointmentItem (
         appointmentDocument: Appointment,
     ):Result<AppointmentItem?> {
+        // This logic remains correct because it assumes appointmentId is already populated.
         val appointmentId = appointmentDocument.appointmentId.trim()
         val serviceId = appointmentDocument.serviceId.trim()
         val branchId = appointmentDocument.branchId.trim()
@@ -158,7 +171,6 @@ class AppointmentRepository @Inject constructor(
         )
     }
 
-
     fun listenToBranchAppointments(branchId: String): Flow<List<Appointment>> {
         return firestoreHelper.listenToCollection(
             COLLECTION_APPOINTMENT,
@@ -168,7 +180,6 @@ class AppointmentRepository @Inject constructor(
         }
     }
 
-
     fun listenToAllAppointments(): Flow<List<Appointment>> {
         return firestoreHelper.listenToCollection(
             COLLECTION_APPOINTMENT,
@@ -177,19 +188,17 @@ class AppointmentRepository @Inject constructor(
     }
 
     fun getUpcomingAppointments(limit: Int): Flow<List<Appointment>> {
-        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList()) // Return an empty list flow if no user is logged in
+        val custId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
 
         return firestoreHelper.listenToCollection(
             collection = COLLECTION_APPOINTMENT,
             clazz = Appointment::class.java
         ) { query ->
-            // Chain multiple query conditions
             query
-                .whereEqualTo("custId", custId) // Filter by the current user's ID
-                .whereGreaterThanOrEqualTo("dateTime",
-                    Timestamp.now()) // Filter for appointments from now onwards
-                .orderBy("dateTime") // Order by the soonest appointment first
-                .limit(limit.toLong()) // Apply the limit
+                .whereEqualTo("custId", custId)
+                .whereGreaterThanOrEqualTo("dateTime", Timestamp.now())
+                .orderBy("dateTime")
+                .limit(limit.toLong())
         }
     }
 
@@ -205,19 +214,4 @@ class AppointmentRepository @Inject constructor(
                 .orderBy("dateTime", com.google.firebase.firestore.Query.Direction.DESCENDING)
         }
     }
-
-    fun confirmBooking() {
-            CoroutineScope(ioDispatcher).launch {
-                // After successfully saving, send a notification
-                val custId = authRepository.getCurrentUserId()
-                if (custId != null) {
-                    notificationRepository.sendNotification(
-                        custId = custId,
-                        title = "Appointment Confirmed!",
-                        message = "Your appointment has been successfully booked.",
-                        type = "appointment"
-                    )
-                }
-            }
-        }
-    }
+}

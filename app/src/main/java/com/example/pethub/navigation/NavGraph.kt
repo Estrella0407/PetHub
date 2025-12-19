@@ -30,6 +30,7 @@ import com.example.pethub.ui.appointnment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
+import com.example.pethub.ui.appointment.BookAppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
 import com.example.pethub.ui.auth.LoginScreen
 import com.example.pethub.ui.auth.RegisterScreen
@@ -167,8 +168,23 @@ fun NavGraph(
             )
         }
 
-        composable("appointments/{serviceId}/{petId}/{branchId}") {
-            PlaceholderScreen("Appointment screen coming soon")
+        composable(
+            route = "appointments/{serviceId}/{petId}/{branchId}",
+            arguments = listOf(
+                navArgument("serviceId") { type = NavType.StringType },
+                navArgument("petId") { type = NavType.StringType },
+                navArgument("branchId") { type = NavType.StringType }
+            )
+        ) {
+            BookAppointmentScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onBookingSuccess = {
+                    // After booking, go back to the home screen, clearing the booking flow from the stack
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable("profile") {

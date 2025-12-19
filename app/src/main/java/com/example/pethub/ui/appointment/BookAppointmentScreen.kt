@@ -2,8 +2,12 @@ package com.example.pethub.ui.appointment
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -91,10 +96,9 @@ fun AppointmentContent(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp) // Increased spacing
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
-            // Simplified details section, no need for dropdowns here.
             BookingSummarySection(
                 serviceName = uiState.service?.serviceName ?: "N/A",
                 petName = uiState.selectedPet?.petName ?: "N/A",
@@ -117,6 +121,7 @@ fun AppointmentContent(
             )
         }
 
+        // FIX: Add the missing item blocks for Calendar, Time Slots, and Button
         item {
             CalendarSection(
                 currentDisplayMonth = uiState.currentDisplayMonth,
@@ -142,7 +147,7 @@ fun AppointmentContent(
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown), // Stronger CTA color
+                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown),
                 enabled = !uiState.bookingInProgress && uiState.selectedTimeSlot != null
             ) {
                 if (uiState.bookingInProgress) {
@@ -172,9 +177,6 @@ fun BookingSummarySection(serviceName: String, petName: String, branchName: Stri
         }
     }
 }
-
-// NOTE: The CalendarSection and TimeSlotsSection composables can remain the same as in your original file.
-// I have removed PetSelection and BranchSelection as they are no longer needed on this screen.
 @Composable
 fun CalendarSection(
     currentDisplayMonth: YearMonth,
@@ -182,7 +184,12 @@ fun CalendarSection(
     onDateSelected: (LocalDate) -> Unit,
     onMonthChanged: (Boolean) -> Unit
 ) {
+    val daysInMonth = currentDisplayMonth.lengthOfMonth()
+    val firstDayOfMonth = currentDisplayMonth.atDay(1).dayOfWeek.value % 7 // Sunday = 0
+    val daysOfWeek = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
     Column {
+        // --- Month Selector (This part is already correct) ---
         Box(
             modifier = Modifier
                 .background(DarkBrown, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
@@ -196,7 +203,6 @@ fun CalendarSection(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,24 +222,112 @@ fun CalendarSection(
                 Icon(Icons.Default.ArrowForwardIos, contentDescription = "Next Month")
             }
         }
-        // Calendar grid implementation would go here...
+
+        // --- Calendar Grid ---
+        // Days of the week header
+        Row(modifier = Modifier.fillMaxWidth()) {
+            daysOfWeek.forEach { day ->
+                Text(
+                    text = day,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Dates grid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            modifier = Modifier.height(250.dp) // Give the grid a fixed height
+        ) {
+            // Add empty spacers for days before the 1st of the month
+            items(firstDayOfMonth) {
+                Spacer(modifier = Modifier.size(40.dp))
+            }
+
+            // Add the actual date cells
+            items(daysInMonth) { day ->
+                val date = currentDisplayMonth.atDay(day + 1)
+                val isSelected = date == selectedDate
+                val isToday = date == LocalDate.now()
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            when {
+                                isSelected -> DarkBrown // Selected color
+                                isToday -> CreamDark.copy(alpha = 0.5f) // Today color
+                                else -> Color.Transparent
+                            }
+                        )
+                        .clickable { onDateSelected(date) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${day + 1}",
+                        color = if (isSelected) Color.White else DarkBrown
+                    )
+                }
+            }
+        }
     }
 }
-
 @Composable
 fun TimeSlotsSection(
     selectedDate: LocalDate,
     timeSlots: List<TimeSlot>,
     selectedTimeSlot: LocalTime?,
-    onTimeSlotSelected: (LocalTime) -> Unit
-) {
+    onTimeSlotSelected: (LocalTime) -> Unit) {
     Column {
         Text(
-            "Available Slots for ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd"))}",
+            "Available Slots for ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
             fontWeight = FontWeight.Bold,
             color = DarkBrown,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 12.dp)
         )
-        // Time slot grid implementation would go here...
+
+        // --- Time Slots Grid ---
+        if (timeSlots.isEmpty()) {
+            Text(
+                "No available slots for this day. Please select another date.",
+                color = Color.Gray,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+            )
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.heightIn(max = 200.dp) // Constrain height if list is long
+            ) {
+                items(timeSlots) { timeSlot ->
+                    val isSelected = timeSlot.time == selectedTimeSlot
+                    Button(
+                        onClick = { onTimeSlotSelected(timeSlot.time) },
+                        enabled = timeSlot.isAvailable,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) DarkBrown else CreamDark,
+                            contentColor = if (isSelected) Color.White else DarkBrown,
+                            disabledContainerColor = Color.LightGray.copy(alpha = 0.3f),
+                            disabledContentColor = Color.Gray.copy(alpha = 0.7f)
+                        ),
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text(
+                            text = timeSlot.time.format(DateTimeFormatter.ofPattern("hh:mm a")),
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
     }
 }

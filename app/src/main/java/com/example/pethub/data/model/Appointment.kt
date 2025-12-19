@@ -6,15 +6,10 @@ import com.google.firebase.Timestamp
 data class Appointment(
     val appointmentId: String = "",
     val dateTime: Timestamp? = null,
-    val status: String = "pending",
+    val status: String = "Completed",
     val branchId: String = "",
     val petId: String = "",
-    val breed: String = "",
-    val serviceId: String = "",
-    val custId: String = "",
-    val createdAt: Any? = null,
-    val updatedAt: Any? = null,
-    val specialInstructions: String = ""
+    val serviceId: String = ""
 )
 
 /**

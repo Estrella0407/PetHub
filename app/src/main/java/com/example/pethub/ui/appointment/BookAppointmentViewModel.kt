@@ -68,7 +68,10 @@ class BookAppointmentViewModel @Inject constructor(
         val branchId: String? = savedStateHandle.get("branchId")
 
         if (serviceId == null || petId == null || branchId == null) {
-            _uiState.value = BookAppointmentUiState(isLoading = false, error = "Required booking information is missing.")
+            _uiState.value = BookAppointmentUiState(
+                isLoading = false,
+                error = "Required booking information is missing."
+            )
         } else {
             // Pass all three IDs to the loading function
             loadInitialData(serviceId, petId, branchId)
@@ -95,7 +98,8 @@ class BookAppointmentViewModel @Inject constructor(
             try {
                 val userId = authRepository.getCurrentUserId()
                 if (userId == null) {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "User not logged in.")
+                    _uiState.value =
+                        _uiState.value.copy(isLoading = false, error = "User not logged in.")
                     return@launch
                 }
 
@@ -111,7 +115,10 @@ class BookAppointmentViewModel @Inject constructor(
                 val existingAppointments = appointmentsResult.getOrNull() ?: emptyList()
 
                 if (service == null || pet == null || branch == null) {
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to load booking details.")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Failed to load booking details."
+                    )
                     return@launch
                 }
 
@@ -124,28 +131,59 @@ class BookAppointmentViewModel @Inject constructor(
                     existingAppointments = existingAppointments
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to load data: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to load data: ${e.message}"
+                )
             }
         }
     }
 
-    private fun calculateTimeSlots(date: LocalDate, branch: Branch?, appointments: List<com.example.pethub.data.model.Appointment>): List<TimeSlot> {
+    private fun calculateTimeSlots(
+        date: LocalDate,
+        branch: Branch?,
+        appointments: List<com.example.pethub.data.model.Appointment>
+    ): List<TimeSlot> {
         if (branch == null) return emptyList()
 
-        val allSlots = (9..16).map { LocalTime.of(it, 0) }
+        // 1. Determine the day of the week from the selected date.
+        val dayOfWeek = date.dayOfWeek // e.g., MONDAY, SATURDAY
+
+        // 2. Define the start and end hours based on the day of the week.
+        val startHour = 10
+        val endHour = if (dayOfWeek in java.time.DayOfWeek.SATURDAY..java.time.DayOfWeek.SUNDAY) {
+            18
+        } else {
+            // It's a weekday, so operating hours end at 8 PM (last slot is 7 PM).
+            20 // Represents the 8pm
+        }
+
+        // 3. Generate the list of all possible slots for that day within operating hours.
+        val allSlots = (startHour..endHour).map { hour -> LocalTime.of(hour, 0) }
+
+        // --- The rest of your logic remains the same ---
+
+        // 4. Find which slots are already booked for that specific day and branch.
         val bookedSlotsForDay = appointments.filter {
-            val apptDate = it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDate()
+            val apptDate =
+                it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDate()
             it.branchId == branch.branchId && apptDate == date
         }.map {
             it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalTime()
         }.toSet()
 
+        // 5. Create the final list of TimeSlot objects, marking booked ones as unavailable.
         return allSlots.map { slot ->
             TimeSlot(time = slot, isAvailable = !bookedSlotsForDay.contains(slot))
         }
     }
 
-    private fun updateAvailableTimeSlots(date: LocalDate, branch: Branch?, appointments: List<com.example.pethub.data.model.Appointment>) {
+
+    private fun updateAvailableTimeSlots(
+        date: LocalDate,
+        branch: Branch?,
+        appointments: List<com.example.pethub.data.model.Appointment>
+    ) {
         _uiState.value = _uiState.value.copy(
             availableTimeSlots = calculateTimeSlots(date, branch, appointments)
         )
@@ -156,7 +194,10 @@ class BookAppointmentViewModel @Inject constructor(
     }
 
     fun onMonthChanged(forward: Boolean) {
-        val newMonth = if (forward) _uiState.value.currentDisplayMonth.plusMonths(1) else _uiState.value.currentDisplayMonth.minusMonths(1)
+        val newMonth =
+            if (forward) _uiState.value.currentDisplayMonth.plusMonths(1) else _uiState.value.currentDisplayMonth.minusMonths(
+                1
+            )
         _uiState.value = _uiState.value.copy(currentDisplayMonth = newMonth)
     }
 
@@ -169,35 +210,45 @@ class BookAppointmentViewModel @Inject constructor(
     }
 
     fun confirmBooking() {
-        val userId = authRepository.getCurrentUserId()
         val state = _uiState.value
-        val serviceId = state.service?.id // Get serviceId safely from the state
 
-        if (userId == null || serviceId == null || state.selectedPet == null || state.selectedBranch == null || state.selectedTimeSlot == null) {
-            _uiState.value = state.copy(error = "Please make sure a time slot is selected.")
+        // Get all necessary IDs safely.
+        val serviceId = state.service?.id
+        val petId = state.selectedPet?.petId
+        val branchId = state.selectedBranch?.branchId
+        val timeSlot = state.selectedTimeSlot
+
+        // Validate that all required information is present.
+        if (serviceId == null || petId == null || branchId == null || timeSlot == null) {
+            _uiState.value =
+                state.copy(error = "Please ensure a pet, service, branch, and time slot are all selected.")
             return
         }
 
         viewModelScope.launch {
             _uiState.value = state.copy(bookingInProgress = true)
-            val zonedDateTime = state.selectedDate.atTime(state.selectedTimeSlot).atZone(ZoneId.systemDefault())
+            val zonedDateTime = state.selectedDate.atTime(timeSlot).atZone(ZoneId.systemDefault())
             val timestamp = Timestamp(Date.from(zonedDateTime.toInstant()))
 
             val newAppointment = com.example.pethub.data.model.Appointment(
-                custId = userId,
-                petId = state.selectedPet.petId,
+                petId = petId,
                 serviceId = serviceId,
-                branchId = state.selectedBranch.branchId,
+                branchId = branchId,
                 dateTime = timestamp,
-                status = "Pending",
-                specialInstructions = state.specialInstructions
+                status = "Completed"
             )
 
             try {
+                // Assuming your repository's createAppointment function adds the document
+                // and lets Firestore generate the ID.
                 appointmentRepository.createAppointment(newAppointment)
-                _uiState.value = _uiState.value.copy(bookingInProgress = false, bookingSuccess = true)
+                _uiState.value =
+                    _uiState.value.copy(bookingInProgress = false, bookingSuccess = true)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(bookingInProgress = false, error = e.message ?: "Booking failed.")
+                _uiState.value = _uiState.value.copy(
+                    bookingInProgress = false,
+                    error = e.message ?: "Booking failed."
+                )
             }
         }
     }
