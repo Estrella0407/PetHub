@@ -357,6 +357,13 @@ fun NavGraph(
             )
         }
 
+        composable("admin_scanner") {
+            AdminScannerScreen(
+                onQrScanned = { petId ->
+                    navController.navigate("petProfile/$petId")
+                }
+            )
+        }
 
 
         composable("faq") {

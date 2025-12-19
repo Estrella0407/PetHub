@@ -41,6 +41,8 @@ import com.example.pethub.ui.status.LoadingScreen
 import com.example.pethub.ui.theme.CreamBackground
 import com.example.pethub.ui.theme.CreamDark
 import com.example.pethub.ui.theme.CreamLight
+import com.example.pethub.ui.theme.DarkBrown
+import com.example.pethub.ui.theme.VibrantBrown
 import com.example.pethub.util.calculateAge
 // 1. ADD THE CORRECT JAVA IMPORTS
 import java.text.SimpleDateFormat
@@ -160,7 +162,7 @@ fun PetProfileContent(
                 text = pet.petName,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = CreamDark
+                color = VibrantBrown
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -218,7 +220,7 @@ fun PetProfileContent(
                 onClick = { /* TODO: Save changes */ },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CreamDark)
+                colors = ButtonDefaults.buttonColors(containerColor = VibrantBrown)
             ) {
                 Text("Save", modifier = Modifier.padding(vertical = 8.dp), fontSize = 16.sp)
             }
@@ -238,7 +240,7 @@ fun EditablePetInfoField(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CreamDark)
+        Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkBrown)
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (value != null) {
                 BasicTextField(

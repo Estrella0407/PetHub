@@ -99,51 +99,68 @@ class AppointmentRepository @Inject constructor(
     suspend fun getAppointmentItem (
         appointmentDocument: Appointment,
     ):Result<AppointmentItem?> {
-        val appointmentId = appointmentDocument.appointmentId.trim()
+        val appointmentId = appointmentDocument.appointmentId.ifBlank { "unknown_id" }.trim()
         val serviceId = appointmentDocument.serviceId.trim()
         val branchId = appointmentDocument.branchId.trim()
         val petId = appointmentDocument.petId.trim()
 
-        val serviceResult = firestoreHelper.getDocumentField(
-            collection = COLLECTION_SERVICE,
-            documentId = serviceId,
-            fieldName = "type",
-            String::class.java
-        )
-        val serviceName = serviceResult.getOrElse {
-            return Result.failure(Exception("Service name not found"))
+        // 1. Get Service Name (with fallback)
+        val serviceName = if (serviceId.isNotEmpty()) {
+            val serviceResult = firestoreHelper.getDocument(
+                collection = COLLECTION_SERVICE,
+                documentId = serviceId,
+                clazz = com.example.pethub.data.model.Service::class.java
+            )
+            val service = serviceResult.getOrNull()
+            // Check 'serviceName' instead of 'type' as per the Service model
+            service?.serviceName ?: service?.type ?: "Service"
+        } else {
+            "Service"
         }
 
         val unformatDateTime: Timestamp? = appointmentDocument.dateTime
         val date = unformatDateTime?.toDate()
         val formatter = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
-        val dateTime = date?.let { formatter.format(it) } ?: "dateTime failed"
+        val dateTime = date?.let { formatter.format(it) } ?: "No Date"
 
-        val locationResult = firestoreHelper.getDocumentField(
-            collection = COLLECTION_BRANCH,
-            documentId = branchId,
-            fieldName = "branchName",
-            String::class.java
-        )
-        val locationName: String = locationResult.getOrNull() ?: "Locaton failed"
+        // 2. Get Location Name (with fallback)
+        val locationName = if (branchId.isNotEmpty()) {
+            val locationResult = firestoreHelper.getDocumentField(
+                collection = COLLECTION_BRANCH,
+                documentId = branchId,
+                fieldName = "branchName",
+                String::class.java
+            )
+            locationResult.getOrNull() ?: "PetHub Branch"
+        } else {
+            "PetHub Branch"
+        }
 
         val status = appointmentDocument.status
 
-        val getPetResult = firestoreHelper.getDocument(
-            collection = COLLECTION_PET,
-            documentId = petId,
-            clazz = Pet::class.java
-        )
-        val pet = getPetResult.getOrNull()
-            ?: return Result.failure(Exception("Pet not found"))
+        // 3. Get Pet (with fallback)
+        val pet = if (petId.isNotEmpty()) {
+            val getPetResult = firestoreHelper.getDocument(
+                collection = COLLECTION_PET,
+                documentId = petId,
+                clazz = Pet::class.java
+            )
+            getPetResult.getOrNull() ?: Pet(petName = "Unknown Pet")
+        } else {
+            Pet(petName = "Unknown Pet")
+        }
 
-        val getOwnerResult = firestoreHelper.getDocument(
-            collection = COLLECTION_CUSTOMER,
-            documentId = pet.custId.trim(),
-            clazz = Customer::class.java
-        )
-        val owner = getOwnerResult.getOrNull()
-            ?: return Result.failure(Exception("Owner not found"))
+        // 4. Get Owner (with fallback)
+        val owner = if (pet.custId.isNotEmpty()) {
+            val getOwnerResult = firestoreHelper.getDocument(
+                collection = COLLECTION_CUSTOMER,
+                documentId = pet.custId.trim(),
+                clazz = Customer::class.java
+            )
+            getOwnerResult.getOrNull() ?: Customer(custName = "Customer")
+        } else {
+            Customer(custName = "Customer")
+        }
 
         return Result.success(
             AppointmentItem(

@@ -12,6 +12,7 @@ import com.example.pethub.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,6 +60,9 @@ class PetRepository @Inject constructor(
             Pet::class.java
         ) { query ->
             query.whereEqualTo("custId", userId)
+        }.map { pets ->
+            // Manual mapping of document ID to petId for stability with existing data
+            pets.map { it.copy(petId = it.petId.ifBlank { "unknown" }) }
         }
     }
 
@@ -78,15 +82,17 @@ class PetRepository @Inject constructor(
      * Add new pet (Auto ID under top-level 'pet' collection)
      * -------------------------------------------------- */
     suspend fun addPet(userId: String, pet: Pet): Result<String> {
-        val petData = pet.copy(
-            custId = userId,
-        )
-
-        // Create document in top-level collection
-        return firestoreHelper.createDocument(
-            COLLECTION_PET,
-            petData
-        )
+        return try {
+            val docRef = firestoreHelper.getFirestoreInstance().collection(COLLECTION_PET).document()
+            val petData = pet.copy(
+                petId = docRef.id,
+                custId = userId,
+            )
+            docRef.set(petData).await()
+            Result.success(docRef.id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     /** --------------------------------------------------
