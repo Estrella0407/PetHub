@@ -23,12 +23,9 @@ import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.ui.StockManagement.StockManagementScreen
 import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.AdminHomeScreen
-import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
-import com.example.pethub.ui.admin.AdminAppointmentDetail
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
-import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
 import com.example.pethub.ui.appointment.BookAppointmentScreen
 import com.example.pethub.ui.auth.CompleteProfileScreen
@@ -37,7 +34,6 @@ import com.example.pethub.ui.auth.RegisterScreen
 import com.example.pethub.ui.auth.RegisterViewModel
 import com.example.pethub.ui.cart.CartScreen
 import com.example.pethub.ui.home.HomeScreen
-import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.notifications.NotificationScreen
 import com.example.pethub.ui.shop.ShopScreen
 import com.example.pethub.ui.pet.AddPetScreen
@@ -55,14 +51,9 @@ import com.example.pethub.ui.faq.PetInformationFAQScreen
 import com.example.pethub.ui.faq.PetParentsFAQScreen
 import com.example.pethub.ui.faq.PolicyFAQScreen
 import com.example.pethub.ui.faq.SupportHelpFAQScreen
-import com.example.pethub.ui.faq.PolicyFAQScreen
 import com.example.pethub.ui.profile.ProfileScreen
 import com.example.pethub.ui.profile.EditProfileScreen
 import com.example.pethub.ui.service.ServiceDetailScreen
-import com.example.pethub.ui.service.ServiceScreen
-import com.example.pethub.ui.shop.ShopScreen
-import com.example.pethub.ui.service.ServiceScreen
-import com.example.pethub.ui.shop.ShopScreen
 
 @Composable
 fun NavGraph(

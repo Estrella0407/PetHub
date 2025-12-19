@@ -206,7 +206,7 @@ class AppointmentRepository @Inject constructor(
             }
 
             // Use the correct await() here as well
-            val similarPetsResult = similarPetsQuery.limit(50).get().await()
+            val similarPetsResult = similarPetsQuery.limit(30).get().await()
             val similarPetIds = similarPetsResult.documents.map { it.id }
 
             if (similarPetIds.isEmpty()) {

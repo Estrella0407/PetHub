@@ -33,7 +33,8 @@ service cloud.firestore {
 
     // 2. PET
     match /pet/{petId} {      // Allow a user to read or write THEIR OWN pet document
-      allow get, write: if request.auth.uid == resource.data.custId;
+      allow get: if isDocumentOwner(resource.data.custId) || isAdmin();
+      allow write: if isDocumentOwner(resource.data.custId);
 
       // Allow ANY authenticated user to perform queries on the pet collection
       // This is necessary for the recommendation engine to find similar pets.
@@ -51,9 +52,8 @@ service cloud.firestore {
       // Allow creation if the pet belongs to the user
       allow create: if isSignedIn() && isPetOwner(request.resource.data.petId);
 
-      // Allow list queries for signed-in users
-      // The actual filtering happens in the client based on petIds
-      allow list: if isSignedIn();
+      // Allow list queries for admins only (needed for reports)
+      allow list: if isAdmin();
 
       // For individual document reads (get), verify ownership
       allow get: if isAdmin() ||
