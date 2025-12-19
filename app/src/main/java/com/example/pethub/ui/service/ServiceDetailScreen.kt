@@ -47,7 +47,7 @@ fun ServiceDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(uiState.service?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkBrown) },
+                title = { Text(uiState.mainService?.serviceName ?: "Service Details", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkBrown) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
