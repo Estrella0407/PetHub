@@ -43,6 +43,15 @@ import com.example.pethub.ui.pet.PetProfileScreen
 import com.example.pethub.ui.profile.AllAppointmentsScreen
 import com.example.pethub.ui.profile.AllOrdersScreen
 import com.example.pethub.ui.auth.StartupRouterScreen
+import com.example.pethub.ui.faq.BookingAppointmentScreenFAQ
+import com.example.pethub.ui.faq.CancellationRescheduleFAQScreen
+import com.example.pethub.ui.faq.FAQScreen
+import com.example.pethub.ui.faq.PaymentFAQScreen
+import com.example.pethub.ui.faq.PetInformationFAQScreen
+import com.example.pethub.ui.faq.PetParentsFAQScreen
+import com.example.pethub.ui.faq.PolicyFAQScreen
+import com.example.pethub.ui.faq.SupportHelpFAQScreen
+import com.example.pethub.ui.faq.PolicyFAQScreen
 import com.example.pethub.ui.profile.ProfileScreen
 import com.example.pethub.ui.service.ServiceDetailScreen
 import com.example.pethub.ui.service.ServiceScreen
@@ -333,57 +342,63 @@ fun NavGraph(
         }
 
 
-        composable("profile") {
-            ProfileScreen(
-                //firebaseService = firebaseService,
-                onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
+
+        composable("faq") {
+            FAQScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onTopicClick = { topicId ->
+                    when (topicId) {
+                        "pet_parents" -> navController.navigate("petParentsFaq")
+                        "pet_information" -> navController.navigate("petInformationFaq")
+                        "booking_appointment" -> navController.navigate("bookingAppointmentFaq")
+                        "cancellation_reschedule" -> navController.navigate("cancellationRescheduleFaq")
+                        "payments" -> navController.navigate("paymentsFaq")
+                        "policy" -> navController.navigate("policyFaq")
+                        "support_help" -> navController.navigate("supportHelpFaq")
                     }
-                },
-                onNavigateToHome = { navController.navigate("home") },
-                onNavigateToService = { navController.navigate("services") },
-                onNavigateToShop = { navController.navigate("shop") },
-                onAddPetClick = {navController.navigate("addPet")},
-                onFaqClick = {navController.navigate("faq")},
-                onNavigateToPetProfile = { petId ->
-                    navController.navigate("petProfile/$petId")
-                },
-                onAppointmentClick = { appointmentId ->
-                    navController.navigate("appointmentDetail/$appointmentId")
-                },
-                onOrderClick = { orderId ->
-                    navController.navigate("orderDetail/$orderId")
-                },
-                onNavigateToAllAppointments = {
-                    navController.navigate("all_appointments")
-                },
-                onNavigateToAllOrders = {
-                    navController.navigate("all_orders")
                 }
             )
         }
-
-        composable("addPet") {
-            AddPetScreen(
-                onPetAdded = {
-                    // Go back to profile after adding pet
-                    navController.popBackStack()
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable("petParentsFaq") {
+            PetParentsFAQScreen(onNavigateBack = {
+                navController.popBackStack()
+            })
+        }
+        composable("petInformationFaq") {
+            PetInformationFAQScreen(onNavigateBack = {
+                navController.popBackStack()
+            })
+        }
+        composable("bookingAppointmentFaq") {
+            BookingAppointmentScreenFAQ(onNavigateBack = {
+                navController.popBackStack()
+            })
+        }
+        composable("cancellationRescheduleFaq") {
+            CancellationRescheduleFAQScreen(onNavigateBack = {
+                navController.popBackStack()
+            })
+        }
+        composable("paymentsFaq") {
+            PaymentFAQScreen(onNavigateBack = { 
+                navController.popBackStack()
+            })
+        }
+        composable("policyFaq") {
+            PolicyFAQScreen(onNavigateBack = { 
+                navController.popBackStack()
+            })
+        }
+        composable("supportHelpFaq") {
+            SupportHelpFAQScreen(onNavigateBack = { 
+                navController.popBackStack()
+            })
         }
 
-        composable(
-            route = "petProfile/{petId}",
-            arguments = listOf(navArgument("petId") { type = NavType.StringType })
-        ) {
-            PetProfileScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+
     }
 }
+
 
 @Composable
 private fun PlaceholderScreen(message: String) {
