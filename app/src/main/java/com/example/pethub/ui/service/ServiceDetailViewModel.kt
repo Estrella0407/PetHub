@@ -100,8 +100,8 @@ class ServiceDetailViewModel @Inject constructor(
                     )
                 }
 
-                // Step 6: Fetch branches for the selected service
-                fetchAvailableBranches(preSelectedService.serviceId)
+                // Step 6: Fetch branches for the selected service using serviceName
+                fetchAvailableBranches(preSelectedService.serviceName)
 
             } catch (e: Exception) {
                 _uiState.update {
@@ -117,11 +117,12 @@ class ServiceDetailViewModel @Inject constructor(
     /**
      * Fetches branches that offer a specific service and updates the UI state.
      * This function is called both initially and when a new service type is selected.
+     * @param serviceName The service category name (e.g., "Grooming", "Boarding")
      */
-    private fun fetchAvailableBranches(newServiceId: String) {
+    private fun fetchAvailableBranches(serviceName: String) {
         viewModelScope.launch {
             try {
-                val branchesResult = branchRepository.getAvailableBranchesForService(newServiceId)
+                val branchesResult = branchRepository.getAvailableBranchesForService(serviceName)
                 _uiState.update {
                     it.copy(
                         availableBranches = branchesResult.getOrElse { emptyList() },
@@ -159,7 +160,7 @@ class ServiceDetailViewModel @Inject constructor(
                 availableBranches = emptyList()
             )
         }
-        fetchAvailableBranches(service.serviceId)
+        fetchAvailableBranches(service.serviceName)
     }
 }
 

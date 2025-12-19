@@ -45,41 +45,46 @@ class BranchRepository @Inject constructor(
 
     /**
      * Fetches branches that have a specific service available.
-     * It queries the top-level 'branchService' collection first to find available branch IDs,
-     * then fetches the details for those specific branches.
+     * It queries each branch's 'branch_services' subcollection to find which branches
+     * have the service enabled.
+     * @param serviceName The service category name (e.g., "Grooming", "Boarding")
      */
     suspend fun getAvailableBranchesForService(
-        serviceId: String
+        serviceName: String
     ): Result<List<Branch>> = withContext(ioDispatcher) {
         try {
             val firestore = firestoreHelper.getFirestoreInstance()
+            
+            // Convert serviceName to lowercase to match document IDs in branch_services
+            val serviceDocId = serviceName.lowercase()
 
-            val availableBranchServices = firestore
-                .collection("branchService")
-                .whereEqualTo("serviceId", serviceId)
-                .whereEqualTo("availability", true)
-                .get()
-                .await()
-
-            val branchIds =
-                availableBranchServices.documents.mapNotNull {
-                    it.getString("branchId")
-                }
-
-            if (branchIds.isEmpty()) {
-                // No branches offer this service, return an empty list.
-                return@withContext Result.success(emptyList())
-            }
-
-            // Now that we have the IDs, fetch the full branch documents.
-            val branches = firestoreHelper.getFirestoreInstance()
+            // Step 1: Get all branches
+            val allBranches = firestore
                 .collection(COLLECTION_BRANCH)
-                .whereIn(FieldPath.documentId(), branchIds)
                 .get()
                 .await()
                 .toObjects(Branch::class.java)
 
-            Result.success(branches)
+            // Step 2: For each branch, check if the service is available in their subcollection
+            val availableBranches = allBranches.filter { branch ->
+                try {
+                    val serviceDoc = firestore
+                        .collection("branch")
+                        .document(branch.branchId)
+                        .collection("branch_services")
+                        .document(serviceDocId)
+                        .get()
+                        .await()
+
+                    // Check if the document exists and availability is true
+                    serviceDoc.exists() && serviceDoc.getBoolean("availability") == true
+                } catch (e: Exception) {
+                    // If there's an error checking this branch, exclude it
+                    false
+                }
+            }
+
+            Result.success(availableBranches)
 
         } catch (e: Exception) {
             Result.failure(e)
