@@ -394,10 +394,10 @@ fun OrderCard(
     modifier: Modifier = Modifier) {
 
     val statusColor = when (status) {
-        "Pending" -> Color.Yellow
+        "Pending" -> Color.Black
         "Confirmed" -> Color.Green
         "Cancelled" -> Color.Red
-        else -> Color.Yellow
+        else -> Color.Black
     }
 
     Card(
@@ -407,7 +407,7 @@ fun OrderCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Order $orderNumber",
+                text = "#${orderNumber.take(5)}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
@@ -420,7 +420,7 @@ fun OrderCard(
                 color = Color.Gray
             )
 
-            Text(text = price,
+            Text(text = "RM$price",
                 fontSize = 12.sp,
                 color = Color.Gray
             )
