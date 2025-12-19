@@ -27,7 +27,6 @@ import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.AdminScannerScreen
 import com.example.pethub.ui.admin.AdminViewAllAppointmentsScreen
 import com.example.pethub.ui.admin.AdminAppointmentDetail
-import com.example.pethub.ui.appointment.AppointmentScreen
 import com.example.pethub.ui.admin.MonthlySalesReportScreen
 import com.example.pethub.ui.admin.ServiceManagementScreen
 import com.example.pethub.ui.admin.ServiceUsageReportScreen
@@ -75,7 +74,7 @@ fun NavGraph(
 
         composable("login") {
             LoginScreen(
-                onReturnClick = {navController.popBackStack()},
+                onReturnClick = { navController.popBackStack() },
                 onLoginSuccess = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
@@ -153,7 +152,7 @@ fun NavGraph(
         composable("shop") {
             ShopScreen(
                 onNavigateToCart = { navController.navigate("cart") },
-                onNavigateToHome = { navController.navigate("home")},
+                onNavigateToHome = { navController.navigate("home") },
                 onNavigateToServices = { navController.navigate("services") },
                 onNavigateToProfile = { navController.navigate("profile") }
             )
@@ -230,8 +229,8 @@ fun NavGraph(
                 onNavigateToHome = { navController.navigate("home") },
                 onNavigateToService = { navController.navigate("services") },
                 onNavigateToShop = { navController.navigate("shop") },
-                onAddPetClick = {navController.navigate("addPet")},
-                onFaqClick = {navController.navigate("faq")},
+                onAddPetClick = { navController.navigate("addPet") },
+                onFaqClick = { navController.navigate("faq") },
                 onNavigateToPetProfile = { petId ->
                     navController.navigate("petProfile/$petId")
                 },
@@ -364,18 +363,18 @@ fun NavGraph(
                 }
             )
         }
-        composable("admin_view_all_appointments"){
+        composable("admin_view_all_appointments") {
             AdminViewAllAppointmentsScreen(
                 onNavigateToLogin = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToHome = {navController.popBackStack()},
+                onNavigateToHome = { navController.popBackStack() },
                 onNavigateToStocks = { navController.navigate("admin_stocks") },
                 onNavigateToServices = { navController.navigate("admin_services") },
                 onNavigateToScanner = { navController.navigate("admin_scanner") },
-                onViewAppointmentClick = {appointmentId->
+                onViewAppointmentClick = { appointmentId ->
                     navController.navigate("adminAppointmentDetail/${appointmentId}")
                 }
             )
@@ -466,36 +465,6 @@ fun NavGraph(
                 navController.popBackStack()
             })
         }
-        composable("profile") {
-            ProfileScreen(
-                //firebaseService = firebaseService,
-                onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
-                    }
-                },
-                onNavigateToHome = { navController.navigate("home") },
-                onNavigateToService = { navController.navigate("services") },
-                onNavigateToShop = { navController.navigate("shop") },
-                onAddPetClick = {navController.navigate("addPet")},
-                onFaqClick = {navController.navigate("faq")},
-                onNavigateToPetProfile = { petId ->
-                    navController.navigate("petProfile/$petId")
-                },
-                onAppointmentClick = { appointmentId ->
-                    navController.navigate("appointmentDetail/$appointmentId")
-                },
-                onOrderClick = { orderId ->
-                    navController.navigate("orderDetail/$orderId")
-                },
-                onNavigateToAllAppointments = {
-                    navController.navigate("all_appointments")
-                },
-                onNavigateToAllOrders = {
-                    navController.navigate("all_orders")
-                }
-            )
-        }
 
         composable("addPet") {
             AddPetScreen(
@@ -516,34 +485,4 @@ fun NavGraph(
             )
         }
     }
-
-    }
 }
-
-
-
-
-}
-
-@Composable
-private fun PlaceholderScreen(message: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.titleLarge
-        )
-    }
-}
-
-//        composable("service") {
-//            ServiceScreen(
-//                onNavigateUp = { navController.popBackStack() },
-//                onServiceClick = { serviceId ->
-//                    navController.navigate("service/$serviceId")
-//                }
-//            )
-//        }
