@@ -1,11 +1,11 @@
 package com.example.pethub.data.repository
 
 import android.util.Log
-import androidx.compose.ui.geometry.isEmpty
 import com.example.pethub.data.model.CartItem
 import com.example.pethub.data.model.Product
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -157,9 +157,49 @@ class ShopRepository @Inject constructor() {
         if (cartItems.isEmpty()) return Result.failure(Exception("Cart is empty"))
 
         return try {
+            // 1. Resolve branchId from branchName
+            val branchQuerySnapshot = db.collection("branch")
+                .whereEqualTo("branchName", branchName)
+                .get()
+                .await()
+            val branchDocument = branchQuerySnapshot.documents.firstOrNull()
+                ?: return Result.failure(Exception("Branch not found for name: $branchName"))
+            val branchId = branchDocument.id
+
+            // 2. Check stock for each product in this branch before placing order
+            //    Map: productId -> branchProduct documentId
+            val branchProductDocIds = mutableMapOf<String, String>()
+            for (item in cartItems) {
+                Log.d(TAG, "Checking stock for productId=${item.productId}, name=${item.product.name}, branchId=$branchId, branchName=$branchName")
+
+                val bpQuerySnapshot = db.collection("branchProduct")
+                    .whereEqualTo("branchId", branchId)
+                    .whereEqualTo("productId", item.productId)
+                    .get()
+                    .await()
+
+                Log.d(TAG, "branchProduct query result size=${bpQuerySnapshot.size()} for productId=${item.productId}")
+
+                val bpDoc = bpQuerySnapshot.documents.firstOrNull()
+                    ?: return Result.failure(
+                        Exception("${item.product.name} is out of stock in $branchName.")
+                    )
+
+                val currentStock = bpDoc.getLong("stock") ?: 0L
+                Log.d(TAG, "Current stock for productId=${item.productId} is $currentStock")
+
+                if (currentStock <= 0L || currentStock < item.quantity.toLong()) {
+                    return Result.failure(
+                        Exception("${item.product.name} is out of stock in $branchName.")
+                    )
+                }
+
+                branchProductDocIds[item.productId] = bpDoc.id
+            }
+
             val batch = db.batch()
 
-            // A. Create Main Order (No changes needed here)
+            // A. Create Main Order (now also storing branchId)
             val orderRef = db.collection("order").document()
             val orderId = orderRef.id
 
@@ -174,6 +214,7 @@ class ShopRepository @Inject constructor() {
             val newOrder = hashMapOf(
                 "orderId" to orderId,
                 "custId" to custId,
+                "branchId" to branchId,
                 "branchName" to branchName,
                 "pickupTime" to pickupTimestamp,
                 "orderDateTime" to Timestamp.now(),
@@ -206,8 +247,20 @@ class ShopRepository @Inject constructor() {
                 batch.delete(doc.reference)
             }
 
-            // D. Commit Transaction
+            // D. Commit Order & Cart Changes
             batch.commit().await()
+
+            // E. Decrease stock for each product in branchProduct
+            for (item in cartItems) {
+                val bpDocId = branchProductDocIds[item.productId] ?: continue
+                val bpRef = db.collection("branchProduct").document(bpDocId)
+                try {
+                    bpRef.update("stock", FieldValue.increment(-item.quantity.toLong())).await()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to decrease stock for product ${item.productId}", e)
+                }
+            }
+
             Result.success(true)
 
         } catch (e: Exception) {
