@@ -132,7 +132,16 @@ fun NavGraph(
         composable("cart") {
             CartScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateHome = { navController.navigate("home") }
+                onNavigateHome = {
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                onNavigateToShop = {
+                    navController.navigate("shop") {
+                        popUpTo("shop") { inclusive = true }
+                    }
+                }
             )
         }
 

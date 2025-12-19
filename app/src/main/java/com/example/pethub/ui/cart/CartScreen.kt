@@ -40,7 +40,8 @@ import java.util.Locale
 fun CartScreen(
     viewModel: CartViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateHome: () -> Unit
+    onNavigateHome: () -> Unit,
+    onNavigateToShop: () -> Unit
 ) {
     val cartItems by viewModel.cartItems.collectAsState()
     val totalAmount by viewModel.totalAmount.collectAsState()
@@ -267,7 +268,7 @@ fun CartScreen(
             OrderConfirmationDialog(
                 onDismiss = {
                     showConfirmationDialog = false
-                    onNavigateHome()
+                    onNavigateToShop()
                 }
             )
         }

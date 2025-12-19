@@ -1,6 +1,7 @@
 package com.example.pethub.data.repository
 
 import android.util.Log
+import androidx.compose.ui.geometry.isEmpty
 import com.example.pethub.data.model.CartItem
 import com.example.pethub.data.model.Product
 import com.google.firebase.Timestamp
@@ -114,6 +115,7 @@ class ShopRepository @Inject constructor() {
                 docRef.update("quantity", currentQuantity + 1).await()
             } else {
                 val newItem = CartItem(
+                    productId = product.id,
                     product = product,
                     quantity = 1
                 )
@@ -128,14 +130,17 @@ class ShopRepository @Inject constructor() {
     // --- 4. Update Cart Quantity (UPDATED PATH) ---
     suspend fun updateCartItem(cartItem: CartItem) {
         val custId = auth.currentUser?.uid ?: return
-
+        if (cartItem.productId.isEmpty()) {
+            Log.e(TAG, "Cannot update cart: cartItem.productId is empty")
+            return
+        }
         // CHANGED: "users" -> "customer"
         val cartRef = db.collection("customer").document(custId).collection("cart")
 
         if (cartItem.quantity > 0) {
-            cartRef.document(cartItem.product.id).set(cartItem).await()
+            cartRef.document(cartItem.productId).set(cartItem).await()
         } else {
-            cartRef.document(cartItem.product.id).delete().await()
+            cartRef.document(cartItem.productId).delete().await()
         }
     }
 
@@ -170,7 +175,7 @@ class ShopRepository @Inject constructor() {
                 "orderId" to orderId,
                 "custId" to custId,
                 "branchName" to branchName,
-                "pickupDateTime" to pickupTimestamp,
+                "pickupTime" to pickupTimestamp,
                 "orderDateTime" to Timestamp.now(),
                 "totalPrice" to totalAmount,
                 "status" to "Pending"
@@ -183,10 +188,12 @@ class ShopRepository @Inject constructor() {
                 val productOrderData = hashMapOf(
                     "productOrderId" to productOrderRef.id,
                     "orderId" to orderId,
-                    "productId" to item.product.id,
+                    "productId" to item.productId,
                     "productName" to item.product.name,
+                    "productImageUrl" to item.product.imageUrl,
                     "quantity" to item.quantity,
-                    "priceAtPurchase" to item.product.price
+                    "priceAtPurchase" to item.product.price,
+                    "custId" to custId
                 )
                 batch.set(productOrderRef, productOrderData)
             }
