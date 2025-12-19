@@ -42,13 +42,13 @@ class ServiceRepository @Inject constructor(
     }
 
     /**
-     * Listens to all service settings for a specific branch from the top-level collection.
+     * Listens to all service settings for a specific branch from the subcollection.
      */
     fun listenToAllBranchServices(branchId: String): Flow<List<BranchService>> {
-        return firestoreHelper.listenToCollectionQuery(
-            collection = COLLECTION_BRANCH_SERVICE,
-            field = "branchId",
-            value = branchId,
+        return firestoreHelper.listenToSubcollection(
+            parentCollection = "branch",
+            parentId = branchId,
+            subcollection = "branch_services",
             clazz = BranchService::class.java
         )
     }
@@ -67,7 +67,7 @@ class ServiceRepository @Inject constructor(
     }
 
     /**
-     * Sets the availability of a service for a branch in the top-level 'branchService' collection.
+     * Sets the availability of a service for a branch in the 'branch_services' subcollection.
      */
     suspend fun setBranchServiceAvailability(
         branchId: String,
@@ -76,7 +76,6 @@ class ServiceRepository @Inject constructor(
         isAvailable: Boolean
     ): Result<Unit> = withContext(ioDispatcher) {
             try {
-                val documentId = "$branchId-$serviceId"
                 val branchService = mapOf(
                     "branchId" to branchId,
                     "serviceId" to serviceId,
@@ -85,8 +84,10 @@ class ServiceRepository @Inject constructor(
                 )
 
                 firestoreHelper.getFirestoreInstance()
-                    .collection(COLLECTION_BRANCH_SERVICE)
-                    .document(documentId)
+                    .collection("branch")
+                    .document(branchId)
+                    .collection("branch_services")
+                    .document(serviceId)
                     .set(branchService, SetOptions.merge())
                     .await()
 

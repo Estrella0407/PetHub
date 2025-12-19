@@ -45,6 +45,12 @@ service cloud.firestore {
     match /branch/{branchId} {
       allow read: if isAdmin() || isSignedIn();
       allow write: if isAdmin();
+      
+      // Subcollection: branch_services
+      match /branch_services/{serviceId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
     }
 
     // 4. APPOINTMENT
