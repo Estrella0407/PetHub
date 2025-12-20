@@ -288,15 +288,7 @@ fun NavGraph(
             )
         }
 
-        composable("addPet") {
-            AddPetScreen(
-                onPetAdded = {
-                    // Go back to profile after adding pet
-                    navController.popBackStack()
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+
 
         composable(
             route = "petProfile/{petId}",

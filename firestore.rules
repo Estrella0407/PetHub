@@ -34,7 +34,10 @@ service cloud.firestore {
     // 2. PET
     match /pet/{petId} {      // Allow a user to read or write THEIR OWN pet document
       allow get: if isDocumentOwner(resource.data.custId) || isAdmin();
-      allow write: if isDocumentOwner(resource.data.custId);
+      // Allow create if the new document's custId matches the user's ID
+      allow create: if isDocumentOwner(request.resource.data.custId);
+      // Allow update/delete if the existing document belongs to the user
+      allow update, delete: if isDocumentOwner(resource.data.custId);
 
       // Allow ANY authenticated user to perform queries on the pet collection
       // This is necessary for the recommendation engine to find similar pets.

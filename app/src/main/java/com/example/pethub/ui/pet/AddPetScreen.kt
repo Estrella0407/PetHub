@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ import com.example.pethub.ui.theme.getTextFieldColors
 import java.text.SimpleDateFormat
 import java.util.*
 
+
 @Composable
 fun AddPetScreen(
     onPetAdded: (petId: String) -> Unit,
@@ -36,6 +39,21 @@ fun AddPetScreen(
     viewModel: AddPetViewModel = hiltViewModel()
 ) {
     val ownerDetails by viewModel.ownerDetails.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvent.collect { event ->
+             when(event) {
+                 is AddPetEvent.ShowMessage -> {
+                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                 }
+                 is AddPetEvent.PetAdded -> {
+                     Toast.makeText(context, "Pet added successfully", Toast.LENGTH_SHORT).show()
+                     onPetAdded(event.petId)
+                 }
+             }
+        }
+    }
 
     // Form State
     var petName by rememberSaveable { mutableStateOf("") }
@@ -71,10 +89,7 @@ fun AddPetScreen(
                  remarks = remarks,
                  dob = dob,
                  sex = sex,
-                 weight = weight,
-                 onSuccess = { newPetId ->
-                     onPetAdded(newPetId)
-                 }
+                 weight = weight
              )
         }
     )

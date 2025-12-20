@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.receiveAsFlow
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,6 +27,10 @@ class AddPetViewModel @Inject constructor(
 
     private val _ownerDetails = MutableStateFlow<Customer?>(null)
     val ownerDetails: StateFlow<Customer?> = _ownerDetails.asStateFlow()
+
+    // Event Channel
+    private val _uiEvent = kotlinx.coroutines.channels.Channel<AddPetEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
         loadOwnerDetails()
@@ -47,13 +52,26 @@ class AddPetViewModel @Inject constructor(
         remarks: String,
         dob: String,
         sex: String,
-        weight: String,
-        onSuccess: (newPetId: String) -> Unit
+        weight: String
     ) {
         viewModelScope.launch {
+            // Validation with specific feedback and debug info
+            val missingFields = mutableListOf<String>()
+            if (petName.isBlank()) missingFields.add("Name")
+            if (type.isBlank()) missingFields.add("Type")
+            if (breed.isBlank()) missingFields.add("Breed")
+            if (dob.isBlank()) missingFields.add("Date of Birth")
+            if (sex == "Select") missingFields.add("Gender")
+
+            if (missingFields.isNotEmpty()) {
+                val debugInfo = "Name='$petName', Type='$type', Breed='$breed', DOB='$dob', Sex='$sex'"
+                _uiEvent.send(AddPetEvent.ShowMessage("Missing: ${missingFields.joinToString(", ")}\n[Debug: $debugInfo]"))
+                return@launch
+            }
+
             val userId = authRepository.getCurrentUserId()
             if (userId == null) {
-                // Handle error: user not logged in
+                _uiEvent.send(AddPetEvent.ShowMessage("User not logged in"))
                 return@launch
             }
 
@@ -61,7 +79,8 @@ class AddPetViewModel @Inject constructor(
                 // We now return a Date object directly, not the time in milliseconds
                 SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(dob)
             } catch (e: Exception) {
-                null
+                _uiEvent.send(AddPetEvent.ShowMessage("Invalid Date format"))
+                return@launch
             }
 
             val newPet = Pet(
@@ -80,14 +99,18 @@ class AddPetViewModel @Inject constructor(
                 // MODIFIED: Get the new ID from the result
                 val newPetId = result.getOrNull()
                 if (newPetId != null) {
-                    // MODIFIED: Pass the new ID to the success callback
-                    onSuccess(newPetId)
+                    _uiEvent.send(AddPetEvent.PetAdded(newPetId))
                 } else {
-                    // Handle the unlikely case where success is true but ID is null
+                     _uiEvent.send(AddPetEvent.ShowMessage("Failed to get new pet ID"))
                 }
             } else {
-                // Handle error
+                _uiEvent.send(AddPetEvent.ShowMessage("Failed to add pet: ${result.exceptionOrNull()?.message}"))
             }
         }
     }
+}
+
+sealed class AddPetEvent {
+    data class ShowMessage(val message: String) : AddPetEvent()
+    data class PetAdded(val petId: String) : AddPetEvent()
 }
