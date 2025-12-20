@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -96,7 +97,9 @@ fun PetProfileScreen(
                         photoPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
-                    }
+                    },
+                    onPetChange = viewModel::onPetDataChanged,
+                    onSaveClick = viewModel::savePetDetails
                 )
             }
         }
@@ -107,7 +110,9 @@ fun PetProfileScreen(
 fun PetProfileContent(
     modifier: Modifier = Modifier,
     state: PetProfileUiState.Success,
-    onImageClick: () -> Unit // Callback for image click
+    onImageClick: () -> Unit, // Callback for image click
+    onPetChange: (Pet) -> Unit,
+    onSaveClick: () -> Unit
 ) {
     val pet = state.pet
     val age = calculateAge(pet.dateOfBirth?.time)
@@ -115,6 +120,9 @@ fun PetProfileContent(
         val sdf = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
         sdf.format(it)
     } ?: "Not set"
+
+    // Local state for weight to prevent "fighting" the auto-formatting (e.g. typing "5." becoming "5.0")
+    var weightInput by remember(pet.petId) { mutableStateOf(pet.weight?.toString() ?: "") }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -160,6 +168,7 @@ fun PetProfileContent(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+            
             Text(
                 text = pet.petName,
                 fontSize = 28.sp,
@@ -181,19 +190,62 @@ fun PetProfileContent(
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        EditablePetInfoField(label = "Gender", value = pet.sex, modifier = Modifier.weight(1f))
+                        // Gender Dropdown
+                        GenderDropdownField(
+                            value = pet.sex,
+                            onValueChange = { onPetChange(pet.copy(sex = it)) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        
                         EditablePetInfoField(
                             label = "Age",
                             value = age?.toString() ?: "N/A",
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            readOnly = true // Age is derived
                         )
                     }
-                    EditablePetInfoField(label = "Date of Birth", value = formattedDob)
+                    EditablePetInfoField(
+                        label = "Date of Birth",
+                        value = formattedDob,
+                        readOnly = true // Date editing requires DatePicker
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        EditablePetInfoField(label = "Breed", value = pet.breed, modifier = Modifier.weight(1f))
-                        EditablePetInfoField(label = "Weight (kg)", value = pet.weight.toString(), modifier = Modifier.weight(1f))
+                        EditablePetInfoField(
+                            label = "Breed",
+                            value = pet.breed,
+                            modifier = Modifier.weight(1f),
+                            onValueChange = { onPetChange(pet.copy(breed = it)) }
+                        )
+                        
+                        // Weight Field with special handling
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Weight (kg)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkBrown)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BasicTextField(
+                                    value = weightInput,
+                                    onValueChange = { newValue ->
+                                        // Allow only digits and one dot
+                                        if (newValue.all { it.isDigit() || it == '.' } && newValue.count { it == '.' } <= 1) {
+                                            weightInput = newValue
+                                            // Only update parent if it parses somewhat validly or is empty
+                                            val doubleVal = newValue.toDoubleOrNull()
+                                            onPetChange(pet.copy(weight = doubleVal))
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = DarkBrown),
+                                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal, imeAction = ImeAction.Next)
+                                )
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            }
+                            Divider(color = Color.Gray, thickness = 1.dp)
+                        }
                     }
-                    EditablePetInfoField(label = "Remarks", value = pet.remarks)
+                    EditablePetInfoField(
+                        label = "Remarks",
+                        value = pet.remarks ?: "",
+                        onValueChange = { onPetChange(pet.copy(remarks = it)) }
+                    )
 
                     // --- Remove Button ---
                     Row(
@@ -260,8 +312,6 @@ fun PetProfileContent(
                             }
                         }
                     }
-                    // Handle odd number of items if needed, but row with weights handles it okay for small counts.
-                    // For many items, a LazyRow within item would be better, but we only fetch top 3.
                 }
             }
         }
@@ -270,7 +320,7 @@ fun PetProfileContent(
         item {
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { /* TODO: Save changes */ },
+                onClick = onSaveClick,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkBrown)
@@ -281,30 +331,89 @@ fun PetProfileContent(
     }
 }
 
+@Composable
+fun GenderDropdownField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf("Male", "Female")
 
-/*
-annotation class getDefault
-*/
+    Column(modifier = modifier) {
+        Text(text = "Gender", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkBrown)
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true }
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = value.ifBlank { "Select Gender" },
+                    fontSize = 18.sp,
+                    color = DarkBrown,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = DarkBrown
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { selection ->
+                    DropdownMenuItem(
+                        text = { Text(selection) },
+                        onClick = {
+                            onValueChange(selection)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+        Divider(color = Color.Gray, thickness = 1.dp)
+    }
+}
 
 @Composable
 fun EditablePetInfoField(
     label: String,
     value: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    onValueChange: (String) -> Unit = {}
 ) {
     Column(modifier = modifier) {
         Text(text = label, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkBrown)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (value != null) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = { /* TODO: Update ViewModel state */ },
-                    modifier = Modifier.weight(1f),
-                    textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = DarkBrown),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            // Null check outside to avoid null in BasicTextField value
+            val displayValue = value ?: ""
+            
+            BasicTextField(
+                value = displayValue,
+                onValueChange = if (readOnly) { {} } else onValueChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 8.dp), // Add touch target padding
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = if(readOnly) Color.Gray else DarkBrown),
+                enabled = !readOnly,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+            
+            if (!readOnly) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    modifier = Modifier.size(16.dp),
+                    tint = Color.Gray
                 )
             }
-            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp), tint = Color.Gray)
         }
         Divider(color = Color.Gray, thickness = 1.dp)
     }

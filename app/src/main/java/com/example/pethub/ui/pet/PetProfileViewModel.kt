@@ -96,6 +96,45 @@ class PetProfileViewModel @Inject constructor(
             }
         }
     }
+    fun onPetDataChanged(updatedPet: Pet) {
+        val currentState = _uiState.value
+        if (currentState is PetProfileUiState.Success) {
+            _uiState.value = currentState.copy(pet = updatedPet)
+        }
+    }
+
+    fun savePetDetails() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is PetProfileUiState.Success) {
+                val userId = authRepository.getCurrentUserId() ?: return@launch
+                val pet = currentState.pet
+
+                _uiState.update { currentState.copy(isUploading = true) }
+
+                try {
+                    val updates = mapOf(
+                        "petName" to pet.petName,
+                        "sex" to pet.sex,
+                        "breed" to pet.breed,
+                        "weight" to pet.weight,
+                        "remarks" to pet.remarks,
+                        // Not updating DOB/Age via text to avoid parsing errors for now
+                    )
+                    petRepository.updatePet(userId, pet.petId, updates)
+
+                    _uiState.update {
+                        currentState.copy(isUploading = false)
+                    }
+                    // Optionally show a success message? For now just stop loading.
+                } catch (e: Exception) {
+                    _uiState.update {
+                        PetProfileUiState.Error(e.message ?: "Failed to save changes")
+                    }
+                }
+            }
+        }
+    }
 }
 
 sealed class PetProfileUiState {

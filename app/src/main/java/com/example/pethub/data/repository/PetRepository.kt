@@ -102,7 +102,7 @@ class PetRepository @Inject constructor(
     /** --------------------------------------------------
      * Update pet info
      * -------------------------------------------------- */
-    suspend fun updatePet(userId: String, petId: String, updates: Map<String, Any>): Result<Unit> {
+    suspend fun updatePet(userId: String, petId: String, updates: Map<String, Any?>): Result<Unit> {
         return firestoreHelper.updateDocument(
             COLLECTION_PET,
             petId,

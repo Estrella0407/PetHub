@@ -158,7 +158,7 @@ class FirestoreHelper @Inject constructor(
     suspend fun updateDocument(
         collection: String,
         documentId: String,
-        updates: Map<String, Any>
+        updates: Map<String, Any?>
     ): Result<Unit> {
         return try {
             val updatesWithTimestamp = updates.toMutableMap().apply {
