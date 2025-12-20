@@ -46,6 +46,8 @@ import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.DarkBrown
 import com.example.pethub.ui.theme.MutedBrown
 import com.example.pethub.ui.theme.VibrantBrown
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import com.example.pethub.util.calculateAge
 // 1. ADD THE CORRECT JAVA IMPORTS
 import java.text.SimpleDateFormat
@@ -60,6 +62,23 @@ fun PetProfileScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Observe one-time events
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is PetProfileEvent.ShowMessage -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is PetProfileEvent.PetDeleted -> {
+                    Toast.makeText(context, "Pet removed successfully", Toast.LENGTH_SHORT).show()
+                    onNavigateBack()
+                }
+            }
+        }
+    }
 
     // 👇 NEW: Photo Picker Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -70,6 +89,33 @@ fun PetProfileScreen(
             }
         }
     )
+    
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(text = "Remove Pet") },
+            text = { Text("Are you sure you want to remove this pet? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deletePet()
+                    }
+                ) {
+                    Text("Remove", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = CreamBackground,
+            titleContentColor = DarkBrown,
+            textContentColor = DarkBrown
+        )
+    }
 
     Scaffold(
         containerColor = CreamBackground,
@@ -99,7 +145,8 @@ fun PetProfileScreen(
                         )
                     },
                     onPetChange = viewModel::onPetDataChanged,
-                    onSaveClick = viewModel::savePetDetails
+                    onSaveClick = viewModel::savePetDetails,
+                    onRemoveClick = { showDeleteDialog = true }
                 )
             }
         }
@@ -112,7 +159,8 @@ fun PetProfileContent(
     state: PetProfileUiState.Success,
     onImageClick: () -> Unit, // Callback for image click
     onPetChange: (Pet) -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onRemoveClick: () -> Unit
 ) {
     val pet = state.pet
     val age = calculateAge(pet.dateOfBirth?.time)
@@ -252,7 +300,7 @@ fun PetProfileContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp)
-                            .clickable { /* TODO: Show confirmation dialog */ },
+                            .clickable { onRemoveClick() },
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {

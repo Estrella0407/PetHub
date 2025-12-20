@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.receiveAsFlow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -29,6 +30,10 @@ class PetProfileViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<PetProfileUiState>(PetProfileUiState.Loading)
     val uiState: StateFlow<PetProfileUiState> = _uiState.asStateFlow()
+
+    // One-time events
+    private val _uiEvent = kotlinx.coroutines.channels.Channel<PetProfileEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
         loadPetDetails()
@@ -96,6 +101,7 @@ class PetProfileViewModel @Inject constructor(
             }
         }
     }
+
     fun onPetDataChanged(updatedPet: Pet) {
         val currentState = _uiState.value
         if (currentState is PetProfileUiState.Success) {
@@ -126,7 +132,7 @@ class PetProfileViewModel @Inject constructor(
                     _uiState.update {
                         currentState.copy(isUploading = false)
                     }
-                    // Optionally show a success message? For now just stop loading.
+                    _uiEvent.send(PetProfileEvent.ShowMessage("Pet details saved successfully"))
                 } catch (e: Exception) {
                     _uiState.update {
                         PetProfileUiState.Error(e.message ?: "Failed to save changes")
@@ -135,6 +141,35 @@ class PetProfileViewModel @Inject constructor(
             }
         }
     }
+
+    fun deletePet() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is PetProfileUiState.Success) {
+                val userId = authRepository.getCurrentUserId() ?: return@launch
+                
+                 _uiState.update { currentState.copy(isUploading = true) } // Use isUploading as a loading indicator
+
+                try {
+                    val result = petRepository.deletePet(userId, petId)
+                    if (result.isSuccess) {
+                         _uiEvent.send(PetProfileEvent.PetDeleted)
+                    } else {
+                         _uiEvent.send(PetProfileEvent.ShowMessage("Failed to delete pet"))
+                         _uiState.update { currentState.copy(isUploading = false) }
+                    }
+                } catch (e: Exception) {
+                    _uiEvent.send(PetProfileEvent.ShowMessage(e.message ?: "Error deleting pet"))
+                    _uiState.update { currentState.copy(isUploading = false) }
+                }
+            }
+        }
+    }
+}
+
+sealed class PetProfileEvent {
+    data class ShowMessage(val message: String) : PetProfileEvent()
+    data object PetDeleted : PetProfileEvent()
 }
 
 sealed class PetProfileUiState {
