@@ -152,10 +152,9 @@ class BookAppointmentViewModel @Inject constructor(
         // 2. Define the start and end hours based on the day of the week.
         val startHour = 10
         val endHour = if (dayOfWeek in java.time.DayOfWeek.SATURDAY..java.time.DayOfWeek.SUNDAY) {
-            18
+            17
         } else {
-            // It's a weekday, so operating hours end at 8 PM (last slot is 7 PM).
-            20 // Represents the 8pm
+            19
         }
 
         // 3. Generate the list of all possible slots for that day within operating hours.
@@ -172,9 +171,19 @@ class BookAppointmentViewModel @Inject constructor(
             it.dateTime?.toDate()?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalTime()
         }.toSet()
 
-        // 5. Create the final list of TimeSlot objects, marking booked ones as unavailable.
+        val isToday = date == LocalDate.now()
+        val currentTime = LocalTime.now()
+
+        // 6. Create the final list of TimeSlot objects with the new validation.
         return allSlots.map { slot ->
-            TimeSlot(time = slot, isAvailable = !bookedSlotsForDay.contains(slot))
+            // A slot is considered already booked if it's in the bookedSlotsForDay set.
+            val isAlreadyBooked = bookedSlotsForDay.contains(slot)
+
+            // A slot is in the past if the selected date is today AND the slot time is before the current time.
+            val isInThePast = isToday && slot.isBefore(currentTime)
+
+            // The slot is available only if it's NOT already booked AND it's NOT in the past.
+            TimeSlot(time = slot, isAvailable = !isAlreadyBooked && !isInThePast)
         }
     }
 

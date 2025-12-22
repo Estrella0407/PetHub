@@ -267,6 +267,7 @@ fun CalendarSection(
                 val date = currentDisplayMonth.atDay(day + 1)
                 val isSelected = date == selectedDate
                 val isToday = date == LocalDate.now()
+                val isPastDate = date.isBefore(LocalDate.now())
 
                 Box(
                     modifier = Modifier
@@ -275,16 +276,22 @@ fun CalendarSection(
                         .background(
                             when {
                                 isSelected -> DarkBrown // Selected color
-                                isToday -> CreamDark.copy(alpha = 0.5f) // Today color
+                                date == LocalDate.now() && !isPastDate -> CreamDark.copy(alpha = 0.5f)
                                 else -> Color.Transparent
                             }
                         )
-                        .clickable { onDateSelected(date) },
+                        .clickable(enabled = !isPastDate) {
+                            onDateSelected(date)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "${day + 1}",
-                        color = if (isSelected) Color.White else DarkBrown
+                        color = when {
+                            isSelected -> Color.White
+                            isPastDate -> Color.Gray.copy(alpha = 0.6f) // Faded color for past dates
+                            else -> DarkBrown
+                        }
                     )
                 }
             }
