@@ -24,14 +24,19 @@ suspend fun signInWithGoogle(
         .addCredentialOption(googleIdOption)
         .build()
 
-    val result = credentialManager.getCredential(
-        context = context,
-        request = request
-    )
+    try {
+        val result = credentialManager.getCredential(
+            context = context,
+            request = request
+        )
 
-    val credential = result.credential
-    if (credential is GoogleIdTokenCredential) {
-        onTokenReceived(credential.idToken)
+        val credential = result.credential
+        if (credential is GoogleIdTokenCredential) {
+            onTokenReceived(credential.idToken)
+        }
+    } catch (e: Exception) {
+        // Handle cancellation or other errors gracefully
+        // e.g. Log.e("GoogleSignIn", "Sign in failed or cancelled", e)
     }
 }
 

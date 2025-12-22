@@ -138,9 +138,10 @@ class ShopRepository @Inject constructor() {
         }
     }
 
-    // --- 5. Place Order (UPDATED PATH for Clearing Cart) ---
+    // --- 5. Place Order (UPDATED to Decrement Stock) ---
     suspend fun placeOrder(
-        branchName: String,
+        branchId: String,  // <--- CHANGED: Now takes ID, not Name
+        branchName: String, // Pass name for Order record
         pickupDate: String,
         pickupTime: String,
         cartItems: List<CartItem>,
@@ -152,6 +153,35 @@ class ShopRepository @Inject constructor() {
 
         return try {
             val batch = db.batch()
+
+            // ADDED: Pre-check stock availability
+            // We need to find the branchProduct documents for this branch + these products
+            for (item in cartItems) {
+                // Find the branchProduct document
+                // Note: This assumes a specific structure (branchId matches).
+                // Since this could be complex to query inside the transaction loop without document IDs,
+                // we'll do a query first.
+                val bpQuery = db.collection("branchProduct")
+                    .whereEqualTo("branchId", branchId)
+                    .whereEqualTo("productId", item.product.id)
+                    .get()
+                    .await()
+
+                if (bpQuery.isEmpty) {
+                     return Result.failure(Exception("Product ${item.product.name} not available at this branch."))
+                }
+
+                val bpDoc = bpQuery.documents[0]
+                val currentStock = bpDoc.getLong("stock")?.toInt() ?: 0
+
+                if (currentStock < item.quantity) {
+                    return Result.failure(Exception("Insufficient stock for ${item.product.name}. Available: $currentStock"))
+                }
+
+                // Decrement stock in batch
+                batch.update(bpDoc.reference, "stock", currentStock - item.quantity)
+            }
+
 
             // A. Create Main Order (No changes needed here)
             val orderRef = db.collection("order").document()
@@ -168,6 +198,7 @@ class ShopRepository @Inject constructor() {
             val newOrder = hashMapOf(
                 "orderId" to orderId,
                 "custId" to custId,
+                "branchId" to branchId, // Save ID too
                 "branchName" to branchName,
                 "pickupDateTime" to pickupTimestamp,
                 "orderDateTime" to Timestamp.now(),
@@ -208,8 +239,8 @@ class ShopRepository @Inject constructor() {
         }
     }
 
-    // --- 6. Get Branch List (No changes needed here) ---
-    fun getBranches(): Flow<List<String>> = callbackFlow {
+    // --- 6. Get Branch List (UPDATED to return Branch Objects) ---
+    fun getBranches(): Flow<List<com.example.pethub.data.model.Branch>> = callbackFlow {
         val listener = db.collection("branch")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -219,10 +250,8 @@ class ShopRepository @Inject constructor() {
                 }
 
                 if (snapshot != null) {
-                    val branchNames = snapshot.documents.mapNotNull { doc ->
-                        doc.getString("branchName") ?: doc.getString("name")
-                    }
-                    trySend(branchNames)
+                    val branches = snapshot.toObjects(com.example.pethub.data.model.Branch::class.java)
+                    trySend(branches)
                 } else {
                     trySend(emptyList())
                 }

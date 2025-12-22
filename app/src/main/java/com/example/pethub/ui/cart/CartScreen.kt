@@ -231,7 +231,7 @@ fun CartScreen(
                     // Branch Dropdown
                     BranchDropdown(
                         selectedBranch = selectedBranch,
-                        branches = branchList, // <--- 传入 Firebase 的数据
+                        branches = branchList,
                         onBranchSelected = { viewModel.updateBranch(it) }
                     )
                 }
@@ -440,9 +440,9 @@ fun PickerButton(
 
 @Composable
 fun BranchDropdown(
-    selectedBranch: String,
-    branches: List<String>,
-    onBranchSelected: (String) -> Unit
+    selectedBranch: com.example.pethub.data.model.Branch?,
+    branches: List<com.example.pethub.data.model.Branch>,
+    onBranchSelected: (com.example.pethub.data.model.Branch) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -464,7 +464,7 @@ fun BranchDropdown(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (branches.isEmpty()) "Loading..." else selectedBranch,
+                    text = selectedBranch?.branchName ?: "Select a Branch",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF5D4037),
@@ -486,7 +486,7 @@ fun BranchDropdown(
         ) {
             branches.forEach { branch ->
                 DropdownMenuItem(
-                    text = { Text(branch) },
+                    text = { Text(branch.branchName) },
                     onClick = {
                         onBranchSelected(branch)
                         expanded = false

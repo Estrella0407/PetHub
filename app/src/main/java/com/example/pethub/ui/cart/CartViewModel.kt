@@ -23,17 +23,20 @@ class CartViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // 2. Calculate Total Amount Automatically
+    // 2. Calculate Total Amount Automatically
     val totalAmount = cartItems.map { items ->
         items.sumOf { it.product.price * it.quantity }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-    val branchList: StateFlow<List<String>> = shopRepository.getBranches()
+
+    val branchList: StateFlow<List<com.example.pethub.data.model.Branch>> = shopRepository.getBranches()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList() // 初始为空
         )
     // 3. UI State for User Selections
-    private val _selectedBranch = MutableStateFlow("Select a Branch")
+    // Store the entire Branch object, nullable to represent "no selection"
+    private val _selectedBranch = MutableStateFlow<com.example.pethub.data.model.Branch?>(null)
     val selectedBranch = _selectedBranch.asStateFlow()
 
     private val _selectedDate = MutableStateFlow("")
@@ -44,7 +47,7 @@ class CartViewModel @Inject constructor(
 
     // --- Actions ---
 
-    fun updateBranch(branch: String) {
+    fun updateBranch(branch: com.example.pethub.data.model.Branch) {
         _selectedBranch.value = branch
     }
 
@@ -74,7 +77,7 @@ class CartViewModel @Inject constructor(
         val total = totalAmount.value
 
         // Validation
-        if (branch == "Select a Branch" || branch.isEmpty()) {
+        if (branch == null) {
             onError("Please select a branch.")
             return
         }
@@ -90,7 +93,14 @@ class CartViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val result = shopRepository.placeOrder(branch, date, time, items, total)
+            val result = shopRepository.placeOrder(
+                branchId = branch.branchId,
+                branchName = branch.branchName,
+                pickupDate = date,
+                pickupTime = time,
+                cartItems = items,
+                totalAmount = total
+            )
             if (result.isSuccess) {
                 // Clear selections after success
                 _selectedDate.value = ""
