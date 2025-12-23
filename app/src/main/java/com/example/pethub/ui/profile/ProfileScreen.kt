@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
@@ -62,6 +65,15 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.onImageSelected(uri)
+            }
+        }
+    )
+
     Scaffold(
         containerColor = CreamBackground,
         topBar = {
@@ -110,7 +122,12 @@ fun ProfileScreen(
                     onOrderClick = onOrderClick,
                     onNavigateToAllAppointments = onNavigateToAllAppointments,
                     onNavigateToAllOrders = onNavigateToAllOrders,
-                    onEditProfileClick = onEditProfileClick
+                    onEditProfileClick = onEditProfileClick,
+                    onPhotoClick = {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
                 )
             }
         }
@@ -129,7 +146,8 @@ fun ProfileContent(
     onOrderClick: (orderId: String) -> Unit,
     onNavigateToAllAppointments: () -> Unit,
     onNavigateToAllOrders: () -> Unit,
-    onEditProfileClick: () -> Unit
+    onEditProfileClick: () -> Unit,
+    onPhotoClick: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -137,8 +155,14 @@ fun ProfileContent(
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         // --- Header Section ---
+        // --- Header Section ---
         item {
-            ProfileHeader(uiState = uiState, onFaqClick = onFaqClick, onEditProfileClick = onEditProfileClick)
+            ProfileHeader(
+                uiState = uiState,
+                onFaqClick = onFaqClick,
+                onEditProfileClick = onEditProfileClick,
+                onPhotoClick = onPhotoClick
+            )
         }
 
         // --- Appointments Section
@@ -327,23 +351,55 @@ fun PetInfoCard(
 }
 
 
-// No changes needed for ProfileHeader
+// Updated ProfileHeader with Image Upload capabilities
 @Composable
-fun ProfileHeader(uiState: ProfileUiState.Success, onFaqClick: () -> Unit, onEditProfileClick: () -> Unit) {
+fun ProfileHeader(
+    uiState: ProfileUiState.Success,
+    onFaqClick: () -> Unit,
+    onEditProfileClick: () -> Unit,
+    onPhotoClick: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = uiState.customer?.profileImageUrl,
-            contentDescription = "Profile Picture",
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .border(2.dp, CreamDark, CircleShape),
-            contentScale = ContentScale.Crop,
-            fallback = rememberVectorPainter(Icons.Default.Person),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            AsyncImage(
+                model = uiState.customer?.profileImageUrl,
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, CreamDark, CircleShape)
+                    .clickable(onClick = onPhotoClick), // Click to upload
+                contentScale = ContentScale.Crop,
+                fallback = rememberVectorPainter(Icons.Default.Person),
+            )
+
+            // Show Progress Indicator if uploading
+            if (uiState.isUploading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(80.dp),
+                    color = DarkBrown,
+                    strokeWidth = 3.dp
+                )
+            }
+
+            // Edit Icon overlay
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Change Image",
+                tint = DarkBrown,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-2).dp, y = (-2).dp)
+                    .size(20.dp)
+                    .background(Color.White, CircleShape)
+                    .padding(3.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = uiState.customer?.custName ?: "", fontWeight = FontWeight.Bold, fontSize = 20.sp)
@@ -524,6 +580,7 @@ fun ProfileScreenPreview() {
         onOrderClick = {},
         onNavigateToAllAppointments = {},
         onNavigateToAllOrders = {},
-        onEditProfileClick = {}
+        onEditProfileClick = {},
+        onPhotoClick = {}
     )
 }
