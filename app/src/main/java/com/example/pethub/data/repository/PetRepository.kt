@@ -91,7 +91,7 @@ class PetRepository @Inject constructor(
             val petId = docRef.id
             
             // Generate and upload QR code
-            val qrBitmap = com.example.pethub.util.QrCodeGenerator.generateQrCode(petId)
+            val qrBitmap = com.example.pethub.utils.QrCodeGenerator.generateQrCode(petId)
             val qrUrl = if (qrBitmap != null) {
                 firebaseService.uploadPetQrCode(userId, petId, qrBitmap).getOrNull()
             } else null
