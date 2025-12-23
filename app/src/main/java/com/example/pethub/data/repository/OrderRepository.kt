@@ -7,6 +7,7 @@ import com.example.pethub.data.remote.FirestoreHelper
 import com.example.pethub.data.remote.FirestoreHelper.Companion.COLLECTION_ORDER
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,7 +81,7 @@ class OrderRepository @Inject constructor(
     suspend fun getOrderItem(order: Order): OrderItem {
         // This part to get the title is correct and can remain.
         val productOrdersResult = firestoreHelper.queryDocuments(
-            collection = "product_order",
+            collection = "productOrder",
             field = "orderId",
             value = order.orderId,
             clazz = ProductOrder::class.java
@@ -110,6 +111,25 @@ class OrderRepository @Inject constructor(
             pickupDateTime = pickupDateTime,    // Pass the Timestamp object directly
             status = order.status,
             totalPrice = order.totalPrice
+        )
+    }
+
+    suspend fun getPendingOrdersForCurrentUser(): List<Order> {
+        val custId = authRepository.getCurrentUserId() ?: return emptyList()
+
+        return firestoreHelper.getFirestoreInstance().collection(COLLECTION_ORDER)
+            .whereEqualTo("custId", custId)
+            .whereEqualTo("status", "Pending")
+            .get()
+            .await()
+            .toObjects(Order::class.java)
+    }
+
+    suspend fun updateOrderStatus(orderId: String, status: String): Result<Unit> {
+        return firestoreHelper.updateDocument(
+            collection = COLLECTION_ORDER,
+            documentId = orderId,
+            updates = mapOf("status" to status)
         )
     }
 }

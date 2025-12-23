@@ -3,6 +3,7 @@ package com.example.pethub.ui.profile
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.example.pethub.data.model.Appointment
 import com.example.pethub.data.model.AppointmentItem
 import com.example.pethub.data.model.Customer
@@ -39,6 +40,24 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadCustomerData()
+        checkAndCompletePastOrders()
+    }
+
+    private fun checkAndCompletePastOrders() {
+        viewModelScope.launch {
+            try {
+                val pendingOrders = orderRepository.getPendingOrdersForCurrentUser()
+                val now = Timestamp.now()
+                pendingOrders.forEach { order ->
+                    val pickupTime = order.pickupDateTime
+                    if (pickupTime != null && pickupTime < now) {
+                        orderRepository.updateOrderStatus(order.orderId, "Completed")
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun loadCustomerData() {
