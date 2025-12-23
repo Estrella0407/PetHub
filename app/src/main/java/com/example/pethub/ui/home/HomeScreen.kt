@@ -29,6 +29,7 @@ import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
 import com.example.pethub.ui.theme.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
 import com.example.pethub.data.model.ServiceItem
 import com.example.pethub.navigation.BottomNavigationBar
 import com.example.pethub.ui.components.*
@@ -55,11 +56,13 @@ fun HomeScreen(
     val pets by viewModel.pets.collectAsState()
     val selectedPet by viewModel.selectedPet.collectAsState()
     val branches by viewModel.branches.collectAsState()
+    val hasUnreadNotifications by viewModel.hasUnreadNotifications.collectAsState()
 
     Scaffold(
         topBar = {
             HomeTopBar(
-                onNotificationClick = onNavigateToNotification
+                onNotificationClick = onNavigateToNotification,
+                hasUnreadNotifications = hasUnreadNotifications
             )
         },
         bottomBar = {
@@ -111,23 +114,39 @@ fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    hasUnreadNotifications: Boolean
 ) {
     TopAppBar(
         title = {},
         actions = {
-            IconButton(onClick = onNotificationClick) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = MutedBrown,
-                    modifier = Modifier
-                        .background(
-                            color = CreamDark,
-                            shape = CircleShape
-                        )
-                        .padding(8.dp)
-                )
+            Box {
+                IconButton(onClick = onNotificationClick) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = MutedBrown,
+                        modifier = Modifier
+                            .background(
+                                color = CreamDark,
+                                shape = CircleShape
+                            )
+                            .padding(8.dp)
+                    )
+                }
+                // Conditionally display the indicator dot
+                if (hasUnreadNotifications) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 8.dp, end = 8.dp) // Adjust padding to position the dot
+                            .size(10.dp)
+                            .background(
+                                color = Color.Red,
+                                shape = CircleShape
+                            )
+                            .align(Alignment.TopEnd)
+                    )
+                }
             }
         }
     )

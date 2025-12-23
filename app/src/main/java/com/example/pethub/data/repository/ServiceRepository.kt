@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
@@ -22,9 +23,12 @@ class ServiceRepository @Inject constructor(
     private val firestoreHelper: FirestoreHelper,
     private val serviceDao: ServiceDao,
     private val petRepository: PetRepository,
-    private val appointmentRepository: AppointmentRepository,
+    private val appointmentRepositoryProvider: Provider<AppointmentRepository>,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
+
+    private val appointmentRepository: AppointmentRepository
+        get() = appointmentRepositoryProvider.get()
 
     companion object {
         const val COLLECTION_BRANCH_SERVICE = "branchService" // Updated collection name

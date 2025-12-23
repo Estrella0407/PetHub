@@ -15,19 +15,13 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import javax.inject.Provider
 import javax.inject.Singleton
 
-/**
- * Hilt module for providing Repository instances
- * Repositories handle data operations and business logic
- */
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
 
-    /**
-     * Provide AuthRepository for authentication operations
-     */
     @Provides
     @Singleton
     fun provideAuthRepository(
@@ -44,9 +38,6 @@ object RepositoryModule {
         )
     }
 
-    /**
-     * Provide CustomerRepository for customer profile operations
-     */
     @Provides
     @Singleton
     fun provideCustomerRepository(
@@ -63,9 +54,6 @@ object RepositoryModule {
         )
     }
 
-    /**
-     * Provide BranchRepository for branch operations
-     */
     @Provides
     @Singleton
     fun provideBranchRepository(
@@ -80,20 +68,16 @@ object RepositoryModule {
         )
     }
 
-    /**
-     * Provide PetRepository for pet management operations
-     */
     @Provides
     @Singleton
     fun providePetRepository(
         firebaseService: FirebaseService,
         firestoreHelper: FirestoreHelper,
         cloudinaryService: CloudinaryService,
-        authRepository: AuthRepository, // 👈 ADDED: The missing AuthRepository dependency
+        authRepository: AuthRepository,
         petDao: PetDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): PetRepository {
-        // FIX: Add authRepository to the constructor call in the correct order
         return PetRepository(
             firebaseService,
             firestoreHelper,
@@ -113,14 +97,15 @@ object RepositoryModule {
         firestoreHelper: FirestoreHelper,
         serviceDao: ServiceDao,
         petRepository: PetRepository,
-        appointmentRepository: AppointmentRepository,
+        appointmentRepositoryProvider: Provider<AppointmentRepository>,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): ServiceRepository {
         return ServiceRepository(
             firestoreHelper,
             serviceDao,
             petRepository,
-            appointmentRepository,
+            // Pass the provider to the constructor
+            appointmentRepositoryProvider,
             ioDispatcher
         )
     }
@@ -134,17 +119,19 @@ object RepositoryModule {
         firestoreHelper: FirestoreHelper,
         appointmentDao: AppointmentDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        authRepository: AuthRepository, // Re-ordered parameters
-        petRepository: PetRepository,     // Re-ordered parameters
+        authRepository: AuthRepository,
+        petRepository: PetRepository,
+        serviceRepository: ServiceRepository,
         notificationRepository: NotificationRepository
     ): AppointmentRepository {
-        // FIX: Re-order the arguments to match the likely AppointmentRepository constructor
         return AppointmentRepository(
             firestoreHelper,
             appointmentDao,
             ioDispatcher,
             authRepository,
             petRepository,
+            // Pass the direct instance here
+            serviceRepository,
             notificationRepository
         )
     }

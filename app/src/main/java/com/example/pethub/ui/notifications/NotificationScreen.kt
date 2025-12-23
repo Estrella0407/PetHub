@@ -11,11 +11,13 @@ import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,10 +30,19 @@ import java.util.Locale
 @Composable
 fun NotificationScreen(
     viewModel: NotificationViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToAppointmentDetail: (String) -> Unit
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(viewModel)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(viewModel)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -44,7 +55,7 @@ fun NotificationScreen(
                 }
             )
         }
-    ) {
+    ) { paddingValues ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -54,13 +65,23 @@ fun NotificationScreen(
                 Text("No notifications yet.")
             }
         } else {
-            LazyColumn(contentPadding = it) {
-                items(notifications) { notification ->
-                    NotificationItem(notification = notification, onNotificationClicked = {
-                        // Mark as read when clicked
-                        viewModel.markAsRead(notification.id)
-                    })
-                    Divider()
+            LazyColumn(contentPadding = paddingValues) {
+                items(notifications, key = { it.id }) { notification ->
+                    NotificationItem(
+                        notification = notification,
+                        onNotificationClicked = {
+                            // Mark as read immediately
+                            viewModel.markAsRead(notification.id)
+
+                            // Handle the navigation logic
+                            if (notification.type == "appointment") {
+                                val appointmentId = notification.data?.get("appointmentId")
+                                if (!appointmentId.isNullOrBlank()) {
+                                    onNavigateToAppointmentDetail(appointmentId)
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -87,7 +108,9 @@ fun NotificationItem(
                 imageVector = Icons.Filled.Circle,
                 contentDescription = "Unread",
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(8.dp).padding(end = 8.dp)
+                modifier = Modifier
+                    .size(8.dp)
+                    .padding(end = 8.dp)
             )
         } else {
              Spacer(modifier = Modifier.width(16.dp)) // Maintain alignment with read items
@@ -96,11 +119,13 @@ fun NotificationItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = notification.title, fontWeight = FontWeight.Bold)
             Text(text = notification.message, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(notification.timestamp)),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
+            notification.timestamp?.let { date ->
+                Text(
+                    text = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(date),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }

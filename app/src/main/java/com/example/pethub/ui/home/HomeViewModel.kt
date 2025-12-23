@@ -6,10 +6,10 @@ import com.example.pethub.data.model.Branch
 import com.example.pethub.data.model.Pet
 import com.example.pethub.data.model.ServiceItem
 import com.example.pethub.data.model.toServiceItem
-import com.example.pethub.data.repository.AppointmentRepository
 import com.example.pethub.data.repository.AuthRepository
 import com.example.pethub.data.repository.BranchRepository
 import com.example.pethub.data.repository.CustomerRepository
+import com.example.pethub.data.repository.NotificationRepository
 import com.example.pethub.data.repository.PetRepository
 import com.example.pethub.data.repository.ServiceRepository
 import com.example.pethub.utils.isServiceSuitableForPet
@@ -29,7 +29,7 @@ class HomeViewModel @Inject constructor(
     private val petRepository: PetRepository,
     private val serviceRepository: ServiceRepository,
     private val branchRepository: BranchRepository,
-    private val appointmentRepository: AppointmentRepository
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -50,10 +50,16 @@ class HomeViewModel @Inject constructor(
     private val _branches = MutableStateFlow<List<Branch>>(emptyList())
     val branches: StateFlow<List<Branch>> = _branches.asStateFlow()
 
+    private val _hasUnreadNotifications = MutableStateFlow(false)
+    val hasUnreadNotifications: StateFlow<Boolean> = _hasUnreadNotifications.asStateFlow()
+
     private var recommendationJob: Job? = null
+    private var notificationListenerJob: Job? = null
 
     init {
         loadData()
+        // Start listening for notifications immediately
+        startNotificationListener()
     }
 
     fun loadData() {
@@ -90,6 +96,22 @@ class HomeViewModel @Inject constructor(
             _userName.value = customer?.custName?.takeIf { it.isNotEmpty() } ?: "Guest"
         } catch (e: Exception) {
             _userName.value = "Guest"
+        }
+    }
+
+    private fun startNotificationListener() {
+        // Cancel any existing listener
+        notificationListenerJob?.cancel()
+
+        notificationListenerJob = viewModelScope.launch {
+            try {
+                notificationRepository.hasUnreadNotifications().collect { hasUnread ->
+                    _hasUnreadNotifications.value = hasUnread
+                }
+            } catch (e: Exception) {
+                // If there's an error, default to false
+                _hasUnreadNotifications.value = false
+            }
         }
     }
 
@@ -150,6 +172,15 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         loadData()
+        // Restart the notification listener as well
+        startNotificationListener()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Clean up jobs when ViewModel is destroyed
+        notificationListenerJob?.cancel()
+        recommendationJob?.cancel()
     }
 }
 
@@ -158,4 +189,3 @@ sealed class HomeUiState {
     object Success : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
-

@@ -136,7 +136,10 @@ fun NavGraph(
 
         composable("notifications") {
             NotificationScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAppointmentDetail = { appointmentId -> // Accept the appointmentId here
+                    navController.navigate("appointmentDetail/$appointmentId")
+                }
             )
         }
 

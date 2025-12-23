@@ -26,7 +26,9 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
+import kotlin.jvm.optionals.getOrNull
 
 @Singleton
 class AppointmentRepository @Inject constructor(
@@ -35,6 +37,7 @@ class AppointmentRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val authRepository: AuthRepository,
     private val petRepository: PetRepository,
+    private val serviceRepository: ServiceRepository,
     private val notificationRepository: NotificationRepository,
 ) {
 
@@ -48,35 +51,165 @@ class AppointmentRepository @Inject constructor(
 
         val appointmentWithId = appointment.copy(appointmentId = newAppointmentRef.id)
 
-        // Use the await() from kotlinx-coroutines-tasks
-        newAppointmentRef.set(appointmentWithId).await() // <-- This was the caret position
+        newAppointmentRef.set(appointmentWithId).await()
 
         val custId = authRepository.getCurrentUserId()
         if (custId != null) {
-            notificationRepository.sendNotification(
-                custId = custId,
-                title = "Appointment Confirmed!",
-                message = "Your appointment has been successfully booked.",
-                type = "appointment"
-            )
+            try {
+                // Fetch related details for a richer notification message
+                val serviceTypeResult = firestoreHelper.getDocumentField(
+                    collection = COLLECTION_SERVICE,
+                    documentId = appointmentWithId.serviceId,
+                    fieldName = "type",
+                    String::class.java
+                )
+                val serviceType = serviceTypeResult.getOrNull() ?: "a service"
+                val pet = petRepository.getPetById(custId, appointmentWithId.petId).getOrNull()
+                val formattedDate = SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault())
+                    .format(appointmentWithId.dateTime!!.toDate()) // Safe to use !! as dateTime is mandatory for creation
+
+                val message = "Your appointment for ${pet?.petName ?: "your pet"} ($serviceType) on $formattedDate has been booked."
+
+                notificationRepository.sendNotification(
+                    custId = custId,
+                    title = "Appointment Confirmed!",
+                    message = message, // Use the new detailed message
+                    type = "appointment",
+                    data = mapOf("appointmentId" to appointmentWithId.appointmentId)
+                )
+            } catch (e: Exception) {
+                println("Failed to send detailed creation notification: ${e.message}")
+                // Fallback to a generic notification if details can't be fetched
+                notificationRepository.sendNotification(
+                    custId = custId,
+                    title = "Appointment Confirmed!",
+                    message = "Your appointment has been successfully booked.",
+                    type = "appointment",
+                    data = mapOf("appointmentId" to appointmentWithId.appointmentId)
+                )
+            }
         }
     }
 
-    suspend fun removeAppointment(appointment: Appointment){
+    suspend fun removeAppointment(appointment: Appointment) {
+        // Delete the appointment first
         firestoreHelper.deleteDocument(
             collection = COLLECTION_APPOINTMENT,
             documentId = appointment.appointmentId
         )
+
+        try {
+            // Get the pet document to find the customer ID
+            val petResult = firestoreHelper.getDocument(
+                collection = COLLECTION_PET,
+                documentId = appointment.petId,
+                clazz = Pet::class.java
+            )
+            val pet = petResult.getOrNull()
+
+            // Get custId from the pet, NOT from authRepository
+            val custId = pet?.custId
+
+            if (!custId.isNullOrBlank()) {
+                // Fetch service type for detailed message
+                val serviceTypeResult = firestoreHelper.getDocumentField(
+                    collection = COLLECTION_SERVICE,
+                    documentId = appointment.serviceId,
+                    fieldName = "type",
+                    String::class.java
+                )
+                val serviceType = serviceTypeResult.getOrNull() ?: "a service"
+
+                val formattedDate = appointment.dateTime?.let {
+                    SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault()).format(it.toDate())
+                } ?: "a recent date"
+
+                val message = "Your appointment for ${pet.petName} ($serviceType) on $formattedDate has been canceled."
+
+                notificationRepository.sendNotification(
+                    custId = custId,  // Use the customer's ID from the pet, not the admin's
+                    title = "Appointment Canceled",
+                    message = message,
+                    type = "appointment",
+                    data = mapOf("appointmentId" to appointment.appointmentId)
+                )
+
+                println("✅ Cancellation notification sent to customer: $custId")
+            } else {
+                println("❌ Could not find customer ID for pet: ${appointment.petId}")
+            }
+        } catch (e: Exception) {
+            println("❌ Failed to send cancellation notification: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     suspend fun rescheduleAppointment(appointmentId: String, newDateTime: Timestamp): Result<Unit> {
-        return firestoreHelper.updateDocument(
+        val result = firestoreHelper.updateDocument(
             collection = COLLECTION_APPOINTMENT,
             documentId = appointmentId,
             updates = mapOf("dateTime" to newDateTime)
         )
-    }
 
+        if (result.isSuccess) {
+            try {
+                // Get the appointment details first
+                val appointment = getAppointmentDetail(appointmentId).getOrNull()
+
+                if (appointment != null) {
+                    val petId = appointment.petId
+                    val serviceId = appointment.serviceId
+
+                    // Get the pet document to find the customer ID
+                    val petResult = firestoreHelper.getDocument(
+                        collection = COLLECTION_PET,
+                        documentId = petId,
+                        clazz = Pet::class.java
+                    )
+                    val pet = petResult.getOrNull()
+
+                    // Get custId from the pet, NOT from authRepository
+                    val custId = pet?.custId
+
+                    if (!custId.isNullOrBlank()) {
+                        // Fetch service type
+                        val serviceTypeResult = firestoreHelper.getDocumentField(
+                            collection = COLLECTION_SERVICE,
+                            documentId = serviceId,
+                            fieldName = "type",
+                            String::class.java
+                        )
+                        val serviceType = serviceTypeResult.getOrNull() ?: "a service"
+
+                        val formattedNewDate = SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault())
+                            .format(newDateTime.toDate())
+
+                        val message = "Your appointment for ${pet.petName} ($serviceType) has been rescheduled to $formattedNewDate."
+
+                        notificationRepository.sendNotification(
+                            custId = custId,  // Use the customer's ID from the pet, not the admin's
+                            title = "Appointment Rescheduled!",
+                            message = message,
+                            type = "appointment",
+                            data = mapOf("appointmentId" to appointmentId)
+                        )
+
+                        println("✅ Reschedule notification sent to customer: $custId")
+                    } else {
+                        println("❌ Could not find customer ID for pet: $petId")
+                    }
+                } else {
+                    println("❌ Appointment not found: $appointmentId")
+                }
+            } catch (e: Exception) {
+                println("❌ Failed to send reschedule notification: ${e.message}")
+                e.printStackTrace()  // Add this to see the full error in logs
+            }
+        } else {
+            println("❌ Failed to update appointment in Firestore")
+        }
+        return result
+    }
 
     suspend fun getAllAppointments(): Result<List<Appointment>> {
         return firestoreHelper.getAllDocuments(
