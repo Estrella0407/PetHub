@@ -279,42 +279,73 @@ class FirebaseService @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 val base64Image = encodeImageToBase64(uri) ?: return@withContext Result.failure(Exception("Failed to encode image"))
-
-                onProgress?.invoke(10f)
-
-                val formBody = FormBody.Builder()
-                    .add("key", IMGBB_API_KEY)
-                    .add("image", base64Image)
-                    .build()
-
-                val request = Request.Builder()
-                    .url("https://api.imgbb.com/1/upload")
-                    .post(formBody)
-                    .build()
-
-                onProgress?.invoke(50f)
-
-                val response = client.newCall(request).execute()
-
-                if (!response.isSuccessful) {
-                    return@withContext Result.failure(Exception("ImgBB Upload failed: ${response.message}"))
-                }
-
-                val responseBody = response.body?.string() ?: ""
-                val jsonResponse = JSONObject(responseBody)
-
-                if (jsonResponse.has("error")) {
-                    val errorMsg = jsonResponse.getJSONObject("error").getString("message")
-                    return@withContext Result.failure(Exception("ImgBB Error: $errorMsg"))
-                }
-
-                val imageUrl = jsonResponse.getJSONObject("data").getString("url")
-
-                onProgress?.invoke(100f)
-                Result.success(imageUrl)
+                uploadBase64Image(base64Image, onProgress)
             } catch (e: Exception) {
                 Result.failure(e)
             }
+        }
+    }
+
+    /**
+     * Upload Bitmap to ImgBB
+     */
+    suspend fun uploadBitmap(
+        bitmap: Bitmap,
+        onProgress: ((Float) -> Unit)? = null
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                val base64Image = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                
+                uploadBase64Image(base64Image, onProgress)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    private suspend fun uploadBase64Image(
+        base64Image: String,
+        onProgress: ((Float) -> Unit)? = null
+    ): Result<String> {
+        return try {
+            onProgress?.invoke(10f)
+
+            val formBody = FormBody.Builder()
+                .add("key", IMGBB_API_KEY)
+                .add("image", base64Image)
+                .build()
+
+            val request = Request.Builder()
+                .url("https://api.imgbb.com/1/upload")
+                .post(formBody)
+                .build()
+
+            onProgress?.invoke(50f)
+
+            val response = client.newCall(request).execute()
+
+            if (!response.isSuccessful) {
+                return Result.failure(Exception("ImgBB Upload failed: ${response.message}"))
+            }
+
+            val responseBody = response.body?.string() ?: ""
+            val jsonResponse = JSONObject(responseBody)
+
+            if (jsonResponse.has("error")) {
+                val errorMsg = jsonResponse.getJSONObject("error").getString("message")
+                return Result.failure(Exception("ImgBB Error: $errorMsg"))
+            }
+
+            val imageUrl = jsonResponse.getJSONObject("data").getString("url")
+
+            onProgress?.invoke(100f)
+            Result.success(imageUrl)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -347,6 +378,10 @@ class FirebaseService @Inject constructor(
 
     suspend fun uploadServiceImage(serviceId: String, imageUri: Uri, onProgress: ((Float) -> Unit)? = null): Result<String> {
         return uploadImage(imageUri, onProgress)
+    }
+
+    suspend fun uploadPetQrCode(userId: String, petId: String, bitmap: Bitmap): Result<String> {
+        return uploadBitmap(bitmap)
     }
 
 

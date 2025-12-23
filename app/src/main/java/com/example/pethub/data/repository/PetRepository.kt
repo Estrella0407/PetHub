@@ -88,12 +88,21 @@ class PetRepository @Inject constructor(
     suspend fun addPet(userId: String, pet: Pet): Result<String> {
         return try {
             val docRef = firestoreHelper.getFirestoreInstance().collection(COLLECTION_PET).document()
+            val petId = docRef.id
+            
+            // Generate and upload QR code
+            val qrBitmap = com.example.pethub.util.QrCodeGenerator.generateQrCode(petId)
+            val qrUrl = if (qrBitmap != null) {
+                firebaseService.uploadPetQrCode(userId, petId, qrBitmap).getOrNull()
+            } else null
+
             val petData = pet.copy(
-                petId = docRef.id,
+                petId = petId,
                 custId = userId,
+                qrUrl = qrUrl
             )
             docRef.set(petData).await()
-            Result.success(docRef.id)
+            Result.success(petId)
         } catch (e: Exception) {
             Result.failure(e)
         }
