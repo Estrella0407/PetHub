@@ -290,14 +290,7 @@ fun NavGraph(
 
 
 
-        composable(
-            route = "petProfile/{petId}",
-            arguments = listOf(navArgument("petId") { type = NavType.StringType })
-        ) {
-            PetProfileScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+
 
         // Admin screens
         composable("admin_home") {

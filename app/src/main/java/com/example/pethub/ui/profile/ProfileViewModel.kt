@@ -109,6 +109,8 @@ class ProfileViewModel @Inject constructor(
                             pets = rawData.pets
                         )
                     }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 println("DEBUG: ProfileViewModel error: ${e.message}")
                 e.printStackTrace()

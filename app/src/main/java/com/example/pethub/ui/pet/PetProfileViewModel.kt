@@ -127,12 +127,16 @@ class PetProfileViewModel @Inject constructor(
                         "remarks" to pet.remarks,
                         // Not updating DOB/Age via text to avoid parsing errors for now
                     )
-                    petRepository.updatePet(userId, pet.petId, updates)
-
-                    _uiState.update {
-                        currentState.copy(isUploading = false)
+                    val result = petRepository.updatePet(userId, pet.petId, updates)
+                    
+                    if (result.isSuccess) {
+                        _uiState.update {
+                            currentState.copy(isUploading = false)
+                        }
+                        _uiEvent.send(PetProfileEvent.ShowMessage("Pet details saved successfully"))
+                    } else {
+                        throw result.exceptionOrNull() ?: Exception("Failed to update pet")
                     }
-                    _uiEvent.send(PetProfileEvent.ShowMessage("Pet details saved successfully"))
                 } catch (e: Exception) {
                     _uiState.update {
                         PetProfileUiState.Error(e.message ?: "Failed to save changes")
